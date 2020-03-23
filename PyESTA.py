@@ -165,8 +165,8 @@ ParameterList = 'TauPulse'
 ParameterRanges = [x/1000.0 for x in range(10,31,2)]
 
 #Define which diagnostics are to be performed
-IPlasmaCurrent = True		#Plots plasma current trends
-ICoilRamp = False			#Plots maximum dI/dt in each coil
+IPlasmaCurrent = False		#Plots plasma current trends
+ICoilRamp = True			#Plots maximum dI/dt in each coil
 
 IEquil_Seperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 IEquil_Midplane = False		#Plots 2D Radial slice at Z=0 trends
@@ -414,65 +414,25 @@ Matplotlib_GlobalOptions()	#MUST BE RUN BEFORE ANY DIAGNOSTICS!!!!
 
 #=========================#
 
-def ReadDataFromFile(Filename,Dimension='2D',Orientation='Horizontal'):
-	OutputData = list()
+#Constructs and executes matlab command to run FIESTA
+#Takes FIESTA .m file name and returns nothing
+#Example: RunFIESTA('FIESTA.m')
+def RunFIESTA(FIESTAName,Verbose=False):
 
-	#If data is saved 'Row-wise', use default readin routine.
-	if Orientation == 'Horizontal':
-		#Determine dimensionality of profile.
-		if Dimension == '2D':
-			#Read in 2D data from ASCII formatted file.
-			datafile = open(Filename)
-			RawData = datafile.readlines()
-			for m in range(0,len(RawData)):
-				Row = RawData[m].split()
-				for n in range(0,len(Row)):
-					try: Row[n] = float(Row[n])
-					except: Row[n] = str(Row[n])
-				#endfor
-				OutputData.append(Row)
-			#endfor
-		#endif
+	#Construct terminal command to run requested version of FIESTA
+	#Example: matlab -nodisplay -nosplash -nodesktop -r "run('/path/to/FIESTA_Script');exit;"
+	FIESTA_RootDir = os.getcwd()+'/'+FIESTAName
+	FIESTA_Splash = '-nodisplay -nosplash -nodesktop -r '
+	FIESTA_RunCMD = '\"run(\''+FIESTA_RootDir+'\');exit;\"'
+	if Verbose == True or DebugMode == True:	FIESTA_Output = ''
+	elif Verbose == False: 						FIESTA_Output = ' > Output.txt'
 
-	#=====#
+	ExecuteFIESTA = 'matlab '+FIESTA_Splash+FIESTA_RunCMD+FIESTA_Output
 
-	#If data is saved 'column-wise', transpose the arrays to correct.
-	elif Orientation == 'Vertical':
-		#Determine dimensionality of profile.
-		if Dimension == '2D':
-			#Read in 2D data from ASCII formatted file.
-			datafile = open(Filename)
-			RawData = datafile.readlines()
-			for m in range(0,len(RawData)):
-				Row = RawData[m].split()
+	#Execute FIESTA script in terminal
+	os.system( ExecuteFIESTA )
 
-				#Determine how many rows of data exist.
-				if len(OutputData) == 0:
-					for i in range(0,len(Row)): OutputData.append(list())
-				#endif
-				for j in range(0,len(Row)):
-					try: Row[j] = float(Row[j])
-					except: Row[j] = str(Row[j])
-				#endfor
-				for k in range(0,len(OutputData)):
-					OutputData[k].append(Row[k])
-				#endfor
-			#endfor
-		#endif
-	#endif
-
-	#Lowest dimention is scalar: ==> 1D array.
-	#Orientation doesn't matter if 1D.
-	elif Dimension == '1D':
-		#Read in 1D data from ASCII formatted file.
-		datafile = open(Filename)
-		Row = datafile.readline().split()
-		for m in range(0,len(Row)):
-			OutputData.append(float(Row[m]))
-		#endfor
-	#endif
-
-	return(OutputData)
+	return()
 #enddef
 
 #=========================#
@@ -528,64 +488,135 @@ def AlterNamelistVariable(Namelist_Dir,ParameterList,VariableValue):
 
 #=========================#
 
-def ObtainSeriesDirectories(ProjectName,SeriesName,Root=True):
+#Returns sub-folder directories within supplied simulation series folder
+#Takes simulation series local directory name
+#Returns sub-folder names within series directory in 'raw' and 'clean' format
+#Can supply directories relative to cwd() or relative to root ('/home/...')
+#Example: SeriesSubDirContents = ExtractSeriesDirs(SeriesDir,Root=True)[1]
+def ExtractSeriesDirs(SeriesDirectoryName,Root=True):
 
-	#Get simulation folder directories from FIESTA namelist
-	ProjectName = FindNamelistVariable(FIESTAName,'ProjectName')[0].strip('\'')
-	SeriesNameName = FindNamelistVariable(FIESTAName,'SeriesName')[0].strip('\'')
-	#SimName = FindNamelistVariable(FIESTAName,'SimName')[0]
-	SeriesDirectoryName = SeriesName+'_'+ProjectName
-
-	#Obtain home directory and contents
-	SeriesDir = os.listdir( os.path.abspath(SeriesDirectoryName) )
-	SeriesDirContents = os.listdir( os.path.abspath(SeriesDirectoryName) )
-	#Remove any non-folder directories with SeriesDir and correct bash 'grammar'
-	for i in range(0,len(SeriesDirContents)):
+	#Obtain simulation series folder directories and create list for contents
+	SeriesDirsRaw = os.listdir( os.path.abspath(SeriesDirectoryName) )
+	SeriesDirsCleaned = list()
+	
+	#Remove any non-folder directories in SeriesDirsRaw and correct bash 'grammar'
+	for i in range(0,len(SeriesDirsRaw)):
 
 		#Define simulation series directories from root or relative to local directory
 		if Root == True: RootDir = os.getcwd()+'/'+SeriesDirectoryName
 		else: RootDir = SeriesDirectoryName
 
-		#Remove any non-folder entries for safety.
-		if os.path.isdir(SeriesDirContents[i]) == False:
-			SeriesDirContents[i] = ''+RootDir+'/'+SeriesDirContents[i]+''
-#				del(SeriesDirContents[i])
-#				i = i-1
-#			elif os.path.isdir(SeriesDirContents[i]) == True:
-#				SeriesDirContents[i] = ''+RootDir+'/'+SeriesDirContents[i]+''
-#				Data_Is_A_Folder=1
+		#Remove any non-folder entries - assume all folders are simulation directories
+		if os.path.isdir(SeriesDirsRaw[i]) == False:
+			SeriesDirsCleaned.append( ''+RootDir+'/'+SeriesDirsRaw[i]+'' )	#!!!BROKEN!!!
+#		elif os.path.isdir(SeriesDirsRaw[i]) == True:
+#			SeriesDirsCleaned.append( ''+RootDir+'/'+SeriesDirsRaw[i]+'' )	#!!!SHOULD_BE_THIS!!!
 		#endif
 	#endfor
 
-	#Maintain alphanumerical foldername structure
-	SeriesDir,SeriesDirContents = sorted(SeriesDir),sorted(SeriesDirContents)
+	#Maintain alphanumerical foldername ordering
+	SeriesDirsRaw,SeriesDirsCleaned = sorted(SeriesDirsRaw),sorted(SeriesDirsCleaned)
 
 	#Return all folder directories in requested simulation series
-	return(SeriesDir,SeriesDirContents)
+	return(SeriesDirsRaw,SeriesDirsCleaned)
 #enddef
 
 #=========================#
 
-#Constructs and executes matlab command to run FIESTA
-#Takes FIESTA .m file name and returns nothing
-#Example: RunFIESTA('FIESTA.m')
-def RunFIESTA(FIESTAName,Verbose=False):
+def ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical'):
+	OutputData = list()
 
-	#Construct terminal command to run requested version of FIESTA
-	#Example: matlab -nodisplay -nosplash -nodesktop -r "run('/path/to/FIESTA_Script');exit;"
-	FIESTA_RootDir = os.getcwd()+'/'+FIESTAName
-	FIESTA_Splash = '-nodisplay -nosplash -nodesktop -r '
-	FIESTA_RunCMD = '\"run(\''+FIESTA_RootDir+'\');exit;\"'
-	if Verbose == True or DebugMode == True:	FIESTA_Output = ''
-	elif Verbose == False: 						FIESTA_Output = ' > Output.txt'
+	#If data is saved 'Row-wise', use default readin routine.
+	if Orientation == 'Horizontal':
+		#Determine dimensionality of profile.
+		if Dimension == '2D':
+			#Read in 2D data from ASCII formatted file.
+			datafile = open(Filename)
+			RawData = datafile.readlines()
+			for m in range(0,len(RawData)):
+				Row = RawData[m].split()
+				for n in range(0,len(Row)):
+					try: Row[n] = float(Row[n])
+					except: Row[n] = str(Row[n])
+				#endfor
+				OutputData.append(Row)
+			#endfor
+		#endif
 
-	ExecuteFIESTA = 'matlab '+FIESTA_Splash+FIESTA_RunCMD+FIESTA_Output
+	#=====#
 
-	#Execute FIESTA script in terminal
-	os.system( ExecuteFIESTA )
+	#If data is saved 'column-wise', transpose the arrays to correct.
+	elif Orientation == 'Vertical':
+		#Determine dimensionality of profile.
+		if Dimension == '2D':
+			#Read in 2D data from ASCII formatted file.
+			datafile = open(Filename)
+			RawData = datafile.readlines()
+			for m in range(0,len(RawData)):
+				Row = RawData[m].split()
 
-	return()
-#end
+				#Determine how many rows of data exist.
+				if len(OutputData) == 0:
+					for i in range(0,len(Row)): OutputData.append(list())
+				#endif
+				for j in range(0,len(Row)):
+					try: Row[j] = float(Row[j])
+					except: Row[j] = str(Row[j])
+				#endfor
+				for k in range(0,len(OutputData)):
+					OutputData[k].append(Row[k])
+				#endfor
+			#endfor
+		#endif
+	#endif
+
+	#Orientation doesn't exist if 0D (scalar).
+	elif Dimension == '0D':
+		#Read in 0D data from ASCII formatted file.
+		datafile = open(Filename)
+		Row = datafile.readline().split()
+		for m in range(0,len(Row)):
+			OutputData.append(float(Row[m]))
+		#endfor
+	#endif
+
+	return(OutputData)
+#enddef
+
+#=========================#
+
+def ExtractFIESTAData(SeriesDir,DataFileName,Dimension='2D',Orientation='Vertical'):
+
+	#Create any required arrays for data storage
+	GlobalDataArray,OrderedDataArrays = list(),list()
+
+	#Obtain simulation folder directories for project and requested run series
+	HomeDir = os.getcwd()
+	SeriesSubDirs = ExtractSeriesDirs(SeriesDir,Root=True)[0]
+	SeriesSubDirContents = ExtractSeriesDirs(SeriesDir,Root=True)[1]
+
+	#For all simulation directories in the requested simulation series
+	for i in range(0,len(SeriesSubDirs)):
+		#cd into the relevent directory and extract the data
+		os.chdir(SeriesSubDirContents[i])
+		GlobalDataArray.append(ReadDataFromFile(DataFileName,Dimension='2D',Orientation='Vertical'))
+	#endfor
+	#cd back into PyESTA directory for continuity
+	os.chdir(HomeDir)
+
+	#Reformat GlobalDataArray to enable easy splitting of column-wise variables
+	for i in range(0,len(GlobalDataArray[0])): OrderedDataArrays.append(list())
+	#GlobalDataArray organized as [Folder][Variable][Value]
+	#OrderedDataArrays organised as [Variable][Folder][Value]
+	for i in range(0,len(OrderedDataArrays)):
+		for j in range(0,len(GlobalDataArray)): 
+			OrderedDataArrays[i].append(GlobalDataArray[j][i])
+		#endfor
+	#endfor
+
+	#Return ordered data arrays
+	return(OrderedDataArrays)
+#enddef
 
 #=========================#
 
@@ -593,7 +624,7 @@ def RunFIESTA(FIESTAName,Verbose=False):
 #Takes directories of all folders in the simulation series folder
 #Returns a 1D array of floating values based on the varied parameter
 #Example: TrendAxis = CreateTrendAxis(SeriesSubDirs,ParameterList)
-def CreateTrendAxis(SeriesSubDirectories,VariableString,VariableStringOverride=''):
+def CreateTrendAxis(SeriesSubDirectories,VariableString,TrendAxisOverride=''):
 
 	#Create required list to store output
 	TrendAxis = list()
@@ -606,7 +637,7 @@ def CreateTrendAxis(SeriesSubDirectories,VariableString,VariableStringOverride='
 			if VariableString[2::] in SplitSubDir[j]:
 				TrendString = SplitSubDir[j]
 				break
-			elif VariableStringOverride in SplitSubDir[j]:
+			elif TrendAxisOverride in SplitSubDir[j]:
 				TrendString = SplitSubDir[j]
 				break
 			#endif
@@ -715,47 +746,32 @@ if IAutorun == True:
 if IPlasmaCurrent == True:
 
 	#Obtain simulation folder directories for project and requested run series
-	HomeDir = os.getcwd()
 	SeriesDir = SeriesName+'_'+ProjectName
-	SeriesSubDirs = ObtainSeriesDirectories(ProjectName,SeriesName,Root=True)[0]
-	SeriesSubDirContents = ObtainSeriesDirectories(ProjectName,SeriesName,Root=True)[1]
+	SeriesSubDirs = ExtractSeriesDirs(SeriesDir,Root=True)[0]
 
-	#Create any required arrays for data storage
-	Ip_Arrays,Time_Arrays = list(),list()
-	Ip_MaxTrend,Ip_MinTrend = list(),list()
-	TrendAxis = list()
-
-	#For all simulation directories in the requested simulation series
-	for i in range(0,len(SeriesSubDirs)):
-
-		#cd into the relevent directory and extract the plasma current data
-		os.chdir(SeriesSubDirContents[i])
-
-		Filename = 'Ip.txt'
-		Time_Arrays.append(ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical')[0])
-		Ip_Arrays.append(ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical')[1])
-	#endfor
-	#cd back into the home directory
-	os.chdir(HomeDir)
+	#Extract plasma current data from series directories
+	Time_Arrays = ExtractFIESTAData(SeriesDir,'Ip.txt','2D','Vertical')[0]
+	Ip_Arrays = ExtractFIESTAData(SeriesDir,'Ip.txt','2D','Vertical')[1]
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SeriesSubDirs,ParameterList,TrendAxisOverride='Tau')
 
-	#Rescale Ip data from [A] to [kA] for plotting
-	for i in range(0,len(Ip_Arrays)):
-		for j in range(0,len(Ip_Arrays[i])):
-			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
-		#endfor
-	#endfor
-
-	#Rescale time axis from [s] to [ms] for plotting
+	#Rescale data for plotting: [s] to [ms]
 	for i in range(0,len(Time_Arrays)):
 		for j in range(0,len(Time_Arrays[i])):
 			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
 		#endfor
 	#endfor
 
+	#Rescale data for plotting: [A] to [kA]
+	for i in range(0,len(Ip_Arrays)):
+		for j in range(0,len(Ip_Arrays[i])):
+			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
+		#endfor
+	#endfor
+
 	#Calculate maximum Ip for each simulation over the full series
+	Ip_MaxTrend,Ip_MinTrend = list(),list()
 	for i in range(0,len(Ip_Arrays)):
 		Ip_MaxTrend.append(max(Ip_Arrays[i]))
 		Ip_MinTrend.append(min(Ip_Arrays[i]))
@@ -822,40 +838,162 @@ if IPlasmaCurrent == True:
 #====================================================================#
 
 #Compare optimised plasma current profiles
-if IICoilRamp == True:
+if ICoilRamp == True:
 
 	#Obtain simulation folder directories for project and requested run series
-	HomeDir = os.getcwd()
 	SeriesDir = SeriesName+'_'+ProjectName
-	SeriesSubDirs = ObtainSeriesDirectories(ProjectName,SeriesName,Root=True)[0]
-	SeriesSubDirContents = ObtainSeriesDirectories(ProjectName,SeriesName,Root=True)[1]
+	SeriesSubDirs = ExtractSeriesDirs(SeriesDir,Root=True)[0]
 
-	#Create any required arrays for data storage
-	ICoil_Arrays,Time_Arrays = list(),list()
-	ICoil_MaxTrends,ICoil_MinTrends = list(),list()
-	TrendAxis = list()
+	#Extract coil currents and time axis from series directories
+	Filename = 'CoilCurrents_Phase_1.txt'
+	ISol_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[0]
+	IPF2_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[1]
+	IPF3_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[2]
+	IDiv1_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[3]
+	IDiv2_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[4]
+	Filename = 't.txt'
+	Time_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[0]
 
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SeriesSubDirs,ParameterList,TrendAxisOverride='Tau')
 
+	#Rescale data for plotting: [s] to [ms]
+	for i in range(0,len(Time_Arrays)):
+		for j in range(0,len(Time_Arrays[i])):
+			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
+		#endfor
+	#endfor
+
+	#Rescale data for plotting: [A] to [kA]
+	for i in range(0,len(ISol_Arrays)):
+		for j in range(0,len(ISol_Arrays[i])):
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0
+			IPF3_Arrays[i][j] = IPF3_Arrays[i][j]/1000.0
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0
+		#endfor
+	#endfor
+
+	#Calculate dI/dt for each coil set
+	DeltaIPF2,DeltaIPF3 = list(),list()
+	DeltaIDiv1,DeltaIDiv2 = list(),list()
+	DeltaISol = list()
+	for i in range(0,len(ISol_Arrays)):
+		DeltaISol.append(list())
+		DeltaIPF2.append(list())
+		DeltaIPF3.append(list())
+		DeltaIDiv1.append(list())
+		DeltaIDiv2.append(list())
+		for j in range(1,len(ISol_Arrays[i])):
+			Delta_t = Time_Arrays[i][j]-Time_Arrays[i][j-1]
+			#
+			DeltaISol[i].append( (ISol_Arrays[i][j]-ISol_Arrays[i][j-1])/Delta_t )
+			DeltaIPF2[i].append( (IPF2_Arrays[i][j]-IPF2_Arrays[i][j-1])/Delta_t )
+			DeltaIPF3[i].append( (IPF3_Arrays[i][j]-IPF3_Arrays[i][j-1])/Delta_t )
+			DeltaIDiv1[i].append( (IDiv1_Arrays[i][j]-IDiv1_Arrays[i][j-1])/Delta_t )
+			DeltaIDiv2[i].append( (IDiv2_Arrays[i][j]-IDiv2_Arrays[i][j-1])/Delta_t )
+		#endfor
+	#endfor
+
+	#Calculate maximum change in current experienced for each coil set
+	MaxDeltaIPF2,MaxDeltaIPF3 = list(),list()
+	MaxDeltaIDiv1,MaxDeltaIDiv2 = list(),list()
+	MaxDeltaISol = list()
+	for i in range(0,len(DeltaISol)):
+		MaxDeltaISol.append( max(DeltaISol[i], key=abs) )
+		MaxDeltaIPF2.append( max(DeltaIPF2[i], key=abs) )
+		MaxDeltaIPF3.append( max(DeltaIPF3[i], key=abs) )
+		MaxDeltaIDiv1.append( max(DeltaIDiv1[i], key=abs) )
+		MaxDeltaIDiv2.append( max(DeltaIDiv2[i], key=abs) )
+	#endfor
+
+	####################
+
+	#Create figure for Coil Ramp Time Trace diagnostic
+	fig,ax = plt.subplots(2, figsize=(12,14), sharex=True)
+
+	#Choose which simulation to plot - HACKY FOR NOW!!!
+	#!!!! Should be changed to a loop and save in a new folder !!!!
+	SimIndex = 0
+
+	#Plot each coil current with respect to time
+	ax[0].plot(ISol_Arrays[SimIndex], 'k-', lw=2)
+	ax[0].plot(IPF2_Arrays[SimIndex], 'r-', lw=2)
+	ax[0].plot(IPF3_Arrays[SimIndex], 'b-', lw=2)
+	ax[0].plot(IDiv1_Arrays[SimIndex], 'c-', lw=2)
+	ax[0].plot(IDiv2_Arrays[SimIndex], 'm-', lw=2)
+
+	Range = '['+str(min(ParameterRanges))+' - '+str(max(ParameterRanges))+']'
+	ax[0].set_title('Time-Traces of Coil Currents for '+ParameterList+' in '+Range, fontsize=20, y=1.03)
+	Legend = ['Sol','PF2','PF3','Div1','Div2']
+	ax[0].legend(Legend, fontsize=22, loc=3, ncol=2, frameon=False)
+	ax[0].set_ylabel('Coil Current $I$ [kA]', fontsize=25)
+#	ax[0].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#	ax[0].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax[0].yaxis.set_major_locator(ticker.MultipleLocator(240))
+	ax[0].tick_params(axis='x', labelsize=20)
+	ax[0].tick_params(axis='y', labelsize=20)
+#	ax[0].set_xlim(-50,100)		
+#	ax[0].set_ylim(2,32)
+
+	#Plot derivitive of each coil current with respect to time
+	ax[1].plot(DeltaISol[SimIndex], 'k-', lw=2)
+	ax[1].plot(DeltaIPF2[SimIndex], 'r-', lw=2)
+	ax[1].plot(DeltaIPF3[SimIndex], 'b-', lw=2)
+	ax[1].plot(DeltaIDiv1[SimIndex], 'c-', lw=2)
+	ax[1].plot(DeltaIDiv2[SimIndex], 'm-', lw=2)
+
+	Range = '['+str(min(ParameterRanges))+' - '+str(max(ParameterRanges))+']'
+	ax[1].set_title('Time-Traces of Delta Coil Currents for '+ParameterList+' in '+Range, fontsize=20, y=1.03)
+	Legend = ['Sol','PF2','PF3','Div1','Div2']
+	ax[1].legend(Legend, fontsize=22, loc=3, ncol=2, frameon=False)
+	ax[1].set_ylabel('Change in Coil Current \n $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
+	ax[1].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#	ax[1].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax[1].yaxis.set_major_locator(ticker.MultipleLocator(240))
+	ax[1].tick_params(axis='x', labelsize=20)
+	ax[1].tick_params(axis='y', labelsize=20)
+#	ax[1].set_xlim(-50,100)		
+#	ax[1].set_ylim(2,32)
+
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+#	plt.savefig(SeriesDir+'/CoilRamp_Trends.png')
+	plt.savefig('CoilRamp_TimeTrace.png')
+	plt.show()
+	plt.close('all')
+
+	####################	####################
+	####################	####################
+
+	#Create figure for Coil Maximum Ramp Diagnostic
+	fig,ax = plt.subplots(1, figsize=(12,8))
+
+	#Plot derivitive of each coil current with respect to time
+	ax.plot(TrendAxis,MaxDeltaISol, 'ko-', ms=10, lw=2)
+	ax.plot(TrendAxis,MaxDeltaIPF2, 'r^-', ms=10, lw=2)
+	ax.plot(TrendAxis,MaxDeltaIPF3, 'bs-', ms=10, lw=2)
+	ax.plot(TrendAxis,MaxDeltaIDiv1, 'c*-', ms=10, lw=2)
+	ax.plot(TrendAxis,MaxDeltaIDiv2, 'mh-', ms=10, lw=2)
+
+	ax.set_title('Maximum Delta Coil Current for Varying '+ParameterList, fontsize=20, y=1.03)
+	Legend = ['Sol','PF2','PF3','Div1','Div2']
+	ax.legend(Legend, fontsize=22, loc=4, frameon=False)
+	ax.set_ylabel('Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
+	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+	ax.xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
+#	ax.yaxis.set_major_locator(ticker.MultipleLocator(50))
+	ax.tick_params(axis='x', labelsize=20)
+	ax.tick_params(axis='y', labelsize=20)
+#	ax.set_xlim(0,0)		
+#	ax.set_ylim(0,0)
+
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+#	plt.savefig(SeriesDir+'/CoilRamp_Trends.png')
+	plt.savefig('CoilRamp_Trends.png')
+	plt.show()
+	plt.close('all')
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #=====================================================================#
 #=====================================================================#

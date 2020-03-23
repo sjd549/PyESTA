@@ -637,45 +637,6 @@ saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                      DATA OUTPUT TO TEXT FILES                        %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%Scale currents by ???FACTORS??? for ???REASONS???
-a=I_PF_output(:,1).*800;    %Sol?
-b=I_PF_output(:,2).*24;     %PF2?
-c=I_PF_output(:,3).*24;     %PF3?
-d=I_PF_output(:,4).*24;     %Div1?
-e=I_PF_output(:,5).*24;     %Div2?
-
-Filename = strcat(RunDir,'CoilCurrents_Phase_1.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[a'; b'; c'; d'; e']);
-
-Filename = strcat(RunDir,'t.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%1.12f\r\n',time_adaptive);
-
-Filename = strcat(RunDir,'Ip.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
-
-Filename = strcat(RunDir,'IPass.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive']);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-
-
-
-
-
-
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %              DETERMINE EDDY CURRENTS WITHIN THE VESSEL                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -867,8 +828,35 @@ saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
 
 
 
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                      DATA OUTPUT TO TEXT FILES                        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Scale currents by ???FACTORS??? for ???REASONS???
+a=I_PF_output(:,1).*800;    %Sol?
+b=I_PF_output(:,2).*24;     %PF2?
+c=I_PF_output(:,3).*24;     %PF3?
+d=I_PF_output(:,4).*24;     %Div1?
+e=I_PF_output(:,5).*24;     %Div2?
 
+Filename = strcat(RunDir,'CoilCurrents.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[a'; b'; c'; d'; e']);
+
+Filename = strcat(RunDir,'t.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%1.12f\r\n',time_adaptive);
+
+Filename = strcat(RunDir,'Ip.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
+
+Filename = strcat(RunDir,'IPass.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive']);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
