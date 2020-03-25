@@ -60,6 +60,7 @@ import math as m
 import subprocess
 import os, sys
 import os.path
+import time
 
 #Enforce matplotlib to avoid instancing undisplayed windows
 #matplotlib-tcl-asyncdelete-async-handler-deleted-by-the-wrong-thread
@@ -75,6 +76,9 @@ from matplotlib import ticker
 from scipy import ndimage
 from tqdm import tqdm
 from pylab import *
+
+#====================================================================#
+#====================================================================#
 
 
 
@@ -98,9 +102,18 @@ IDebugMode = False			#Produces debug outputs for relevent diagnostics.
 #Set default parallelisation options
 IParallel = False			#Allow multiple simultanious FIESTA simulations
 NumThreads = 2				#Maximum number of threads avaliable to FIESTA
+ConvDelay = 10	#[s]		#Delay between convergence checks for race condition
+
+#====================================================================#
+#====================================================================#
 
 
-####################
+
+
+
+#====================================================================#
+					  	#PyESTA NAMELIST FILE#
+#====================================================================#
 
 #Commonly Used Settings:
 #### SMART_V3Phase1 ####
@@ -133,66 +146,7 @@ NumThreads = 2				#Maximum number of threads avaliable to FIESTA
 ####################
 
 
-
-
-#ParameterList = 'I_PF2' 
-#ParameterRanges = [-1175,-1150,-1125,-1100,-1075,-1050,-1025,-1000] 	
-
-#ParameterList = 'I_Div2'
-#ParameterRanges = [4400,4200,4000,3800,3600,3400,3200]
-
-#ParameterList = 'TauPulse'
-#ParameterRanges = [x/1000.0 for x in range(10,31,2)]
-
-#ParameterList = 'ZScale'
-#ParameterRanges = [0.8,0.85,0.9,0.95,1.0]
-
-
-#====================================================================#
-					  #SWITCHBOARD AND SETTINGS#
-#====================================================================#
-
-#Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'SMART-V3p1'			#Define global project name
-SeriesName = 'CurrentRun'			#Define parameter scan series name
-
-#Define if simulations are to be run
-IAutorun = False
-
-#Define paramters to be varied and ranges to be varied over
-ParameterList = 'TauPulse'
-ParameterRanges = [x/1000.0 for x in range(10,31,2)]
-
-#Define which diagnostics are to be performed
-IPlasmaCurrent = False		#Plots plasma current trends
-ICoilRamp = True			#Plots maximum dI/dt in each coil
-
-IEquil_Seperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
-IEquil_Midplane = False		#Plots 2D Radial slice at Z=0 trends
-IEquil_Xpoint = False		#Plots X-point location (R,Z) trends
-
-
-
-#HACKY INPUTS
-#SeriesName = ParameterList			#Overwrite Series Name with varied parameter for now
-TrendAxisOverride='Tau'				#Force trend naming routine to recognise trend variable
-
-#====================================================================#
-#====================================================================#
-
-
-
-
-
-
-
-
-
-
-#====================================================================#
-					  	#PyESTA NAMELIST FILE#
-#====================================================================#
+#######################  DEFINE VESSEL GEOMETRY  #######################
 
 #Define Vessel Outer Geometry
 VesselRInnerPoint=0.15; # R min position [m]
@@ -259,7 +213,7 @@ Ip = 30e3			# Plasma current     [A]
 li2 = 1				#                    [-]
 #q_cyl = 2.821		# Safety Factor      [-]
 betaN = 3.529		#                    [-] (Obtained via VEST Excel)
-TauPulse = 0.020	# Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
+TauP = 0.020		# Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
 
 #Compute Further Operating Conditions
 BT=0.1								# Toroidal B-Field            [T]
@@ -280,15 +234,15 @@ coil_temp = 293.0;					# Coil Init Temperature       [K]
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
 #Phase1 coil currents [kA]                  %SJDoyle
-I_Sol_start=1500;      #+1500 -> +1500;     #+1500;
-I_Sol_ramp=-1100;      #-1100 -> -1150;     #-1100;
-I_Sol_equil=-1500;     #-1500 -> -1500;     #-1500;
+I_Sol_start=1300;      #+1300 -> +1500;     #+1300;
+I_Sol_ramp=-900;       #-0900 -> -1100;     #-1100;
+I_Sol_equil=-1300;     #-1300 -> -1500;     #-1300;
 #
 I_PF1=0;               #-0    -> -0         #N/A
-I_PF2=-1175;           #-1000 -> -1175;     #-1175;
-I_PF3=-900;            #-0900 -> -0900;     #-0900;
+I_PF2=-900;            #-0900 -> -1200;     #-1000;
+I_PF3=-800;            #-0800 -> -0900;     #-0800;
 I_Div1=-000;           #-0000 -> -0000;     #+0000;
-I_Div2=+4440;          #+3200 -> +4440;     #+4440;
+I_Div2=+3200;          #+3200 -> +4440;     #+3200;
 
 #Phase2 coil currents [kA]
 #I_Sol_start=+4700;    #+4700 -> +4700;     #+4700;
@@ -319,6 +273,62 @@ I_Div2=+4440;          #+3200 -> +4440;     #+4440;
 
 
 
+#====================================================================#
+					  #SWITCHBOARD AND SETTINGS#
+#====================================================================#
+
+#ParameterList = 'I_PF2' 
+#ParameterRanges = [x/1.0 for x in range(-1200,-899,50)] 	
+
+#ParameterList = 'I_Div2'
+#ParameterRanges = [x/1.0 for x in range(3200,4401,100)]
+
+#ParameterList = 'TauP'
+#ParameterRanges = [x/1000.0 for x in range(10,31,2)]
+
+#ParameterList = 'ZScale'
+#ParameterRanges = [0.8,0.85,0.9,0.95,1.0]
+
+####################
+
+#Define FIESTA namelist and project directory names
+FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
+ProjectName = 'SMARTxs-P1'			#Define global project name
+SeriesName = 'VaryIPF2'				#Define parameter scan series name
+
+#Define simulation name structure:
+SimNameList = ['BT','TauP','I_Sol_start','I_PF2','I_Div2']
+#SimNameList = ['ZScale','BT','TauP','I_Sol_start','I_PF2','I_Div2']
+#SimNameList = ['Z_PF2','Z_PF3','Z_Div1','Z_Div2']
+
+#Define if simulations are to be run
+IAutorun = False					#Run requested simulation series
+IParallel = False					#Enable mutli-simulations in parallel
+IVerbose = True					#Verbose terminal output - not compatable with IParallel
+
+#Define paramters to be varied and ranges to be varied over
+ParameterList = 'I_Div2' #'TauP'
+ParameterRanges = [x/1.0 for x in range(3200,4401,100)]#[x/1000.0 for x in range(10,31,2)]
+
+#Define which diagnostics are to be performed
+savefig_PlasmaCurrent = True		#Plots plasma current trends
+savefig_CoilCurrents = True		#Plots maximum dI/dt in each coil
+
+savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
+savefig_IquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
+savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
+
+
+
+#Override diagnostic functions
+TrendAxisOverride=''				#Force trend naming routine to recognise trend variable
+
+#====================================================================#
+#====================================================================#
+
+
+
+
 
 
 
@@ -331,29 +341,26 @@ I_Div2=+4440;          #+3200 -> +4440;     #+4440;
 #TO DO
 
 #CORE FUNCTIONALITY
-#Rather than modifying the .m file, make a modified copy and place it into the output folder
 #Rename all output text files in a HPEM style format and make a standardised ASCII format
 #Add capability to search for specific data files using a lambda function for data read-in
-#Add ability to change all geometric and coil variables
 #Add ability to change multiple variables per run
-#Add ability to use multiple cores
+#Add ability to use multiple cores 											- NEEDS TESTING!!!
 
 #DIAGNOSTICS
-#Add coil ramp diagnostic for all coils - plot dI/dt vs time for each coil
 #Add equilibrium Rmin,Rmax, Zmin,ZMax diagnostic showing extrema of seperatrix
 #Add equilibrium 'PROES-like' diagnostics - plot Radial slice at Z=0 with parameter range
 #Add equilibrium X point diagnostic, showing X-point location (R,Z) trends
 #Add breakdown diagnostics showing criterion and trends with breakdown time if possible
-#Add coil current diagnostics, overlaying coil current profiles for chosen coils
 #Add trend diagnostics for all of the default param(equil) outputs
 
 #ERROR HANDLING
-#Add ability to safely-eject from matlab if convergence fails
-#Add ability to produce 'nan' data files if one-or-more simulations fail
+#Add ability to safely-eject from matlab if convergence fails 				- IMPORTANT!!!
+#Add ability to produce 'nan' data files if one-or-more simulations fail	- IMPORTANT!!!
 #Add general error messages to aid in debugging as the program grows larger
 
 #EXTRA IDEAS
-#Add meta-convergence function, enabling self iteration towards a fixed output param(equil) variable
+#Add meta-convergence function, enabling self iteration towards a fixed input equilibrium
+#This will require feedback between PyESTA and the output files: [Param(equil), ???, ???]
 
 
 #====================================================================#
@@ -414,19 +421,71 @@ Matplotlib_GlobalOptions()	#MUST BE RUN BEFORE ANY DIAGNOSTICS!!!!
 
 #=========================#
 
+#Checks for any running process that contain given name ProcessName.
+#Takes process name string input (same as process name in top or htop)
+#Returns boolian, true if process is found, false if not
+#By default returns false to allow for softcrash.
+#Example: Bool = CheckIfProcessRunning('MATLAB')
+def CheckIfProcessRunning(QueriedProcess,Bool=False):
+
+	#Initiate required lists
+	ProcessIDList,ProcessNameList = list(),list()
+
+	#Call for all processes in 'top, htop' format and check if exists
+	ProcessCall = ['ps','-A']
+	Processes = subprocess.check_output(ProcessCall)
+	Processes = Processes.split('\n')
+
+	#Split processes into ID and name, and compile lists for later use
+	for i in range(0,len(Processes)):
+		#Check if ProcessID is first or 2nd entry and save
+		try: ProcessIDList.append( float(Processes[i].split(' ')[0]) )
+		except:
+			try: ProcessIDList.append( Processes[i].split(' ')[1] )
+			except: ProcessIDList.append( np.nan )
+		#endtry
+
+		#ProcessName is final entry in 'top' format
+		ProcessNameList.append( Processes[i].split(' ')[-1] )
+	#endfor
+
+	#Check if process in ProcessNamelist
+	for i in range(0,len(ProcessNameList)):
+		if ProcessNameList[i] == QueriedProcess:
+			Bool = True
+			break
+		#endif
+	#endfor
+
+	return(Bool)
+#enddef
+
+#=========================#
+
+
 #Constructs and executes matlab command to run FIESTA
 #Takes FIESTA .m file name and returns nothing
 #Example: RunFIESTA('FIESTA.m')
-def RunFIESTA(FIESTAName,Verbose=False):
+def RunFIESTA(FIESTAName,Verbose=False,Parallel=False):
+
+	#Print parallel verbosity warning
+	if Verbose == True and Parallel == True:
+		print ''
+		print 'Warning! Parallel operation not compatable with verbose output'
+		print '                 Setting Parallel = False                     '
+		print ''
+		Parallel = False
+	#endif
 
 	#Construct terminal command to run requested version of FIESTA
 	#Example: matlab -nodisplay -nosplash -nodesktop -r "run('/path/to/FIESTA_Script');exit;"
 	FIESTA_RootDir = os.getcwd()+'/'+FIESTAName
 	FIESTA_Splash = '-nodisplay -nosplash -nodesktop -r '
 	FIESTA_RunCMD = '\"run(\''+FIESTA_RootDir+'\');exit;\"'
-	if Verbose == True or DebugMode == True:	FIESTA_Output = ''
-	elif Verbose == False: 						FIESTA_Output = ' > Output.txt'
-
+	if Verbose == True or IDebugMode == True:	 FIESTA_Output = ''
+	elif Verbose == False and Parallel == False: FIESTA_Output = ' > Conv.out'
+	elif Verbose == False and Parallel == True:  FIESTA_Output = ' > Conv.out &'
+	#####
 	ExecuteFIESTA = 'matlab '+FIESTA_Splash+FIESTA_RunCMD+FIESTA_Output
 
 	#Execute FIESTA script in terminal
@@ -489,36 +548,38 @@ def AlterNamelistVariable(Namelist_Dir,ParameterList,VariableValue):
 #=========================#
 
 #Returns sub-folder directories within supplied simulation series folder
-#Takes simulation series local directory name
-#Returns sub-folder names within series directory in 'raw' and 'clean' format
+#Takes simulation series local directory name string
+#Returns sub-folder names within series directory
 #Can supply directories relative to cwd() or relative to root ('/home/...')
-#Example: SeriesSubDirContents = ExtractSeriesDirs(SeriesDir,Root=True)[1]
-def ExtractSeriesDirs(SeriesDirectoryName,Root=True):
+#Example: SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)[1]
+def ExtractSubDirs(SeriesDirString,Root=True):
 
 	#Obtain simulation series folder directories and create list for contents
-	SeriesDirsRaw = os.listdir( os.path.abspath(SeriesDirectoryName) )
-	SeriesDirsCleaned = list()
+	SimulationDirsRaw = os.listdir( os.path.abspath(SeriesDirString) )
+	SimulationDirsCleaned = list()
 	
 	#Remove any non-folder directories in SeriesDirsRaw and correct bash 'grammar'
-	for i in range(0,len(SeriesDirsRaw)):
+	for i in range(0,len(SimulationDirsRaw)):
 
 		#Define simulation series directories from root or relative to local directory
-		if Root == True: RootDir = os.getcwd()+'/'+SeriesDirectoryName
-		else: RootDir = SeriesDirectoryName
+		AlwaysRoot = os.getcwd()+'/'+SeriesDirString
+		if Root == True: RootDir = os.getcwd()+'/'+SeriesDirString
+		else: RootDir = SeriesDirString
 
 		#Remove any non-folder entries - assume all folders are simulation directories
-		if os.path.isdir(SeriesDirsRaw[i]) == False:
-			SeriesDirsCleaned.append( ''+RootDir+'/'+SeriesDirsRaw[i]+'' )	#!!!BROKEN!!!
-#		elif os.path.isdir(SeriesDirsRaw[i]) == True:
-#			SeriesDirsCleaned.append( ''+RootDir+'/'+SeriesDirsRaw[i]+'' )	#!!!SHOULD_BE_THIS!!!
+		if os.path.isdir(AlwaysRoot+'/'+SimulationDirsRaw[i]) == False:
+			Directory_Is_Not_A_Folder=1.0
+		elif os.path.isdir(AlwaysRoot+'/'+SimulationDirsRaw[i]) == True:
+			SimulationDirsCleaned.append( ''+RootDir+'/'+SimulationDirsRaw[i]+'' )
 		#endif
 	#endfor
 
 	#Maintain alphanumerical foldername ordering
-	SeriesDirsRaw,SeriesDirsCleaned = sorted(SeriesDirsRaw),sorted(SeriesDirsCleaned)
+	SimulationDirsRaw = sorted(SimulationDirsRaw)
+	SimulationDirsCleaned = sorted(SimulationDirsCleaned)
 
 	#Return all folder directories in requested simulation series
-	return(SeriesDirsRaw,SeriesDirsCleaned)
+	return(SimulationDirsCleaned)
 #enddef
 
 #=========================#
@@ -585,20 +646,16 @@ def ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical'):
 
 #=========================#
 
-def ExtractFIESTAData(SeriesDir,DataFileName,Dimension='2D',Orientation='Vertical'):
+def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Vertical'):
 
-	#Create any required arrays for data storage
+	#Create any required arrays for data storage and record HomeDir for navigation
 	GlobalDataArray,OrderedDataArrays = list(),list()
-
-	#Obtain simulation folder directories for project and requested run series
 	HomeDir = os.getcwd()
-	SeriesSubDirs = ExtractSeriesDirs(SeriesDir,Root=True)[0]
-	SeriesSubDirContents = ExtractSeriesDirs(SeriesDir,Root=True)[1]
 
 	#For all simulation directories in the requested simulation series
 	for i in range(0,len(SeriesSubDirs)):
 		#cd into the relevent directory and extract the data
-		os.chdir(SeriesSubDirContents[i])
+		os.chdir(SeriesSubDirs[i]+'/RawData/')
 		GlobalDataArray.append(ReadDataFromFile(DataFileName,Dimension='2D',Orientation='Vertical'))
 	#endfor
 	#cd back into PyESTA directory for continuity
@@ -620,25 +677,67 @@ def ExtractFIESTAData(SeriesDir,DataFileName,Dimension='2D',Orientation='Vertica
 
 #=========================#
 
+#Creates a new folder if one does not already exist.
+#Takes destination dir and namestring, returns new directory.
+def CreateNewFolder(Dir,DirString):
+	try:
+		NewFolderDir = Dir+DirString+'/'
+		os.mkdir(NewFolderDir, 0755);
+	except:
+		a = 1
+	#endtry
+	return(NewFolderDir)
+#enddef
+
+#=========================#
+
+#Converts variable name strings into concatenated string with variable values
+#Takes 1D array of variable name strings - must exist in namelist file!
+#Returns 0D string of concatenated values of form: 'Var#Value '
+#Example: SimulationName = CreateSimName(SimNameList)
+def CreateSimName(SimNameList,VariedParameter='NaN',ParameterValue='NaN'):
+	SimulationNameString = ''
+	
+	#For each variable in SimNameList, convert to string and append value
+	for i in range(0,len(SimNameList)):
+
+		#Check if named parameter has been varied and use appropriate value
+		if SimNameList[i] == VariedParameter:
+			ParameterString = SimNameList[i]+'#'+str(ParameterValue)+' '
+		else:
+			ParameterString = SimNameList[i]+'#'+str(eval(SimNameList[i]))+' '
+		#endif
+		SimulationNameString += ParameterString
+	#endfor
+
+	#Remove final whitespace in simulation name
+	SimulationNameString = SimulationNameString[:-1]
+
+	return(SimulationNameString)
+#enddef
+
+#=========================#
+
 #Creates a trendaxis from simulation folder names
 #Takes directories of all folders in the simulation series folder
 #Returns a 1D array of floating values based on the varied parameter
-#Example: TrendAxis = CreateTrendAxis(SeriesSubDirs,ParameterList)
-def CreateTrendAxis(SeriesSubDirectories,VariableString,TrendAxisOverride=''):
+#Example: TrendAxis = CreateTrendAxis(SimulationNames,ParameterList)
+def CreateTrendAxis(SimulationNames,VariableString,TrendAxisOverride=''):
 
 	#Create required list to store output
 	TrendAxis = list()
 
-	#For all sub directories in the supplied simulation series folder directory
-	for i in range(0,len(SeriesSubDirectories)): 
+	#For all simulation names
+	for i in range(0,len(SimulationNames)): 
 		#Split each directory folder name into substrings and identify varied parameter
-		SplitSubDir = SeriesSubDirectories[i].split(',')
-		for j in range(0,len(SplitSubDir)):
-			if VariableString[2::] in SplitSubDir[j]:
-				TrendString = SplitSubDir[j]
+		SimulationNames[i] = SimulationNames[i].split('/')[-1]	#Remove any directories
+		SplitSimName = SimulationNames[i].split(' ')			#Split simulation parameters
+		for j in range(0,len(SplitSimName)):
+			if VariableString in SplitSimName[j]:
+				TrendString = SplitSimName[j]
 				break
-			elif TrendAxisOverride in SplitSubDir[j]:
-				TrendString = SplitSubDir[j]
+			elif len(TrendAxisOverride) > 0 and TrendAxisOverride in SplitSimName[j]:
+				TrendString = SplitSimName[j]
 				break
 			#endif
 		#endfor
@@ -647,7 +746,7 @@ def CreateTrendAxis(SeriesSubDirectories,VariableString,TrendAxisOverride=''):
 		try: 
 			TrendValue = TrendString.partition('#')[2]
 		except:
-			TrendString = SeriesSubDirs[i].partition(',')[0]
+			TrendString = SplitSimName[i].partition(',')[0]
 			TrendValue = TrendString.partition('#')[2]
 		#endtry
 		TrendAxis.append(float(TrendValue))
@@ -681,35 +780,36 @@ def CreateTrendAxis(SeriesSubDirectories,VariableString,TrendAxisOverride=''):
 #Autorun simulations over defined paramter range if requested
 if IAutorun == True:
 
-	#Capture initial namelist state
-	InitValue = FindNamelistVariable(FIESTAName,ParameterList)
+	#Create simulation series folder and obtain folder directories
+	HomeDir = os.getcwd()
+	SeriesDirString = '/'+SeriesName+'_'+ProjectName+'/'
+	SeriesDir = CreateNewFolder(HomeDir,SeriesDirString)
 
 	#For all requested input parameters
 	for i in range(0,len(ParameterRanges)):
 
-		#Create simulation folder name and obtain folder directories
-#		HomeDir = os.getcwd()
-#		SeriesDir = SeriesName+'_'+ProjectName
-#		SimulationName = REQUIRES_NAMELIST_INPUT_IN_PYTHON
-#		SimulationFolder = HomeDir+'/'+SeriesDir+'/'+SimulationName
+		#Create simulation folder for input parameter[i]
+		SimulationString = CreateSimName(SimNameList,ParameterList,ParameterRanges[i])
+		SimulationDir = CreateNewFolder(SeriesDir,SimulationString)
 
 		#Copy FIESTA.m into simulation folder and cd into directory
-#		os.system('cp '+FIESTAName+' '+SimulationFolder)
-#		os.chdir(SimulationFolder)
+		os.system('cp '+FIESTAName+' '+'\''+SimulationDir+'\'')
+		os.chdir(SimulationDir)
 
-		#Write python generated simulation name into new FIESTA namelist
-#		AlteredEntry = AlterNamelistVariable(FIESTAName,'SimName',SimulationName)
+		#Update new FIESTA.m with fixed parameters from PyESTA namelist
+		MatlabProjectString = '\''+ProjectName+'\''
+		MatlabSimulationString = '\''+SimulationString+'\''
+		AlteredEntry = AlterNamelistVariable(FIESTAName,'ProjectName',MatlabProjectString)
+		AlteredEntry = AlterNamelistVariable(FIESTAName,'SimName',MatlabSimulationString)
 
-		#Modify FIESTA namelist for i'th requested variable value
+		#####
+
+		#Update new FIESTA.m with variable parameter scan for parameter [i]
 		AlteredEntry = AlterNamelistVariable(FIESTAName,ParameterList,ParameterRanges[i])
 
 		#Run modified FIESTA - Verbosity determines terminal output.
-		RunFIESTA(FIESTAName,Verbose=True)
-		AlterNamelistVariable(FIESTAName,ParameterList,InitValue)	#RESET EVERY TIME FOR SAFETY
+		RunFIESTA(FIESTAName,Verbose=IVerbose,Parallel=IParallel)
 	#endfor
-
-	#Return FIESTA namelist to default state
-	AlterNamelistVariable(FIESTAName,ParameterList,InitValue)
 #endif
 
 #=====================================================================#
@@ -734,8 +834,27 @@ if IAutorun == True:
 
 
 #====================================================================#
-					  #ANALYSIS AND DIAGNOSTICS#
+					   #ANALYSIS AND DIAGNOSTICS#
 #====================================================================#
+
+#If parallel simulations have been requested:
+if IAutorun == True and IParallel == True:
+	#Initial delay to allow MATLAB processes to start
+	time.sleep(ConvDelay/2.0)
+	TimeConv = ConvDelay/2.0
+
+	#Parallel Race Condition Checker - Waits for all simulations to finish before analysis
+	while CheckIfProcessRunning('MATLAB') == True:
+		#If MATLAB process is detected, wait ConvDelay seconds and check again
+		time.sleep(ConvDelay)
+		TimeConv += ConvDelay
+		print 'Awaiting Simulation Convergence:',TimeConv+'[s]'
+	#endwhile
+
+	print 'Simulation Convergence:',TimeConv+'[s]'
+#endfor
+
+#=========================#
 
 
 #====================================================================#
@@ -743,18 +862,19 @@ if IAutorun == True:
 #====================================================================#
 
 #Compare optimised plasma current profiles
-if IPlasmaCurrent == True:
+if savefig_PlasmaCurrent == True:
 
-	#Obtain simulation folder directories for project and requested run series
-	SeriesDir = SeriesName+'_'+ProjectName
-	SeriesSubDirs = ExtractSeriesDirs(SeriesDir,Root=True)[0]
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract plasma current data from series directories
-	Time_Arrays = ExtractFIESTAData(SeriesDir,'Ip.txt','2D','Vertical')[0]
-	Ip_Arrays = ExtractFIESTAData(SeriesDir,'Ip.txt','2D','Vertical')[1]
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,'Ip.txt','2D','Vertical')[0]
+	Ip_Arrays = ExtractFIESTAData(SimulationDirs,'Ip.txt','2D','Vertical')[1]
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SeriesSubDirs,ParameterList,TrendAxisOverride='Tau')
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterList,TrendAxisOverride)
 
 	#Rescale data for plotting: [s] to [ms]
 	for i in range(0,len(Time_Arrays)):
@@ -811,10 +931,8 @@ if IPlasmaCurrent == True:
 #	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
 #	ax2.set_ylim(0.79,1.01)
 
-
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-#	plt.savefig(SeriesDir+'/Ip_Trends.png')
-	plt.savefig('Ip_Trends.png')
+	plt.savefig(SeriesDirString+'/Ip_Trends.png')
 	plt.show()
 	plt.close('all')
 #endif
@@ -838,24 +956,25 @@ if IPlasmaCurrent == True:
 #====================================================================#
 
 #Compare optimised plasma current profiles
-if ICoilRamp == True:
+if savefig_CoilCurrents == True:
 
-	#Obtain simulation folder directories for project and requested run series
-	SeriesDir = SeriesName+'_'+ProjectName
-	SeriesSubDirs = ExtractSeriesDirs(SeriesDir,Root=True)[0]
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract coil currents and time axis from series directories
-	Filename = 'CoilCurrents_Phase_1.txt'
-	ISol_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[0]
-	IPF2_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[1]
-	IPF3_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[2]
-	IDiv1_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[3]
-	IDiv2_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[4]
+	Filename = 'CoilCurrents.txt'
+	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF3_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
 	Filename = 't.txt'
-	Time_Arrays = ExtractFIESTAData(SeriesDir,Filename,'2D','Vertical')[0]
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SeriesSubDirs,ParameterList,TrendAxisOverride='Tau')
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterList,TrendAxisOverride)
 
 	#Rescale data for plotting: [s] to [ms]
 	for i in range(0,len(Time_Arrays)):
@@ -867,11 +986,11 @@ if ICoilRamp == True:
 	#Rescale data for plotting: [A] to [kA]
 	for i in range(0,len(ISol_Arrays)):
 		for j in range(0,len(ISol_Arrays[i])):
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0
-			IPF3_Arrays[i][j] = IPF3_Arrays[i][j]/1000.0
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*800)		#ODD SCALING!?
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
+			IPF3_Arrays[i][j] = IPF3_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
 		#endfor
 	#endfor
 
@@ -908,63 +1027,66 @@ if ICoilRamp == True:
 		MaxDeltaIDiv2.append( max(DeltaIDiv2[i], key=abs) )
 	#endfor
 
+	####################	####################
+	####################	####################
+
+	#Create output folder for all coil current timetraces
+#	TimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_TimeTraces/')
+	#For every simulation folder in the current series:
+	for l in range(0,len(ISol_Arrays)):
+
+		#Create figure for each Coil Ramp Time Trace diagnostic
+		fig,ax = plt.subplots(2, figsize=(12,14), sharex=True)
+
+		#Plot each coil current with respect to time
+		ax[0].plot(ISol_Arrays[l], 'k-', lw=2)
+		ax[0].plot(IPF2_Arrays[l], 'r-', lw=2)
+		ax[0].plot(IPF3_Arrays[l], 'b-', lw=2)
+		ax[0].plot(IDiv1_Arrays[l], 'c-', lw=2)
+		ax[0].plot(IDiv2_Arrays[l], 'm-', lw=2)
+
+		Range = '['+str(min(ParameterRanges))+' - '+str(max(ParameterRanges))+']'
+		ax[0].set_title('Time-Traces of Coil Currents for '+ParameterList+' in '+Range, fontsize=20, y=1.03)
+		Legend = ['Sol','PF2','PF3','Div1','Div2']
+		ax[0].legend(Legend, fontsize=22, loc=2, ncol=2, frameon=False)
+		ax[0].set_ylabel('Coil Current $I$ [kA]', fontsize=25)
+#		ax[0].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#		ax[0].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#		ax[0].yaxis.set_major_locator(ticker.MultipleLocator(240))
+		ax[0].tick_params(axis='x', labelsize=20)
+		ax[0].tick_params(axis='y', labelsize=20)
+#		ax[0].set_xlim(-50,100)		
+#		ax[0].set_ylim(2,32)
+
+		#Plot derivitive of each coil current with respect to time
+		ax[1].plot(DeltaISol[l], 'k-', lw=2)
+		ax[1].plot(DeltaIPF2[l], 'r-', lw=2)
+		ax[1].plot(DeltaIPF3[l], 'b-', lw=2)
+		ax[1].plot(DeltaIDiv1[l], 'c-', lw=2)
+		ax[1].plot(DeltaIDiv2[l], 'm-', lw=2)
+
+		Range = '['+str(min(ParameterRanges))+' - '+str(max(ParameterRanges))+']'
+		ax[1].set_title('Time-Traces of Delta Coil Currents for '+ParameterList+' in '+Range, fontsize=20, y=1.03)
+		Legend = ['Sol','PF2','PF3','Div1','Div2']
+		ax[1].legend(Legend, fontsize=22, loc=2, ncol=2, frameon=False)
+		ax[1].set_ylabel('Change in Coil Current \n $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
+		ax[1].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#		ax[1].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#		ax[1].yaxis.set_major_locator(ticker.MultipleLocator(240))
+		ax[1].tick_params(axis='x', labelsize=20)
+		ax[1].tick_params(axis='y', labelsize=20)
+#		ax[1].set_xlim(-50,100)		
+#		ax[1].set_ylim(2,32)
+
+		plt.tight_layout(pad=3.0,h_pad=1.0)
+#		plt.savefig(TimeTracesDir+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
+		plt.savefig(SeriesDirString+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
+
+		plt.show()
+		plt.close('all')
+	#endfor
+
 	####################
-
-	#Create figure for Coil Ramp Time Trace diagnostic
-	fig,ax = plt.subplots(2, figsize=(12,14), sharex=True)
-
-	#Choose which simulation to plot - HACKY FOR NOW!!!
-	#!!!! Should be changed to a loop and save in a new folder !!!!
-	SimIndex = 0
-
-	#Plot each coil current with respect to time
-	ax[0].plot(ISol_Arrays[SimIndex], 'k-', lw=2)
-	ax[0].plot(IPF2_Arrays[SimIndex], 'r-', lw=2)
-	ax[0].plot(IPF3_Arrays[SimIndex], 'b-', lw=2)
-	ax[0].plot(IDiv1_Arrays[SimIndex], 'c-', lw=2)
-	ax[0].plot(IDiv2_Arrays[SimIndex], 'm-', lw=2)
-
-	Range = '['+str(min(ParameterRanges))+' - '+str(max(ParameterRanges))+']'
-	ax[0].set_title('Time-Traces of Coil Currents for '+ParameterList+' in '+Range, fontsize=20, y=1.03)
-	Legend = ['Sol','PF2','PF3','Div1','Div2']
-	ax[0].legend(Legend, fontsize=22, loc=3, ncol=2, frameon=False)
-	ax[0].set_ylabel('Coil Current $I$ [kA]', fontsize=25)
-#	ax[0].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#	ax[0].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax[0].yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax[0].tick_params(axis='x', labelsize=20)
-	ax[0].tick_params(axis='y', labelsize=20)
-#	ax[0].set_xlim(-50,100)		
-#	ax[0].set_ylim(2,32)
-
-	#Plot derivitive of each coil current with respect to time
-	ax[1].plot(DeltaISol[SimIndex], 'k-', lw=2)
-	ax[1].plot(DeltaIPF2[SimIndex], 'r-', lw=2)
-	ax[1].plot(DeltaIPF3[SimIndex], 'b-', lw=2)
-	ax[1].plot(DeltaIDiv1[SimIndex], 'c-', lw=2)
-	ax[1].plot(DeltaIDiv2[SimIndex], 'm-', lw=2)
-
-	Range = '['+str(min(ParameterRanges))+' - '+str(max(ParameterRanges))+']'
-	ax[1].set_title('Time-Traces of Delta Coil Currents for '+ParameterList+' in '+Range, fontsize=20, y=1.03)
-	Legend = ['Sol','PF2','PF3','Div1','Div2']
-	ax[1].legend(Legend, fontsize=22, loc=3, ncol=2, frameon=False)
-	ax[1].set_ylabel('Change in Coil Current \n $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
-	ax[1].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#	ax[1].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax[1].yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax[1].tick_params(axis='x', labelsize=20)
-	ax[1].tick_params(axis='y', labelsize=20)
-#	ax[1].set_xlim(-50,100)		
-#	ax[1].set_ylim(2,32)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-#	plt.savefig(SeriesDir+'/CoilRamp_Trends.png')
-	plt.savefig('CoilRamp_TimeTrace.png')
-	plt.show()
-	plt.close('all')
-
-	####################	####################
-	####################	####################
 
 	#Create figure for Coil Maximum Ramp Diagnostic
 	fig,ax = plt.subplots(1, figsize=(12,8))
@@ -978,7 +1100,7 @@ if ICoilRamp == True:
 
 	ax.set_title('Maximum Delta Coil Current for Varying '+ParameterList, fontsize=20, y=1.03)
 	Legend = ['Sol','PF2','PF3','Div1','Div2']
-	ax.legend(Legend, fontsize=22, loc=4, frameon=False)
+	ax.legend(Legend, fontsize=22, loc=1, frameon=False)
 	ax.set_ylabel('Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
 	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
 	ax.xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
@@ -989,8 +1111,7 @@ if ICoilRamp == True:
 #	ax.set_ylim(0,0)
 
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-#	plt.savefig(SeriesDir+'/CoilRamp_Trends.png')
-	plt.savefig('CoilRamp_Trends.png')
+	plt.savefig(SeriesDirString+'/CoilRamp_Trends.png')
 	plt.show()
 	plt.close('all')
 #endif

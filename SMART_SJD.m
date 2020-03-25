@@ -6,13 +6,14 @@ close all
 
 %%%%%%%%%%
 
-%Add FIESTA trunk path and any other required paths
-FIESTATrunk = "~/Postdoc Seville/FIESTA/Source Code/FIESTA_V8.8"
-addpath(genpath(FIESTATrunk),"Functions")
+%Add FIESTA trunk path, include path to any extra functions.
+FIESTATrunk = "~/Postdoc Seville/FIESTA/Source Code/FIESTA_V8.8";
+FunctionsTrunk = "../../Functions";
+addpath(genpath(FIESTATrunk),genpath(FunctionsTrunk));
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                       INITIATE REACTOR GEOMETRY                       %
+%                        DEFINE REACTOR GEOMETRY                        %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define Vessel Outer Geometry
@@ -27,7 +28,7 @@ RSol=0.09;    % R position of the solenoid [m] (Inner Solenoid)
 ZMinSol=-0.8; % Min Z position
 ZMaxSol=0.8;  % Max Z position
 
-%Define Div and PF coils
+%Number of Radial (R) and axial (Z) coil windings
 nZDiv1=6;
 nRDiv1=4;
 nZDiv2=6;
@@ -39,14 +40,14 @@ nRPF2=4;
 nZPF3=6;
 nRPF3=4;
 
-%Calculate total number of turns in each coil
+%Calculate total number of windings in each coil
 nDiv1=nZDiv1*nRDiv1;
 nDiv2=nZDiv2*nRDiv2;
 %nPF1=nZPF1*nRPF1;
 nPF2=nZPF2*nRPF2;
 nPF3=nZPF3*nRPF3; 
 
-%Define coil size to enable cross-section calculation
+%Define coil turn dimensions to enable cross-section calculation
 width_PF=0.042;  % Width of a turn (m)
 height_PF=0.035; % Height of a turn (m)
 
@@ -89,7 +90,7 @@ Ip = 30e3;        % Plasma current     [A]
 li2 = 1;          %                    [-]
 %q_cyl = 2.821;   % Safety Factor      [-]
 betaN = 3.529;    %                    [-] (Obtained via VEST Excel)
-TauPulse =0.020;  % Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
+TauP = 0.020;      % Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
 
 %Compute Further Operating Conditions
 BT=0.1;                            % Toroidal B-Field            [T]
@@ -112,7 +113,7 @@ resistivity = copper_resistivity_at_temperature(coil_temp);
 
 %%%%%%%%
 
-disp([ 'TauPulse = ' num2str(TauPulse*1000) ' [ms]' ]);
+disp([ 'TauP = ' num2str(TauP*1000) ' [ms]' ]);
 disp([ 'BT = ' num2str(BT) ' [T]' ]);
 disp([ 'IRod = ' num2str(Irod) ' [kA]' ]);
 disp([ 'Shaping Factor = ' num2str(S) ' [-]' ]);
@@ -127,37 +128,15 @@ disp([ ' ' ]);
 disp([ '%===== Initial Coil Currents =====%' ]);
 
 %Phase1 coil currents [kA]                  %SJDoyle
-I_Sol_start=1500;      %+1500 -> +1500;     %+1500;
-I_Sol_ramp=-1100;      %-1100 -> -1150;     %-1100;
-I_Sol_equil=-1500;     %-1500 -> -1500;     %-1500;
+I_Sol_start=1300;      %+1300 -> +1500;     %+1300;
+I_Sol_ramp=-900;       %-0900 -> -1100;     %-0900;
+I_Sol_equil=-1300;     %-1300 -> -1500;     %-1300; 
 %
 I_PF1=0;               %-0    -> -0         %N/A
-I_PF2=-1175;           %-1000 -> -1175;     %-1175;
-I_PF3=-900;            %-0900 -> -0900;     %-0900;
+I_PF2=-900;            %-0900 -> -1200;     %-1000;
+I_PF3=-800;            %-0800 -> -0900;     %-0800;
 I_Div1=-000;           %-0000 -> -0000;     %+0000;
-I_Div2=+4440;          %+3200 -> +4440;     %+4440;
-
-%Phase2 coil currents [kA]
-%I_Sol_start=+4700;    %+4700 -> +4700;     %+4700;
-%I_Sol_ramp=+500;      %+500  -> +500       %+500;
-%I_Sol_equil=-4700;    %-4700 -> -4700;     %-4700;
-%
-%I_PF1=0;              %-0    -> -0         %N/A
-%I_PF2=-3000;          %-3000 -> -3000      %-3000;
-%I_PF3=-940;           %-940  -> -940       %-940;
-%I_Div1=-000;          %-000  -> -000       %-000;
-%I_Div2=+9090;         %+9090 -> +9090      %+9090;
-
-%Phase3 coil currents [kA]
-%I_Sol_start=4700;   %4200;
-%I_Sol_ramp=500;     %
-%I_Sol_equil=-4700;  %-5200;
-%
-%I_PF1=0;            %-0    -> -0         %N/A
-%I_PF2=-6000;        %
-%I_PF3=-3100;        %
-%I_Div1=-000;        %
-%I_Div2=15880;       %
+I_Div2=+3200;          %+3200 -> +4440;     %+3200;
 
 %%%%%%%%%%
 
@@ -171,49 +150,23 @@ disp([ 'I_Div1 = ' num2str(I_Div1/1000) ' [kA]' ]);
 disp([ 'I_Div2 = ' num2str(I_Div2/1000) ' [kA]' ]);
 disp([ ' ' ]);
 
-%%%%%%%%%%%%%%%%%%%%%  Construct Output Folder  %%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%  Define Data Output Parameters  %%%%%%%%%%%%%%%%%%%%%
 
-%String relevant inputs for data management purposes
-Str_RScale = strcat('RScale#',string(RScale),{', '});
-Str_ZScale = strcat('ZScale#',string(ZScale),{', '});
-Str_R_PF2 = strcat('RPF2#',string(R_PF2),{', '});
-Str_Z_PF2 = strcat('ZPF2#',string(Z_PF2),{', '});
-Str_R_PF3 = strcat('RPF3#',string(R_PF3),{', '});
-Str_Z_PF3 = strcat('ZPF3#',string(Z_PF3),{', '});
-Str_R_Div1 = strcat('RDiv1#',string(R_Div1),{', '});
-Str_Z_Div1 = strcat('ZDiv1#',string(Z_Div1),{', '});
-Str_R_Div2 = strcat('RDiv2#',string(R_Div2),{', '});
-Str_Z_Div2 = strcat('ZDiv2#',string(Z_Div2),{', '});
-%
-Str_BT = strcat('BT#',string(BT),{', '});
-Str_Ip =  strcat('Ip#',string(Ip),{', '});
-Str_TauPulse = strcat('Tau#',string(TauPulse),{', '});
-%
-Str_Sol = strcat('Sol#',string(I_Sol_start),{', '});
-Str_PF1 = strcat('PF1#',string(I_PF1),{', '});
-Str_PF2 = strcat('PF2#',string(I_PF2),{', '});
-Str_PF3 = strcat('PF3#',string(I_PF3),{', '});
-Str_Div1 = strcat('Div1#',string(I_Div1),{', '});
-Str_Div2 = strcat('Div2#',string(I_Div2),{', '});
-%
+%Define figure extension
+FigExt = '.png'; 		%'.png','.eps','.pdf'
 
-%%%%%%%%%%
+%Define project and series names
+ProjectName = 'SMARTxs-P1';			%Define global project name
+SeriesName = 'VaryTauP';		%Define parameter scan series name
+
+%Create global output folders for saved data and figures
+ASCIIDir = 'RawData/'; mkdir(ASCIIDir);
+%FigDir = 'Figures/'; mkdir(FigDir);			%NOT CURRENTLY USED
 
 %Create simulation name based upon relevant run parameters
-SimName = strcat(Str_ZScale,Str_BT,Str_TauPulse,Str_Sol,Str_PF2,Str_Div2);
-%SimName = strcat(Str_BT,Str_TauPulse,Str_Sol,Str_PF2,Str_Div2);
-%SimName = strcat(Str_Z_PF2,Str_Z_PF3,Str_Z_Div1,Str_Z_Div2);
-disp([ 'SimName' SimName ]);
-
-%Create global output folder for saved data and figures
-ProjectName = 'SMART-V3p1';
-RunSeries = 'CurrentRun';
-RunName = strcat(RunSeries,'_',ProjectName);
-RunDir = convertStringsToChars( strcat(RunName,'/',SimName,'/') );
-mkdir(RunDir);
-
-%Copy FIESTA namelist input into output folder - for later reference
-copyfile('SMART_SJD.m',string(RunDir));
+SimName = 'DefaultSimName';
+disp([ 'SimName: ' SimName ]);
+disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -260,8 +213,8 @@ turns(iDiv2) = nDiv2;
 %turns(iPF1) = nPF1;
 turns(iPF2) = nPF2;
 turns(iPF3) = nPF3;
+nPF = 5; 				%Total number of coils including solenoid
 
-nPF = 5; 
 %Create coil set from parameters defined above. (Function made by Carlos Soria)
 %Function createVESTPFCircuit creates two PF coils. One in (R, Z) and another in (R, -Z)
 %PF1  = createVestPFCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,turns(iPF1),nZPF1,nRPF1,true, coil_temp, resistivity, coil_density);
@@ -303,7 +256,9 @@ icoil.Div2=I_Div2;    %
 
 %Construct vessel wall filaments for eddy current calculation
 for i=length(xaccum):-1:1
-    vessel_filament(i) = fiesta_filament(xaccum(i),yaccum(i),ww,ww/3,1,0,0);
+	%R Major Radius, Z Height, r Minor Radius, z Minor Axis 
+	%R, Z, 2*r, 2*z, 1, 0, 0 		%(2r width in R axis, 2z in Z axis of the filament)
+    vessel_filament(i) = fiesta_filament(xaccum(i),yaccum(i),ww,ww/2,1,0,0);		%ww/3 ???
 end
 %Enable induced currents in vessel wall filaments
 passive = fiesta_passive('STVesselPas',vessel_filament,'g');
@@ -357,7 +312,7 @@ plot(vessel);
 plot(coilset);
 contour( get(equil,'Psi'),60,'Color','Black', 'LineWidth',0.5 );
 contour( get(equil,'Psi'),get(equil,'Psi_boundary')*[1 1],'Color','Black', 'LineWidth',1.5 );
-title(gca,'SMART Target-Equilibrium, V3-phase1');
+title(gca,'SMART Target-Equilibrium');
 legend(gca,'hide');
 set(gca,'XLim',[0 1.1]);
 set(gca,'YLim',[-1.1 1.1]);
@@ -365,12 +320,7 @@ set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 Filename = '_TargetEquilibrium';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
-
-%Write qeqdsk equilibrium file
-filename = strcat(RunDir,'ST_Phase1');
-geqdsk_write_BUXTON(config, equil, filename)
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%
 
@@ -378,21 +328,7 @@ geqdsk_write_BUXTON(config, equil, filename)
 %IMAGE NEEDS SCALING TO FIT THE FIGURE SIZE (OR VISA-VERSA)
 XSec = section(equil); hold on;
 Filename = '_Equilibrium_XSection';
-saveas(XSec, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(XSec, strcat(RunDir,ProjectName,Filename,'.pdf'));
-
-%Write equilibrium parameters file
-EquilParam=parameters(equil);
-%struct2csv(EquilParam,Filename);           %csv format if required
-ParamVariables = fieldnames(EquilParam);
-ParamValues = struct2cell(EquilParam(:,1));
-Filename = strcat(RunDir,'EquilParam_Phase_1.txt');
-fileID=fopen(Filename,'w');
-for i = 1:length(ParamValues)
-    try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
-    catch fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); 'NaN']);
-    end
-end
+saveas(XSec, strcat(pwd,'/',ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -434,15 +370,14 @@ sensor_btheta = fiesta_sensor_btheta( 'sensor', BP_virt_R, BP_virt_Z,BP_virt_the
 figure; hold on; axis equal;
 plot(vessel);
 plot(sensor_btheta);
-title(gca,'SMART VirtualSensors, V3-phase1');
+title(gca,'SMART VirtualSensors');
 legend(gca,'hide');
 set(gca,'XLim',[0 1]);
 set(gca,'YLim',[-1.5 1.5]);
 xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 Filename = '_VirtualBSensors';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -491,15 +426,15 @@ figure;
 plot(vessel);
 plot(coilset);
 plot(equil_optimised_null);
-title(gca,'SMART Optimised Null Field, V3-phase1');
+title(gca,'SMART Optimised Null Field');
 legend(gca,'hide');
 set(gca,'XLim',[0 1]);
 set(gca,'YLim',[-1.5 1.5]);
 xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 Filename = '_OptimisedNull';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -524,7 +459,7 @@ D1 = C_temp(:,2:end);
 
 %Define number of time-steps (vertices) in the current waveforms
 nTime = 6;          %[Steps]
-tstep = TauPulse;   %[s]
+tstep = TauP;   %[s]
 time = [-0.05 -0.03 0 tstep tstep+0.03 tstep+0.05];    %Phase1
 %time = [-0.1 -0.05 0 tstep tstep+0.1 tstep+0.11];     %Phase2
 
@@ -593,14 +528,13 @@ PF_colors{iDiv2} = 'Green';
 %Plot figure showing dynamic coil currents - With Eddy Currents?
 figure;
 plot(time_long*1000, I_PF_input_long/1000);
-title(gca,'SMART Final Coil Current Waveforms, V3-phase1');
+title(gca,'SMART Final Coil Current Waveforms');
 LegendString = {'Sol','PF2','PF3','Div1','Div2'};
 legend(gca,LegendString);
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Coil Current (kA)');
 Filename = '_CurrentWaveforms';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%
 
@@ -629,8 +563,7 @@ legend(gca,'Plasma Current');
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Plasma Current (kA)');
 Filename = '_PlasmaCurrent';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -691,8 +624,7 @@ xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 %zlabel(gca, 'I (A)')
 Filename = '_EddyCurrent';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%
 
@@ -800,8 +732,7 @@ xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 %zlabel(gca, 'I (A)')
 Filename = '_EddyStresses';
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%
 
@@ -821,8 +752,7 @@ saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
 %ylabel(gca,'Z (m)');
 %zlabel(gca, 'I (A)')
 %Filename = '_EddyForces';
-%saveas(gcf, strcat(RunDir,ProjectName,Filename,'.png'));
-%saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
+%saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -833,6 +763,23 @@ saveas(gcf, strcat(RunDir,ProjectName,Filename,'.pdf'));
 %                      DATA OUTPUT TO TEXT FILES                        %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Write qeqdsk equilibrium file
+filename = strcat(ASCIIDir,'ST.txt');
+geqdsk_write_BUXTON(config, equil, filename)
+
+%Write equilibrium parameters file
+EquilParam=parameters(equil);
+%struct2csv(EquilParam,Filename);           %csv format if required
+ParamVariables = fieldnames(EquilParam);
+ParamValues = struct2cell(EquilParam(:,1));
+Filename = strcat(ASCIIDir,'EquilParam.txt');
+fileID=fopen(Filename,'w');
+for i = 1:length(ParamValues)
+    try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
+    catch fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); 'NaN']);
+    end
+end
+
 %Scale currents by ???FACTORS??? for ???REASONS???
 a=I_PF_output(:,1).*800;    %Sol?
 b=I_PF_output(:,2).*24;     %PF2?
@@ -840,19 +787,19 @@ c=I_PF_output(:,3).*24;     %PF3?
 d=I_PF_output(:,4).*24;     %Div1?
 e=I_PF_output(:,5).*24;     %Div2?
 
-Filename = strcat(RunDir,'CoilCurrents.txt');
+Filename = strcat(ASCIIDir,'CoilCurrents.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[a'; b'; c'; d'; e']);
 
-Filename = strcat(RunDir,'t.txt');
+Filename = strcat(ASCIIDir,'t.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%1.12f\r\n',time_adaptive);
 
-Filename = strcat(RunDir,'Ip.txt');
+Filename = strcat(ASCIIDir,'Ip.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
 
-Filename = strcat(RunDir,'IPass.txt');
+Filename = strcat(ASCIIDir,'IPass.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive']);
 
