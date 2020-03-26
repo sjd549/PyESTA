@@ -76,47 +76,57 @@ disp([ '%===== Initial Operating Parameters =====%' ]);
 mu0 = 1.2566e-06; %Magnetic Moment [I/m^2]
 
 %Define Operating Conditions
-RGeo = 0.4763;    % Geometrical Radius [m]
-ZGeo = 0.0000;    % Geometrical Axis   [m]
-epsilon = 1.985;  % Aspect ratio       [-]
-a = RGeo/epsilon; % Minor radius       [m]
-kappa = 1.7;      % Elongation         [-]
-Ip = 30e3;        % Plasma current     [A]
-li2 = 1;          %                    [-]
-%q_cyl = 2.821;   % Safety Factor      [-]
-betaN = 3.529;    %                    [-] (Obtained via VEST Excel)
-TauP = 0.020;     % Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
+Te = 250;         % Electron Temperature [eV]
+Ti = Te*0.1;      % Ion Temperature      [eV]
+BT = 0.1;         % Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = 30e3;        % Plasma current       [A]
+TauP = 0.020;     % Pulse length         [s] (Also determines tstep for Ip plot)
+RGeo = 0.4763;    % Geometrical Radius   [m]
+ZGeo = 0.0000;    % Geometrical Axis     [m]
+RSep = 0.7000;    % Separatrix Radius    [m]
+a = RSep-RGeo     % Minor Radius         [m]
+Epsilon = RGeo/a  % Aspect ratio         [-]
+Kappa = 1.8;      % Elongation           [-]
+li2 = 1;          % Standard Value?      [-]
+%q_cyl = 2.821;   % Safety Factor?       [-]
+betaN = 3.529;    %                      [-] (Obtained via VEST Excel)
 
 %Compute Further Operating Conditions
-BT=0.1;                            % Toroidal B-Field            [T]
-Irod=BT*2*pi*RGeo/mu0;             % Central Rod Current         [A]
-S=sqrt( (1.0+kappa^2)/2.0 );       % Shaping factor              [-]
-betaT = betaN/a * (Ip/1e6)/BT;     % Beta toroidal               [%]
-betaP = 25 ./(betaT / 100) .* S^2 .* ((betaN / 100).^2); % Beta Poloidal [%]
-nT = 2.66*1e20*1e3 * betaT * BT^2; % Density Temperature Product [eV m-3]
-n = 3e19;                          % Central Plasma Density      [m^-3]
-T = nT/n;                          % Central Plasma Temperature  [eV]
-nGW = Ip * 1e14 / (pi*a^2);        % ??Central Current Density?? [kA m^2]
-
-%Vertical field [T]
-BZ = - mu0 * Ip / (4*pi*RGeo) * ( log(8*epsilon) + betaP + 0.5*li2 - 3/2 );
+Gr_Limit=1e14*Ip*10^-6/(pi*a^2*Kappa);   % Greenwald Limit             [m-3]
+Gr_Frac=0.15;                            % Greenwald Fraction          [-]
+ne=Gr_Limit*Gr_Frac;                     % Electron Density            [m-3]  ~3E19
+Irod=BT*2*pi*RGeo/mu0;                   % Central Rod Current         [A]
+S=sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor              [-]
+betaT = betaN/a*(Ip/1e6)/BT;             % Beta toroidal               [%]
+betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))^2*2*mu0*1.6e-19*Kappa; % Beta Poloidal [%]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Epsilon)+betaP+0.5*li2-3/2);    % Vertical field [T]
+nT = 2.66*1e23*betaT*BT^2;               % Density Temperature Product [eV m-3]
 
 %Coil density, temperature and resistivity
-coil_density = 1;   %[Arb]
-coil_temp = 293.0;  %[K]
+coil_density = 1;                        % Relative Coil Density [Arb]
+coil_temp = 293.0;                       % Initial Coil Temperature [K]
 resistivity = copper_resistivity_at_temperature(coil_temp);
 
 %%%%%%%%
 
 disp([ 'TauP = ' num2str(TauP*1000) ' [ms]' ]);
+disp([ 'Ip = ' num2str(Ip/1000) ' [kA]' ]);
+disp([ 'IRod = ' num2str(Irod) ' [kA]' ]);
 disp([ 'BT = ' num2str(BT) ' [T]' ]);
 disp([ 'BZ = ' num2str(BZ) ' [T]' ]);
-disp([ 'IRod = ' num2str(Irod) ' [kA]' ]);
-disp([ 'Shaping Factor = ' num2str(S) ' [-]' ]);
-disp([ 'beta = ' num2str(betaT) ' [%]' ]);
+disp([ 'betaT = ' num2str(betaT) ' [%]' ]);
 disp([ 'betaP = ' num2str(betaP) ' [-]' ]);
-disp([ 'nT = ' num2str(nT) ' [m^-3 eV]' ]);
-disp([ 'T = ' num2str(T) ' [eV]' ]);
+disp([ 'ne = ' num2str(ne) ' [m-3]' ]);
+disp([ 'Te = ' num2str(Te) ' [eV]' ]);
+disp([ 'Ti = ' num2str(Ti) ' [eV]' ]);
+disp([ 'nT = ' num2str(Ti) ' [eV m-3]' ]);
+disp([ 'RGeo = ' num2str(RGeo) ' [m]' ]);
+disp([ 'ZGeo = ' num2str(ZGeo) ' [m]' ]);
+disp([ 'RSep = ' num2str(RSep) ' [m]' ]);
+disp([ 'Minor Radius = ' num2str(ZGeo) ' [m]' ]);
+disp([ 'AspectRatio = ' num2str(Epsilon) ' [-]' ]);
+disp([ 'Elongation = ' num2str(Kappa) ' [-]' ]);
+disp([ 'Shaping Factor = ' num2str(S) ' [-]' ]);
 disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%  DEFINE SOL RAMP & COIL CURRENTS  %%%%%%%%%%%%%%%%%%%%
@@ -128,22 +138,29 @@ tstep = TauP;   %[s]
 time = [-0.05 -0.03 0 tstep tstep+0.03 tstep+0.05];    %Phase1
 %time = [-0.11 -0.05 0 tstep tstep+0.1 tstep+0.11];    %Phase2
 
-%Phase1 coil currents [kA]                  %SJD800    %SJD210
-I_Sol_start=1300;      %+1300 -> +1500;     %+1300;    %1300
-I_Sol_ramp=-900;       %-0900 -> -1100;     %-0900;    %-500
-%I_Sol_equil=-1300;    %-1300 -> -1500;     %-1300;    %-1300
-I_Sol_equil=-I_Sol_start;      %Equal is better for power supply
+%!!!WOULD BE NICE TO IMPLIMENT CURRENT WAVEFORM ARRAYS!!!
+%ISol_Waveform = [+1300,-500,-1300];
+%IPF1_Waveform = [-370];
+%IPF2_Waveform = [-400];
+%IDiv1_Waveform = [+000];
+%IDiv2_Waveform = [+900];
+
+%Phase1 coil currents [kA]               %SJD210   %SJD800
+I_Sol_Start=+1300;     %+1300 -> +1500;  %+1300;   %+1300
+I_Sol_Equil=-500;      %-0900 -> -1100;  %-0500;   %-900
+I_Sol_End=-1300;       %-1300 -> -1500;  %-1300;   %-1300
+%Symmetric ISol is better for power supply
 %
-I_PF1=-1000;           %-0900 -> -1200;     %-1000;     %PF1:373.61
-I_PF2=-800;            %-0800 -> -0900;     %-0800;     %PF2:401.61
-I_Div1=-000;           %-0000 -> -0000;     %+0000;     %000
-I_Div2=+3200;          %+3200 -> +4200;     %+3200;     %900
+I_PF1=-370;            %-0900 -> -1200;  %-370;    %-1000
+I_PF2=-400;            %-0800 -> -0900;  %-400;    %-0800
+I_Div1=+000;           %-0000 -> -0000;  %+000;    %+0000
+I_Div2=+900;           %+3200 -> +4200;  %+900;    %+3200
 
 %%%%%%%%%%
 
-disp([ 'I_Sol_Start = ' num2str(I_Sol_start/1000) ' [kA]' ]);
-disp([ 'I_Sol_Ramp = ' num2str(I_Sol_ramp/1000) ' [kA]' ]);
-disp([ 'I_Sol_Equil = ' num2str(I_Sol_equil/1000) ' [kA]' ]);
+disp([ 'I_Sol_Start = ' num2str(I_Sol_Start/1000) ' [kA]' ]);
+disp([ 'I_Sol_Equil = ' num2str(I_Sol_Equil/1000) ' [kA]' ]);
+disp([ 'I_Sol_End = ' num2str(I_Sol_End/1000) ' [kA]' ]);
 disp([ 'I_PF1 = ' num2str(I_PF1/1000) ' [kA]' ]);
 disp([ 'I_PF2 = ' num2str(I_PF2/1000) ' [kA]' ]);
 disp([ 'I_Div1 = ' num2str(I_Div1/1000) ' [kA]' ]);
@@ -231,28 +248,27 @@ Div2 = createVestPFCircuit('Div2', R_Div2, Z_Div2, width_PF,height_PF, turns(iDi
 
 %Number of filaments of the inductor (coil = number of turns)
 nfil_ind_coil = turns(iSol); 
+
 clear('coil_filaments');
 Z_filament = linspace(ZMinSol,ZMaxSol,nfil_ind_coil);
-%Construct central solenoid filaments
+%Construct central solenoid filaments - solenoid is treated as 'vessel wall' with current
 for iFilament=1:nfil_ind_coil
-    coil_filaments(iFilament) = fiesta_filament( RSol,Z_filament(iFilament), sqrt(70e-6),sqrt(70e-6) ); 
+	Const=sqrt(70e-6);
+    coil_filaments(iFilament) = fiesta_filament( RSol, Z_filament(iFilament), Const, Const ); 
 end
-coil_1  = fiesta_coil( 'psh_coil', coil_filaments, 'Blue', resistivity, coil_density );
-Sol_circuit = fiesta_circuit( 'Sol', [1], [coil_1] );
+Sol_Coil = fiesta_coil( 'psh_coil', coil_filaments, 'Blue', resistivity, coil_density );
+Sol_circuit = fiesta_circuit( 'Sol', [1], [Sol_Coil] );
 
-%Collate completed coilset
+%Collate completed coilset and create FIESTA icoil object for equilibrium computation
 coilset = fiesta_coilset('STcoilset',[Sol_circuit,PF1,PF2,Div1,Div2],false,xaccum',yaccum');
-% save('Configuration.mat','vessel','coilset')
-
-%Create icoil object - Required as FIESTA functions use OO-programming
 icoil=fiesta_icoil(coilset);
 
 %Assign coil currents to icoil object [kA]
-icoil.Sol=I_Sol_ramp;	        %Calculates equilibrium using Sol current at end of Ramp
-icoil.PF1=I_PF1;                %
-icoil.PF2=I_PF2;                %
-icoil.Div1=I_Div1;              % 
-icoil.Div2=I_Div2;              %
+icoil.Sol=I_Sol_Equil;	        %Ensure post-ramp solenoid current is used for equilibrium
+icoil.PF1=I_PF1;                %Equilibrium uses post-ramp I_PF1 current
+icoil.PF2=I_PF2;                %Equilibrium uses post-ramp I_PF1 current
+icoil.Div1=I_Div1;              %Equilibrium uses post-ramp I_PF1 current
+icoil.Div2=I_Div2;              %Equilibrium uses post-ramp I_PF1 current
 
 
 %%%%%%%%%%%%%%%%%%  INITIATE VACUUM VESSEL FILAMENTS  %%%%%%%%%%%%%%%%%%%
@@ -290,16 +306,16 @@ jprofile = fiesta_jprofile_topeol2( 'Topeol2', betaP, 1, li2, Ip );
 IEquilMethod = 'standard';         %'standard','efit','feedback'
 
 %Standard equilibrium model (steady state coil currents)
-if IEquilMethod == 'standard'
+if strcmp(IEquilMethod, 'standard');
 
-	%IF I_Sol_Ramp =! 0, then use I_Sol_Ramp in this calculation.
+	%IF I_Sol_Equil =! 0, then use I_Sol_Equil in this calculation.
 	%Calculate equilibrium for given coil geometry and currents.
 	equil=fiesta_equilibrium('SST', config, Irod, jprofile, control, [], icoil);
 
 %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
 
 %Standard efit equilibrium (fit coil currents to jprofile)
-elseif IEquilMethod == 'efit'
+elseif strcmp(IEquilMethod, 'efit');
 
 	%HACKY NOTE!!! efit_shape_controller doesn't work - r variable not defined
 	%Efit will find new currents for the requested coils {'Coil1,'Coil2'}
@@ -319,7 +335,7 @@ elseif IEquilMethod == 'efit'
 %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
 
 %Standard efit equilibrium (fit coil currents to jprofile)
-elseif IEquilMethod == 'feedback'
+elseif strcmp(IEquilMethod, 'feedback');
 
 	%Feedback efit equilibrium (???????????????)
 	config = fiesta_configuration( 'STV2C2', Grif, coilset);
@@ -451,8 +467,8 @@ C1 = C_temp(:,1);
 D1 = C_temp(:,2:end);
 
 coil_currents = zeros(1,nPF);
-I_PF_null = -pinv(D1) * (C1*I_Sol_start);
-coil_currents(iSol) = I_Sol_start;
+I_PF_null = -pinv(D1) * (C1*I_Sol_Start);
+coil_currents(iSol) = I_Sol_Start;
 coil_currents(2:end) = I_PF_null';
 
 icoil = fiesta_icoil( coilset, coil_currents );
@@ -509,20 +525,20 @@ I_PF_input(2,:) = 0;
 I_PF_input(3,:) = 0;
 
 %Define Solenoid current waveform vertices :: Startup --> Up-Ramp
-I_PF_null = -pinv(D1) * (C1*I_Sol_start);    %Copied From ST25D Simulation
-I_PF_input([2,3],iSol) = I_Sol_start;
+I_PF_null = -pinv(D1) * (C1*I_Sol_Start);    %Copied From ST25D Simulation
+I_PF_input([2,3],iSol) = I_Sol_Start;
 I_PF_input(2,2:end) = I_PF_null;             %%%%%
 I_PF_input(3,2:end) = I_PF_null;             %%%%%
 
 %Define coilset current waveforms vertices :: Pulse --> Equilibrium
-I_PF_input(4,iSol) = I_Sol_ramp;     %I_Sol_ramp
+I_PF_input(4,iSol) = I_Sol_Equil;     %I_Sol_Equil
 I_PF_input(4,iPF1) = I_PF1;          %
 I_PF_input(4,iPF2) = I_PF2;
 I_PF_input(4,iDiv1) = I_Div1;
 I_PF_input(4,iDiv2) = I_Div2;
 
 %Define coilset current waveforms vertices :: Equilibrium --> Finish
-I_PF_input(5,iSol) = -I_Sol_start;   %I_Sol_equil
+I_PF_input(5,iSol) = -I_Sol_Start;   %I_Sol_End
 I_PF_input(5,iPF1) = I_PF1;          %
 I_PF_input(5,iPF2) = I_PF2;
 I_PF_input(5,iDiv1) = I_Div1;
@@ -565,11 +581,13 @@ PF_colors{iDiv2} = 'Green';
 %Plot figure showing dynamic coil currents - With Eddy Currents?
 figure;
 plot(time_long*1000, I_PF_input_long/1000);
-title(gca,'SMART Final Coil Current Waveforms');
-LegendString = {'Sol','PF2','PF3','Div1','Div2'};
+title(gca,'SMART Initial Coil Current Waveforms');
+LegendString = {'Sol','PF1','PF2','Div1','Div2'};
 legend(gca,LegendString);
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Coil Current (kA)');
+set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 Filename = '_CurrentWaveforms';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
@@ -595,10 +613,12 @@ Ip_long = NaN*Vp_long;									%Sets Ip_long to 'NaN' array
 %Plot plasma current over full timescale
 close all
 plot(time_adaptive*1000, Ip_output/1000)
-title(gca,'SMART Plasma Current, V3-phase1');
+title(gca,'SMART Plasma Current');
 legend(gca,'Plasma Current');
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Plasma Current (kA)');
+set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 Filename = '_PlasmaCurrent';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
@@ -651,7 +671,7 @@ figure; hold on; axis equal;
 plot(coilset);
 %plot(vessel);
 scatter3(RR,ZZ,I_Passive_fil/1000,100,I_Passive_fil/1000,'filled');
-title('SMART Vessel Eddy-Currents 3V-Phase1');
+title('SMART Vessel Eddy-Currents');
 view(2) %2D view
 colorbar %colorbar
 set(gca,'XLim',[0 1.1]);
@@ -801,7 +821,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Write qeqdsk equilibrium file
-filename = strcat(ASCIIDir,'ST.txt');
+filename = strcat(ASCIIDir,'Equil.txt');
 geqdsk_write_BUXTON(config, equil, filename)
 
 %Write equilibrium parameters file
@@ -819,7 +839,7 @@ end
 
 %%%%%%%%%%
 
-%Scale currents by ???FACTORS??? for ???REASONS???
+%Scale currents by ???number of windings??? for ???REASONS???
 a=I_PF_output(:,1).*800;    %Sol?
 b=I_PF_output(:,2).*24;     %PF2?
 c=I_PF_output(:,3).*24;     %PF3?
