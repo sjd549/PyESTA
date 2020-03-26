@@ -29,9 +29,8 @@ VesselZMinPoint=-1.0*ZScaleVessel;   % Z min position [m]
 VesselZMaxPoint=1.0*ZScaleVessel;    % Z max position [m]
 
 %Define Solenoid Geometry and Parameters
-nSol=800;     % number of turns of the solenoid   	%??? nSol=800 or 210 ???
-RSol=0.09;   % R position of the solenoid [m] (Inner Solenoid)
-%RSol=0.13;    % R position of the solenoid [m] (Outer Solenoid)
+nSol=210;     % number of turns of the solenoid   	%nSol=210,800
+RSol=0.13;    % R position of the solenoid [m]      %RSol=0.13,0.09
 ZMinSol=-1.0*ZScaleVessel; % Min Z position
 ZMaxSol=1.0*ZScaleVessel;  % Max Z position
 
@@ -40,8 +39,6 @@ nZDiv1=6;
 nRDiv1=4;
 nZDiv2=6;
 nRDiv2=4;
-%nZPF1=6;
-%nRPF1=4;
 nZPF2=6;
 nRPF2=4;
 nZPF3=6;
@@ -125,14 +122,20 @@ disp([ ' ' ]);
 %%%%%%%%%%%%%%%%%%  DEFINE SOL RAMP & COIL CURRENTS  %%%%%%%%%%%%%%%%%%%%
 disp([ '%===== Initial Coil Currents =====%' ]);
 
+%Define number of time-steps (vertices) in the current waveforms
+nTime = 6;      %[Steps]
+tstep = TauP;   %[s]
+time = [-0.05 -0.03 0 tstep tstep+0.03 tstep+0.05];    %Phase1
+%time = [-0.11 -0.05 0 tstep tstep+0.1 tstep+0.11];    %Phase2
+
 %Phase1 coil currents [kA]                  %SJD800    %SJD210
 I_Sol_start=1300;      %+1300 -> +1500;     %+1300;    %1300
 I_Sol_ramp=-900;       %-0900 -> -1100;     %-0900;    %-500
-I_Sol_equil=-1300;     %-1300 -> -1500;     %-1300;    %-1300
+%I_Sol_equil=-1300;    %-1300 -> -1500;     %-1300;    %-1300
+I_Sol_equil=-I_Sol_start;      %Equal is better for power supply
 %
-I_PF1=0;               %-0    -> -0         %N/A
-I_PF2=-1000;           %-0900 -> -1200;     %-1000;     %PF1:373.61
-I_PF3=-800;            %-0800 -> -0900;     %-0800;     %PF2:401.61
+I_PF1=-1000;           %-0900 -> -1200;     %-1000;     %PF1:373.61
+I_PF2=-800;            %-0800 -> -0900;     %-0800;     %PF2:401.61
 I_Div1=-000;           %-0000 -> -0000;     %+0000;     %000
 I_Div2=+3200;          %+3200 -> +4200;     %+3200;     %900
 
@@ -143,7 +146,6 @@ disp([ 'I_Sol_Ramp = ' num2str(I_Sol_ramp/1000) ' [kA]' ]);
 disp([ 'I_Sol_Equil = ' num2str(I_Sol_equil/1000) ' [kA]' ]);
 disp([ 'I_PF1 = ' num2str(I_PF1/1000) ' [kA]' ]);
 disp([ 'I_PF2 = ' num2str(I_PF2/1000) ' [kA]' ]);
-disp([ 'I_PF3 = ' num2str(I_PF3/1000) ' [kA]' ]);
 disp([ 'I_Div1 = ' num2str(I_Div1/1000) ' [kA]' ]);
 disp([ 'I_Div2 = ' num2str(I_Div2/1000) ' [kA]' ]);
 disp([ ' ' ]);
@@ -197,16 +199,14 @@ yaccum = yaccum(dup);
 
 %Define and initiate PF coils - Arbitrary numbering of coils
 iSol = 1;       %Central Inducting Solenoid
-iPF2 = 2;       %Upper Plasma Forming Coil
-iPF3 = 3;       %Lower Plasma Forming Coil
-%iPF1 = 6;      %Central Trangularity coil (at Z=0.3 [m])
+iPF1 = 2;       %Upper Plasma Forming Coil
+iPF2 = 3;       %Lower Plasma Forming Coil
 iDiv1 = 4;      %Inboard Divertor Coil
 iDiv2 = 5;      %Outboard Divertor Coil
 
 %Calculate total number of windings in each coil
 nDiv1=nZDiv1*nRDiv1;
 nDiv2=nZDiv2*nRDiv2;
-%nPF1=nZPF1*nRPF1;
 nPF2=nZPF2*nRPF2;
 nPF3=nZPF3*nRPF3; 
 
@@ -215,16 +215,14 @@ turns=[];
 turns(iSol) = nSol; 
 turns(iDiv1) = nDiv1;
 turns(iDiv2) = nDiv2;
-%turns(iPF1) = nPF1;
-turns(iPF2) = nPF2;
-turns(iPF3) = nPF3;
+turns(iPF1) = nPF2;
+turns(iPF2) = nPF3;
 nPF = 5; 				%Total number of coils including solenoid
 
 %Create coil set from parameters defined above. (Function made by Carlos Soria)
 %Function createVESTPFCircuit creates two PF coils. One in (R, Z) and another in (R, -Z)
-%PF1  = createVestPFCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,turns(iPF1),nZPF1,nRPF1,true, coil_temp, resistivity, coil_density);
-PF2  = createVestPFCircuit('PF2',R_PF2,Z_PF2,width_PF,height_PF,turns(iPF2),nZPF2,nRPF2,true, coil_temp, resistivity, coil_density);
-PF3  = createVestPFCircuit('PF3',R_PF3,Z_PF3,width_PF,height_PF,turns(iPF3),nZPF3,nRPF3,true, coil_temp, resistivity, coil_density);
+PF1  = createVestPFCircuit('PF1',R_PF2,Z_PF2,width_PF,height_PF,turns(iPF1),nZPF2,nRPF2,true, coil_temp, resistivity, coil_density);
+PF2  = createVestPFCircuit('PF2',R_PF3,Z_PF3,width_PF,height_PF,turns(iPF2),nZPF3,nRPF3,true, coil_temp, resistivity, coil_density);
 Div1 = createVestPFCircuit('Div1', R_Div1, Z_Div1, width_PF,height_PF, turns(iDiv1), nZDiv1,  nRDiv1, true, coil_temp, resistivity, coil_density); 
 Div2 = createVestPFCircuit('Div2', R_Div2, Z_Div2, width_PF,height_PF, turns(iDiv2), nZDiv2,  nRDiv2, true, coil_temp, resistivity, coil_density);
 
@@ -243,18 +241,18 @@ coil_1  = fiesta_coil( 'psh_coil', coil_filaments, 'Blue', resistivity, coil_den
 Sol_circuit = fiesta_circuit( 'Sol', [1], [coil_1] );
 
 %Collate completed coilset
-coilset = fiesta_coilset('STcoilset',[Sol_circuit,PF2,PF3,Div1,Div2],false,xaccum',yaccum');
+coilset = fiesta_coilset('STcoilset',[Sol_circuit,PF1,PF2,Div1,Div2],false,xaccum',yaccum');
 % save('Configuration.mat','vessel','coilset')
 
 %Create icoil object - Required as FIESTA functions use OO-programming
 icoil=fiesta_icoil(coilset);
 
 %Assign coil currents to icoil object [kA]
-%icoil.PF1=I_PF1;      %
-icoil.PF2=I_PF2;      %
-icoil.PF3=I_PF3;      %
-icoil.Div1=I_Div1;    %
-icoil.Div2=I_Div2;    %
+icoil.Sol=I_Sol_ramp;	        %Calculates equilibrium using Sol current at end of Ramp
+icoil.PF1=I_PF1;                %
+icoil.PF2=I_PF2;                %
+icoil.Div1=I_Div1;              % 
+icoil.Div2=I_Div2;              %
 
 
 %%%%%%%%%%%%%%%%%%  INITIATE VACUUM VESSEL FILAMENTS  %%%%%%%%%%%%%%%%%%%
@@ -293,6 +291,8 @@ IEquilMethod = 'standard';         %'standard','efit','feedback'
 
 %Standard equilibrium model (steady state coil currents)
 if IEquilMethod == 'standard'
+
+	%IF I_Sol_Ramp =! 0, then use I_Sol_Ramp in this calculation.
 	%Calculate equilibrium for given coil geometry and currents.
 	equil=fiesta_equilibrium('SST', config, Irod, jprofile, control, [], icoil);
 
@@ -302,6 +302,7 @@ if IEquilMethod == 'standard'
 elseif IEquilMethod == 'efit'
 
 	%HACKY NOTE!!! efit_shape_controller doesn't work - r variable not defined
+	%Efit will find new currents for the requested coils {'Coil1,'Coil2'}
 	%Variables required: [Rgeo, Zgeo, a, kappa, delta], N.B. kappa and delta are optional
 	[efit_config, signals, weights, index]=efit_shape_controller(config, {'PF1','PF2'}, [0.44, 0, 0.44/1.85 1.8 0.2]);
 	%%Calculate equilibrium fitting coil currents to provided jprofile
@@ -312,7 +313,6 @@ elseif IEquilMethod == 'efit'
 	efitCurrents=get(icoil,'currents');
 	I_PF1 = efitCurrents(iPF1);
 	I_PF2 = efitCurrents(iPF2);
-	I_PF3 = efitCurrents(iPF3);
 	I_Div1 = efitCurrents(iDiv1);
 	I_Div2 = efitCurrents(iDiv2);
 
@@ -334,7 +334,6 @@ elseif IEquilMethod == 'feedback'
 	efitCurrents=get(icoil,'currents');
 	I_PF1 = efitCurrents(iPF1);
 	I_PF2 = efitCurrents(iPF2);
-	I_PF3 = efitCurrents(iPF3);
 	I_Div1 = efitCurrents(iDiv1);
 	I_Div2 = efitCurrents(iDiv2);
 end
@@ -405,6 +404,8 @@ sensor_btheta = fiesta_sensor_btheta( 'sensor', BP_virt_R, BP_virt_Z,BP_virt_the
 %Virtual Sensors gives 'Red Square' breakdown image.
 figure; hold on; axis equal;
 plot(vessel);
+contour( get(equil,'Psi'),60,'Color','Black', 'LineWidth',0.5 );
+contour( get(equil,'Psi'),get(equil,'Psi_boundary')*[1 1],'Color','Black', 'LineWidth',1.5 );
 plot(sensor_btheta);
 title(gca,'SMART VirtualSensors');
 legend(gca,'hide');
@@ -494,9 +495,9 @@ D1 = C_temp(:,2:end);
 %6--> All Currents to zero
 
 %Define number of time-steps (vertices) in the current waveforms
-nTime = 6;          %[Steps]
-tstep = TauP;   %[s]
-time = [-0.05 -0.03 0 tstep tstep+0.03 tstep+0.05];    %Phase1
+%%%% nTime = 6;          %[Steps]
+%%%% tstep = TauP;   %[s]
+%%%% time = [-0.05 -0.03 0 tstep tstep+0.03 tstep+0.05];    %Phase1
 %time = [-0.1 -0.05 0 tstep tstep+0.1 tstep+0.11];     %Phase2
 
 %Initiate PF_input arrays to zero for all times
@@ -515,22 +516,22 @@ I_PF_input(3,2:end) = I_PF_null;             %%%%%
 
 %Define coilset current waveforms vertices :: Pulse --> Equilibrium
 I_PF_input(4,iSol) = I_Sol_ramp;     %I_Sol_ramp
-I_PF_input(4,iPF2) = I_PF2;          %
-I_PF_input(4,iPF3) = I_PF3;
+I_PF_input(4,iPF1) = I_PF1;          %
+I_PF_input(4,iPF2) = I_PF2;
 I_PF_input(4,iDiv1) = I_Div1;
 I_PF_input(4,iDiv2) = I_Div2;
 
 %Define coilset current waveforms vertices :: Equilibrium --> Finish
 I_PF_input(5,iSol) = -I_Sol_start;   %I_Sol_equil
-I_PF_input(5,iPF2) = I_PF2;          %
-I_PF_input(5,iPF3) = I_PF3;
+I_PF_input(5,iPF1) = I_PF1;          %
+I_PF_input(5,iPF2) = I_PF2;
 I_PF_input(5,iDiv1) = I_Div1;
 I_PF_input(5,iDiv2) = I_Div2;
 
 %All coil currents end at zero
 I_PF_input(6,iSol)=0;
+I_PF_input(6,iPF1)=0;
 I_PF_input(6,iPF2)=0;
-I_PF_input(6,iPF3)=0;
 I_PF_input(6,iDiv1)=0;
 I_PF_input(6,iDiv2)=0;
 
@@ -551,13 +552,13 @@ Vp_long = NaN(size(time_long));
 
 %Name and colour coils for plotting
 coil_names{iSol} = 'Sol';
-coil_names{iPF2} = 'PF2';
-coil_names{iPF3} = 'PF3';
+coil_names{iPF1} = 'PF2';
+coil_names{iPF2} = 'PF3';
 coil_names{iDiv1} = 'Div1';
 coil_names{iDiv2} = 'Div2';
 PF_colors{iSol} = 'Red';
-PF_colors{iPF2} = 'Magenta';
-PF_colors{iPF3} = 'Black';
+PF_colors{iPF1} = 'Magenta';
+PF_colors{iPF2} = 'Black';
 PF_colors{iDiv1} = 'Cyan';
 PF_colors{iDiv2} = 'Green';
 
@@ -816,6 +817,8 @@ for i = 1:length(ParamValues)
     end
 end
 
+%%%%%%%%%%
+
 %Scale currents by ???FACTORS??? for ???REASONS???
 a=I_PF_output(:,1).*800;    %Sol?
 b=I_PF_output(:,2).*24;     %PF2?
@@ -838,6 +841,14 @@ fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
 Filename = strcat(ASCIIDir,'IPass.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive']);
+
+%%%%%%%%%%
+
+Filename = strcat(ASCIIDir,'MaxStress.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%1.12f %1.12f\r\n',[stress_R_max'; stress_Z_max']);
+
+%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
