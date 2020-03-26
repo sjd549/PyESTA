@@ -143,60 +143,54 @@ ConvDelay = 10	#[s]		#Delay between convergence checks for race condition
 #B0       = 1.00		#[T]  (0.09 [T] in vacuo)
 #TauPulse = 0.500		#[s]  (Timestep for pulse)
 
-####################
-
-
 #######################  DEFINE VESSEL GEOMETRY  #######################
 
+#Define global scaling factors
+RScaleVessel=1.00    #Scale all radial vessel dimensions (Relative to 2.0m)
+ZScaleVessel=0.80    #Scale all axial vessel dimensions (Relative to 2.0m)
+RScaleCoil=1.00      #Scale all radial coil positions (Relative to 2.0m)
+ZScaleCoil=0.80      #Scale all axial coil positions (Relative to 2.0m)
+
 #Define Vessel Outer Geometry
-VesselRInnerPoint=0.15; # R min position [m]
-VesselROuterPoint=0.8;  # R max position [m]
-VesselZMinPoint=-0.8;   # Z min position [m]
-VesselZMaxPoint=0.8;    # Z max position [m]
+VesselRInnerPoint=0.15*RScaleVessel	# R min position [m]
+VesselROuterPoint=0.8*RScaleVessel	# R max position [m]
+VesselZMinPoint=-1.0*ZScaleVessel	# Z min position [m]
+VesselZMaxPoint=1.0*ZScaleVessel	# Z max position [m]
 
 #Define Solenoid Geometry and Parameters
-nSol=800;     # number of turns of the solenoid
-RSol=0.09;    # R position of the solenoid [m] (Inner Solenoid)
-ZMinSol=-0.8; # Min Z position
-ZMaxSol=0.8;  # Max Z position
+nSol=800     # number of turns of the solenoid   	%??? nSol=800 ???
+RSol=0.09   # R position of the solenoid [m] (Inner Solenoid)
+#RSol=0.13    # R position of the solenoid [m] (Outer Solenoid)
+ZMinSol=-1.0*ZScaleVessel # Min Z position
+ZMaxSol=1.0*ZScaleVessel  # Max Z position
 
-#Define Div and PF coils
-nZDiv1=6;
-nRDiv1=4;
-nZDiv2=6;
-nRDiv2=4;
-#nZPF1=6;
-#nRPF1=4;
-nZPF2=6;
-nRPF2=4;
-nZPF3=6;
-nRPF3=4;
+#Number of Radial (R) and axial (Z) coil windings
+nZDiv1=6
+nRDiv1=4
+nZDiv2=6
+nRDiv2=4
+#nZPF1=6
+#nRPF1=4
+nZPF2=6
+nRPF2=4
+nZPF3=6
+nRPF3=4
 
-#Calculate total number of turns in each coil
-nDiv1=nZDiv1*nRDiv1;
-nDiv2=nZDiv2*nRDiv2;
-#nPF1=nZPF1*nRPF1;
-nPF2=nZPF2*nRPF2;
-nPF3=nZPF3*nRPF3; 
-
-#Define coil size to enable cross-section calculation
-width_PF=0.042;  # Width of a turn (m)
-height_PF=0.035; # Height of a turn (m)
+#Define coil turn dimensions to enable cross-section calculation
+width_PF=0.042  # Width of a turn (m)
+height_PF=0.035 # Height of a turn (m)
 
 #Define central location of coil sets
-RScale=1.00;        #Scale all radial coil positions (Relative to 2.0m)
-ZScale=0.80;        #Scale all axial coil positions (Relative to 2.0m)
-#####
-#R_PF1=0.9*RScale;  #R position of PF1 (m)
-#Z_PF1=0.3*ZScale;  #Z position of PF1 (m)
-R_PF2=0.9*RScale;   #R position of PF2 (m)
-Z_PF2=0.5*ZScale;   #Z Position of PF2 (m)
-R_PF3=0.9*RScale;   #R Position of PF3 (m)
-Z_PF3=0.8*ZScale;   #Z Position of PF3 (m)
-R_Div1=0.25*RScale; #R Position of Div1 (m)
-Z_Div1=1.05*ZScale; #Z Position of Div1 (m)
-R_Div2=0.55*RScale; #R Position of Div2 (m)
-Z_Div2=1.05*ZScale; #Z Position of Div2 (m)
+#R_PF1=0.9*RScaleCoil  #R position of PF1 (m)
+#Z_PF1=0.3*ZScaleCoil  #Z position of PF1 (m)
+R_PF2=0.9*RScaleCoil   #R position of PF2 (m)
+Z_PF2=0.5*ZScaleCoil   #Z Position of PF2 (m)
+R_PF3=0.9*RScaleCoil   #R Position of PF3 (m)
+Z_PF3=0.8*ZScaleCoil   #Z Position of PF3 (m)
+R_Div1=0.25*RScaleCoil #R Position of Div1 (m)
+Z_Div1=1.05*ZScaleCoil #Z Position of Div1 (m)
+R_Div2=0.55*RScaleCoil #R Position of Div2 (m)
+Z_Div2=1.05*ZScaleCoil #Z Position of Div2 (m)
 
 
 #######################  DEFINE INITIAL PARAMETERS  #######################
@@ -206,6 +200,7 @@ mu0 = 1.2566e-06; #Magnetic Moment [I/m^2]
 
 #Define Operating Conditions
 RGeo = 0.4763		# Geometrical Radius [m]
+ZGeo = 0.0000		# Geometrical Axis   [m]
 epsilon = 1.985		# Aspect ratio       [-]
 a = RGeo/epsilon	# Minor radius       [m]
 kappa = 1.7			# Elongation         [-]
@@ -233,16 +228,16 @@ coil_temp = 293.0;					# Coil Init Temperature       [K]
 
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
-#Phase1 coil currents [kA]                  %SJDoyle
-I_Sol_start=1300;      #+1300 -> +1500;     #+1300;
-I_Sol_ramp=-900;       #-0900 -> -1100;     #-1100;
-I_Sol_equil=-1300;     #-1300 -> -1500;     #-1300;
+#Phase1 coil currents [kA]					#SJDoyle800		#SJDoyle210
+I_Sol_start=1300;		#+1300 -> +1500;	#+1300;			#+1300
+I_Sol_ramp=-900#-500;		#-0900 -> -1100;	#-0900;			#-500
+I_Sol_equil=-1300;		#-1300 -> -1500;	#-1300;			#-1300
 #
-I_PF1=0;               #-0    -> -0         #N/A
-I_PF2=-900;            #-0900 -> -1200;     #-1000;
-I_PF3=-800;            #-0800 -> -0900;     #-0800;
-I_Div1=-000;           #-0000 -> -0000;     #+0000;
-I_Div2=+3200;          #+3200 -> +4440;     #+3200;
+I_PF1=0;				#-0    -> -0		#N/A			#N/A
+I_PF2=-1000#-370;				#-0900 -> -1200;	#-1000;			#-0370
+I_PF3=-800#-400;				#-0800 -> -0900;	#-0800;			#-0400
+I_Div1=-000;			#-0000 -> -0000;	#+0000;			#-0000
+I_Div2=3200#+900;			#+3200 -> +4200;	#+3200;			#+0900
 
 #Phase2 coil currents [kA]
 #I_Sol_start=+4700;    #+4700 -> +4700;     #+4700;
@@ -277,11 +272,14 @@ I_Div2=+3200;          #+3200 -> +4440;     #+3200;
 					  #SWITCHBOARD AND SETTINGS#
 #====================================================================#
 
+#ParameterList = 'I_Sol_start' 
+#ParameterRanges = [x/1.0 for x in range(1100,1500,50)]
+
 #ParameterList = 'I_PF2' 
 #ParameterRanges = [x/1.0 for x in range(-1200,-899,50)] 	
 
 #ParameterList = 'I_Div2'
-#ParameterRanges = [x/1.0 for x in range(3200,4401,100)]
+#ParameterRanges = [x/1.0 for x in range(3200,4201,200)]
 
 #ParameterList = 'TauP'
 #ParameterRanges = [x/1000.0 for x in range(10,31,2)]
@@ -294,7 +292,7 @@ I_Div2=+3200;          #+3200 -> +4440;     #+3200;
 #Define FIESTA namelist and project directory names
 FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
 ProjectName = 'SMARTxs-P1'			#Define global project name
-SeriesName = 'VaryIPF2'				#Define parameter scan series name
+SeriesName = 'VaryTauP'				#Define parameter scan series name
 
 #Define simulation name structure:
 SimNameList = ['BT','TauP','I_Sol_start','I_PF2','I_Div2']
@@ -302,18 +300,22 @@ SimNameList = ['BT','TauP','I_Sol_start','I_PF2','I_Div2']
 #SimNameList = ['Z_PF2','Z_PF3','Z_Div1','Z_Div2']
 
 #Define if simulations are to be run
-IAutorun = False					#Run requested simulation series
-IParallel = False					#Enable mutli-simulations in parallel
+IAutorun = True				#Run requested simulation series
+IParallel = False				#Enable mutli-simulations in parallel
 IVerbose = True					#Verbose terminal output - not compatable with IParallel
 
+#Define equilibrium calculation method
+IEquilMethod = 'standard'         #'standard','efit','feedback'
+
 #Define paramters to be varied and ranges to be varied over
-ParameterList = 'I_Div2' #'TauP'
-ParameterRanges = [x/1.0 for x in range(3200,4401,100)]#[x/1000.0 for x in range(10,31,2)]
+ParameterList = 'TauP'
+ParameterRanges = [x/1000.0 for x in range(10,31,2)]
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = True		#Plots plasma current trends
-savefig_CoilCurrents = True		#Plots maximum dI/dt in each coil
+savefig_CoilCurrents = True			#Plots maximum dI/dt in each coil
 
+savefig_EquilTrends = False			#Plots general equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 savefig_IquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
@@ -325,11 +327,6 @@ TrendAxisOverride=''				#Force trend naming routine to recognise trend variable
 
 #====================================================================#
 #====================================================================#
-
-
-
-
-
 
 
 
@@ -365,12 +362,6 @@ TrendAxisOverride=''				#Force trend naming routine to recognise trend variable
 
 #====================================================================#
 #====================================================================#
-
-
-
-
-
-
 
 
 
@@ -773,6 +764,43 @@ def CreateTrendAxis(SimulationNames,VariableString,TrendAxisOverride=''):
 
 
 
+
+
+
+#====================================================================#
+						  #SOFTWARE SPLASH#
+#====================================================================#
+
+print ''
+print '---------------------------------------------------------------------'
+print '.______   ____    ____  _______     _______.___________.    ___      '   
+print '|   _  \  \   \  /   / |   ____|   /       |           |   /   \     '
+print '|  |_)  |  \   \/   /  |  |__     |   (----`---|  |----`  /  ^  \    '
+print '|   ___/    \_    _/   |   __|     \   \       |  |      /  /_\  \   '
+print '|  |          |  |     |  |____.----)   |      |  |     /  _____  \  '
+print '| _|          |__|     |_______|_______/       |__|    /__/     \__\ '
+print '                                                               V0.1.0'
+print '---------------------------------------------------------------------'
+print ''
+print 'The following diagnostics were requested:'
+print '-----------------------------------------'
+if IAutorun == True:
+	print'# Simulation Series Autorun'
+	print''
+if True in [savefig_EquilTrends,savefig_EquilSeperatrix,savefig_IquilMidplane,savefig_EquilXpoint]:
+	print'# 2D Equilibrium Analysis'
+if True in [savefig_PlasmaCurrent]:
+	print'# 1D Plasma Current Analysis'
+if True in [savefig_CoilCurrents]:
+	print'# 1D Coil Current Analysis'
+print '-----------------------------------------'
+print ''
+
+#=====================================================================#
+#=====================================================================#
+
+
+
 #====================================================================#
 					  #FIESTA AUTORUN ROUTINE#
 #====================================================================#
@@ -799,8 +827,10 @@ if IAutorun == True:
 		#Update new FIESTA.m with fixed parameters from PyESTA namelist
 		MatlabProjectString = '\''+ProjectName+'\''
 		MatlabSimulationString = '\''+SimulationString+'\''
+		MatlabIEquilMethod = '\''+IEquilMethod+'\''
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'ProjectName',MatlabProjectString)
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'SimName',MatlabSimulationString)
+		AlteredEntry = AlterNamelistVariable(FIESTAName,'IEquilMethod',MatlabIEquilMethod)
 
 		#####
 
@@ -809,6 +839,28 @@ if IAutorun == True:
 
 		#Run modified FIESTA - Verbosity determines terminal output.
 		RunFIESTA(FIESTAName,Verbose=IVerbose,Parallel=IParallel)
+	#endfor
+
+	#=================#
+
+	#If parallel simulations have been requested:
+	if IParallel == True:
+		#Initial delay to allow MATLAB processes to start
+		time.sleep(ConvDelay/2.0)
+		TimeConv = ConvDelay/2.0
+
+		#Parallel Race Condition Checker - Waits for all simulations to finish before analysis
+		while CheckIfProcessRunning('MATLAB') == True:
+			#If MATLAB process is detected, wait ConvDelay seconds and check again
+			time.sleep(ConvDelay)
+			TimeConv += ConvDelay
+			print 'Awaiting Series Convergence:',str(TimeConv)+'[s]'
+		#endwhile
+
+		#Update user of simulation convergence
+		print '------------------------------------------------'
+		print 'Series Convergence Achieved:',str(TimeConv)+'[s]'
+		print '------------------------------------------------'
 	#endfor
 #endif
 
@@ -837,24 +889,70 @@ if IAutorun == True:
 					   #ANALYSIS AND DIAGNOSTICS#
 #====================================================================#
 
-#If parallel simulations have been requested:
-if IAutorun == True and IParallel == True:
-	#Initial delay to allow MATLAB processes to start
-	time.sleep(ConvDelay/2.0)
-	TimeConv = ConvDelay/2.0
+#====================================================================#
+				       #EQUILIBRIUM DIAGNOSTICS#
+#====================================================================#
 
-	#Parallel Race Condition Checker - Waits for all simulations to finish before analysis
-	while CheckIfProcessRunning('MATLAB') == True:
-		#If MATLAB process is detected, wait ConvDelay seconds and check again
-		time.sleep(ConvDelay)
-		TimeConv += ConvDelay
-		print 'Awaiting Simulation Convergence:',TimeConv+'[s]'
-	#endwhile
+#Plot general equilibrium trends from Param(equil)
+if savefig_EquilTrends == True:
 
-	print 'Simulation Convergence:',TimeConv+'[s]'
-#endfor
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
-#=========================#
+	#Extract plasma current data from series directories
+	ParamEquil = ExtractFIESTAData(SimulationDirs,'EquilParam.txt','2D','Vertical')[0]
+	ValueEquil = ExtractFIESTAData(SimulationDirs,'EquilParam.txt','2D','Vertical')[1]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterList,TrendAxisOverride)
+
+
+
+#USEFUL TRENDS TO TRACK
+#Rgeo(m) 0.45
+#A 1.96
+#kappa 1.78
+#delta 0.14
+#Vol(m3) 0.771
+#q95 6.10
+#betaT 0.022
+#betap 0.628
+#betaN(%) 1.74
+
+	print'-----------------------------'
+	print'# Equilibrium Trends Complete'
+	print'-----------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #====================================================================#
@@ -897,7 +995,8 @@ if savefig_PlasmaCurrent == True:
 		Ip_MinTrend.append(min(Ip_Arrays[i]))
 	#endfor
 
-	####################
+	#===================##===================#
+	#===================##===================#
 
 	#Create figure for plasma current diagnostic
 	fig,ax = plt.subplots(1, figsize=(12,10))
@@ -935,6 +1034,10 @@ if savefig_PlasmaCurrent == True:
 	plt.savefig(SeriesDirString+'/Ip_Trends.png')
 	plt.show()
 	plt.close('all')
+
+	print'-------------------------'
+	print'# Ip Diagnostics Complete'
+	print'-------------------------'
 #endif
 
 #=====================================================================#
@@ -1027,8 +1130,8 @@ if savefig_CoilCurrents == True:
 		MaxDeltaIDiv2.append( max(DeltaIDiv2[i], key=abs) )
 	#endfor
 
-	####################	####################
-	####################	####################
+	#===================##===================#
+	#===================##===================#
 
 	#Create output folder for all coil current timetraces
 #	TimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_TimeTraces/')
@@ -1085,8 +1188,11 @@ if savefig_CoilCurrents == True:
 		plt.show()
 		plt.close('all')
 	#endfor
+	print'----------------------------------'
+	print'# Coil Current Timetraces Complete'
+	print'----------------------------------'
 
-	####################
+	#=================#
 
 	#Create figure for Coil Maximum Ramp Diagnostic
 	fig,ax = plt.subplots(1, figsize=(12,8))
@@ -1114,6 +1220,10 @@ if savefig_CoilCurrents == True:
 	plt.savefig(SeriesDirString+'/CoilRamp_Trends.png')
 	plt.show()
 	plt.close('all')
+
+	print'--------------------------------'
+	print'# Coil Ramp Diagnostics Complete'
+	print'--------------------------------'
 #endif
 
 #=====================================================================#

@@ -16,17 +16,24 @@ addpath(genpath(FIESTATrunk),genpath(FunctionsTrunk));
 %                        DEFINE REACTOR GEOMETRY                        %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Define global scaling factors
+RScaleVessel=1.00;    %Scale all radial vessel dimensions (Relative to 2.0m)
+ZScaleVessel=0.80;    %Scale all axial vessel dimensions (Relative to 2.0m)
+RScaleCoil=1.00;      %Scale all radial coil positions (Relative to 2.0m)
+ZScaleCoil=0.80;      %Scale all axial coil positions (Relative to 2.0m)
+
 %Define Vessel Outer Geometry
-VesselRInnerPoint=0.15; % R min position [m]
-VesselROuterPoint=0.8;  % R max position [m]
-VesselZMinPoint=-0.8;   % Z min position [m]
-VesselZMaxPoint=0.8;    % Z max position [m]
+VesselRInnerPoint=0.15*RScaleVessel; % R min position [m]
+VesselROuterPoint=0.8*RScaleVessel;  % R max position [m]
+VesselZMinPoint=-1.0*ZScaleVessel;   % Z min position [m]
+VesselZMaxPoint=1.0*ZScaleVessel;    % Z max position [m]
 
 %Define Solenoid Geometry and Parameters
-nSol=800;     % number of turns of the solenoid
-RSol=0.09;    % R position of the solenoid [m] (Inner Solenoid)
-ZMinSol=-0.8; % Min Z position
-ZMaxSol=0.8;  % Max Z position
+nSol=800;     % number of turns of the solenoid   	%??? nSol=800 or 210 ???
+RSol=0.09;   % R position of the solenoid [m] (Inner Solenoid)
+%RSol=0.13;    % R position of the solenoid [m] (Outer Solenoid)
+ZMinSol=-1.0*ZScaleVessel; % Min Z position
+ZMaxSol=1.0*ZScaleVessel;  % Max Z position
 
 %Number of Radial (R) and axial (Z) coil windings
 nZDiv1=6;
@@ -40,31 +47,21 @@ nRPF2=4;
 nZPF3=6;
 nRPF3=4;
 
-%Calculate total number of windings in each coil
-nDiv1=nZDiv1*nRDiv1;
-nDiv2=nZDiv2*nRDiv2;
-%nPF1=nZPF1*nRPF1;
-nPF2=nZPF2*nRPF2;
-nPF3=nZPF3*nRPF3; 
-
 %Define coil turn dimensions to enable cross-section calculation
 width_PF=0.042;  % Width of a turn (m)
 height_PF=0.035; % Height of a turn (m)
 
 %Define central location of coil sets
-RScale=1.00;        %Scale all radial coil positions (Relative to 2.0m)
-ZScale=0.80;        %Scale all axial coil positions (Relative to 2.0m)
-%%%%%
-%R_PF1=0.9*RScale;  %R position of PF1 (m)
-%Z_PF1=0.3*ZScale;  %Z position of PF1 (m)
-R_PF2=0.9*RScale;   %R position of PF2 (m)
-Z_PF2=0.5*ZScale;   %Z Position of PF2 (m)
-R_PF3=0.9*RScale;   %R Position of PF3 (m)
-Z_PF3=0.8*ZScale;   %Z Position of PF3 (m)
-R_Div1=0.25*RScale; %R Position of Div1 (m)
-Z_Div1=1.05*ZScale; %Z Position of Div1 (m)
-R_Div2=0.55*RScale; %R Position of Div2 (m)
-Z_Div2=1.05*ZScale; %Z Position of Div2 (m)
+%R_PF1=0.9*RScaleCoil;  %R position of PF1 (m)
+%Z_PF1=0.3*ZScaleCoil;  %Z position of PF1 (m)
+R_PF2=0.9*RScaleCoil;   %R position of PF2 (m)
+Z_PF2=0.5*ZScaleCoil;   %Z Position of PF2 (m)
+R_PF3=0.9*RScaleCoil;   %R Position of PF3 (m)
+Z_PF3=0.8*ZScaleCoil;   %Z Position of PF3 (m)
+R_Div1=0.25*RScaleCoil; %R Position of Div1 (m)
+Z_Div1=1.05*ZScaleCoil; %Z Position of Div1 (m)
+R_Div2=0.55*RScaleCoil; %R Position of Div2 (m)
+Z_Div2=1.05*ZScaleCoil; %Z Position of Div2 (m)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -83,6 +80,7 @@ mu0 = 1.2566e-06; %Magnetic Moment [I/m^2]
 
 %Define Operating Conditions
 RGeo = 0.4763;    % Geometrical Radius [m]
+ZGeo = 0.0000;    % Geometrical Axis   [m]
 epsilon = 1.985;  % Aspect ratio       [-]
 a = RGeo/epsilon; % Minor radius       [m]
 kappa = 1.7;      % Elongation         [-]
@@ -90,16 +88,16 @@ Ip = 30e3;        % Plasma current     [A]
 li2 = 1;          %                    [-]
 %q_cyl = 2.821;   % Safety Factor      [-]
 betaN = 3.529;    %                    [-] (Obtained via VEST Excel)
-TauP = 0.020;      % Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
+TauP = 0.020;     % Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
 
 %Compute Further Operating Conditions
 BT=0.1;                            % Toroidal B-Field            [T]
-Irod=BT*2*pi*RGeo/mu0;             % Central Rod Current         [kA]
+Irod=BT*2*pi*RGeo/mu0;             % Central Rod Current         [A]
 S=sqrt( (1.0+kappa^2)/2.0 );       % Shaping factor              [-]
 betaT = betaN/a * (Ip/1e6)/BT;     % Beta toroidal               [%]
 betaP = 25 ./(betaT / 100) .* S^2 .* ((betaN / 100).^2); % Beta Poloidal [%]
 nT = 2.66*1e20*1e3 * betaT * BT^2; % Density Temperature Product [eV m-3]
-n = 3e19;                          % Central Plasma Density      [m^-3
+n = 3e19;                          % Central Plasma Density      [m^-3]
 T = nT/n;                          % Central Plasma Temperature  [eV]
 nGW = Ip * 1e14 / (pi*a^2);        % ??Central Current Density?? [kA m^2]
 
@@ -115,28 +113,28 @@ resistivity = copper_resistivity_at_temperature(coil_temp);
 
 disp([ 'TauP = ' num2str(TauP*1000) ' [ms]' ]);
 disp([ 'BT = ' num2str(BT) ' [T]' ]);
+disp([ 'BZ = ' num2str(BZ) ' [T]' ]);
 disp([ 'IRod = ' num2str(Irod) ' [kA]' ]);
 disp([ 'Shaping Factor = ' num2str(S) ' [-]' ]);
 disp([ 'beta = ' num2str(betaT) ' [%]' ]);
 disp([ 'betaP = ' num2str(betaP) ' [-]' ]);
 disp([ 'nT = ' num2str(nT) ' [m^-3 eV]' ]);
 disp([ 'T = ' num2str(T) ' [eV]' ]);
-disp([ 'BZ = ' num2str(BZ) ' [T]' ]);
 disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%  DEFINE SOL RAMP & COIL CURRENTS  %%%%%%%%%%%%%%%%%%%%
 disp([ '%===== Initial Coil Currents =====%' ]);
 
-%Phase1 coil currents [kA]                  %SJDoyle
-I_Sol_start=1300;      %+1300 -> +1500;     %+1300;
-I_Sol_ramp=-900;       %-0900 -> -1100;     %-0900;
-I_Sol_equil=-1300;     %-1300 -> -1500;     %-1300; 
+%Phase1 coil currents [kA]                  %SJD800    %SJD210
+I_Sol_start=1300;      %+1300 -> +1500;     %+1300;    %1300
+I_Sol_ramp=-900;       %-0900 -> -1100;     %-0900;    %-500
+I_Sol_equil=-1300;     %-1300 -> -1500;     %-1300;    %-1300
 %
 I_PF1=0;               %-0    -> -0         %N/A
-I_PF2=-900;            %-0900 -> -1200;     %-1000;
-I_PF3=-800;            %-0800 -> -0900;     %-0800;
-I_Div1=-000;           %-0000 -> -0000;     %+0000;
-I_Div2=+3200;          %+3200 -> +4440;     %+3200;
+I_PF2=-1000;           %-0900 -> -1200;     %-1000;     %PF1:373.61
+I_PF3=-800;            %-0800 -> -0900;     %-0800;     %PF2:401.61
+I_Div1=-000;           %-0000 -> -0000;     %+0000;     %000
+I_Div2=+3200;          %+3200 -> +4200;     %+3200;     %900
 
 %%%%%%%%%%
 
@@ -205,6 +203,13 @@ iPF3 = 3;       %Lower Plasma Forming Coil
 iDiv1 = 4;      %Inboard Divertor Coil
 iDiv2 = 5;      %Outboard Divertor Coil
 
+%Calculate total number of windings in each coil
+nDiv1=nZDiv1*nRDiv1;
+nDiv2=nZDiv2*nRDiv2;
+%nPF1=nZPF1*nRPF1;
+nPF2=nZPF2*nRPF2;
+nPF3=nZPF3*nRPF3; 
+
 %Create array containing coil turns
 turns=[];
 turns(iSol) = nSol; 
@@ -258,7 +263,7 @@ icoil.Div2=I_Div2;    %
 for i=length(xaccum):-1:1
 	%R Major Radius, Z Height, r Minor Radius, z Minor Axis 
 	%R, Z, 2*r, 2*z, 1, 0, 0 		%(2r width in R axis, 2z in Z axis of the filament)
-    vessel_filament(i) = fiesta_filament(xaccum(i),yaccum(i),ww,ww/2,1,0,0);		%ww/3 ???
+    vessel_filament(i) = fiesta_filament(xaccum(i),yaccum(i),ww,ww/2,1,0,0);	%??? ww/3 ???
 end
 %Enable induced currents in vessel wall filaments
 passive = fiesta_passive('STVesselPas',vessel_filament,'g');
@@ -283,25 +288,56 @@ jprofile = fiesta_jprofile_topeol2( 'Topeol2', betaP, 1, li2, Ip );
 
 %%%%%%%%%%%%%%%%%%%%%%  COMPUTE TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%
 
-%Calculate equilibrium for given coil geometry and currents.
-equil=fiesta_equilibrium('SST', config, Irod, jprofile, control, [], icoil);
+%Define numerical technique applied to equilibrium
+IEquilMethod = 'standard';         %'standard','efit','feedback'
 
-%%%%%%%%%%
+%Standard equilibrium model (steady state coil currents)
+if IEquilMethod == 'standard'
+	%Calculate equilibrium for given coil geometry and currents.
+	equil=fiesta_equilibrium('SST', config, Irod, jprofile, control, [], icoil);
 
-%HACKY NOTE!!! This seems to be a slightly more involved equilibrium calc
-%HACKY NOTE!!! efit_shape_controller doesn't work - r variable not defined
-%[efit_config, signals, weights, index]=efit_shape_controller(config, {'Div2'}, [0.4, 0, 0.25, 1.8, 0.2]) %[0.47, 0, 0.24, 1.7, 0.3]
-%equil=fiesta_equilibrium('ST', config, Irod, jprofile, control, efit_config, icoil, signals, weights)
+%%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
 
-%HACKY NOTE!!! WHAT ARE THESE FOR???
-%config = fiesta_configuration( 'STV2C2', Grif, coilset);
-%feedback=shape_controller(config, {'PF2','PF3','Div1','Div2'}, 0.43, 0, 0.22, 1.82, 0.1)
-%[efit_config, signals, weights, index]=efit_shape_controller(config, {'PF2','PF3','Div1','Div2'}, [0.43, 0, 0.24])
+%Standard efit equilibrium (fit coil currents to jprofile)
+elseif IEquilMethod == 'efit'
 
-%feedback=shape_controller(config, {'Div2'}, 0.43, 0, 0.22, 1.8);
-%equil=set(equil, config, 'feedback',feedback);
-%save('equil.mat','equil')
+	%HACKY NOTE!!! efit_shape_controller doesn't work - r variable not defined
+	%Variables required: [Rgeo, Zgeo, a, kappa, delta], N.B. kappa and delta are optional
+	[efit_config, signals, weights, index]=efit_shape_controller(config, {'PF1','PF2'}, [0.44, 0, 0.44/1.85 1.8 0.2]);
+	%%Calculate equilibrium fitting coil currents to provided jprofile
+	equil=fiesta_equilibrium('ST', config, Irod, jprofile, control, efit_config, icoil, signals, weights);
 
+	%Extract the new coil currents from the efit-equilibrium:
+	icoil=get(equil,'icoil');
+	efitCurrents=get(icoil,'currents');
+	I_PF1 = efitCurrents(iPF1);
+	I_PF2 = efitCurrents(iPF2);
+	I_PF3 = efitCurrents(iPF3);
+	I_Div1 = efitCurrents(iDiv1);
+	I_Div2 = efitCurrents(iDiv2);
+
+%%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
+
+%Standard efit equilibrium (fit coil currents to jprofile)
+elseif IEquilMethod == 'feedback'
+
+	%Feedback efit equilibrium (???????????????)
+	config = fiesta_configuration( 'STV2C2', Grif, coilset);
+	feedback=shape_controller(config, {'PF2','PF3','Div1','Div2'}, 0.43, 0, 0.22, 1.82, 0.1);
+	%HACKY NOTE!!! efit_shape_controller doesn't work - r variable not defined
+	[efit_config, signals, weights, index]=efit_shape_controller(config, {'PF2','PF3','Div1','Div2'}, [0.43, 0, 0.24]);
+	feedback=shape_controller(config, {'Div2'}, 0.43, 0, 0.22, 1.8);
+	equil=set(equil, config, 'feedback',feedback);
+
+	%Extract the new coil currents from the efit-equilibrium:
+	icoil=get(equil,'icoil');
+	efitCurrents=get(icoil,'currents');
+	I_PF1 = efitCurrents(iPF1);
+	I_PF2 = efitCurrents(iPF2);
+	I_PF3 = efitCurrents(iPF3);
+	I_Div1 = efitCurrents(iDiv1);
+	I_Div2 = efitCurrents(iDiv2);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -376,7 +412,7 @@ set(gca,'XLim',[0 1]);
 set(gca,'YLim',[-1.5 1.5]);
 xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
-Filename = '_VirtualBSensors';
+Filename = '_VirtualBSensors';         %[Poloidal Null Field Region]
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
