@@ -246,8 +246,8 @@ time =  [-0.10, -0.05, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_Daniel
 #IDiv2_Waveform = [+900]
 
 #Phase1 coil currents [kA]               #SJD210   %SJD800
-I_Sol_Start=+1250     #+1250 -> +xxxx;  %+1300;   %+1300
-I_Sol_Equil=-0000      #-0000 -> -0500;  %-0000;   %-900
+I_Sol_Start=+1250      #+1250 -> +xxxx;  %+1300;   %+1300
+I_Sol_Equil=-500       #-0000 -> -0500;  %-0000;   %-900
 I_Sol_End=-1250        #-1250 -> -xxxx;  %-1300;   %-1300
 #Symmetric ISol is better for power supply
 #
@@ -336,7 +336,7 @@ ParameterRange = [-400]#[x for x in range(-450,-349,10)]		 #Define range to vary
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = False		#Plots plasma current trends
-savefig_CoilCurrents = False		#Plots maximum dI/dt in each coil
+savefig_CoilCurrents = True		#Plots maximum dI/dt in each coil
 
 savefig_EquilTrends = False			#Plots general equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends

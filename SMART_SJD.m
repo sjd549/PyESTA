@@ -8,7 +8,7 @@ close all
 
 %Add FIESTA trunk path, include path to any extra functions.
 FIESTATrunk = "~/Postdoc Seville/FIESTA/Source Code/FIESTA_V8.8";
-FunctionsTrunk = "Functions";
+FunctionsTrunk = "../../Functions";
 addpath(genpath(FIESTATrunk),genpath(FunctionsTrunk));
 
 %Set maximum number of concurrent CPU threads in use
@@ -154,7 +154,7 @@ time =  [-0.10 -0.05 0 tstep tstep+0.03 tstep+0.05];    %Phase1_Daniel
 
 %Phase1 coil currents [kA]               %SJD210   %SJD800
 I_Sol_Start=+1250;     %+1300 -> +1500;  %+1250;   %+1300
-I_Sol_Equil=0;         %-0500 -> +0000;  %-0000;   %-900
+I_Sol_Equil=-500;      %-0500 -> +0000;  %-0000;   %-900
 I_Sol_End=-1250;       %-1300 -> -1500;  %-1250;   %-1300
 %Symmetric ISol is better for power supply
 %
