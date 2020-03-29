@@ -101,7 +101,8 @@ IDebugMode = False			#Produces debug outputs for relevent diagnostics.
 
 #Set default parallelisation options
 IParallel = False			#Allow multiple simultanious FIESTA simulations
-NumThreads = 2				#Maximum number of threads avaliable to FIESTA
+NumThreads = 2				#Number of threads avaliable to each FIESTA simulation
+MaxNumThreads = 4			#Maximum number of threads avaliable for all FIESTA simulations
 ConvDelay = 10	#[s]		#Delay between convergence checks for race condition
 
 #====================================================================#
@@ -158,8 +159,8 @@ VesselZMinPoint=-1.0*ZScaleVessel	# Z min position [m]
 VesselZMaxPoint=1.0*ZScaleVessel	# Z max position [m]
 
 #Define Solenoid Geometry and Parameters
-nSol=800     # number of turns of the solenoid   	%??? nSol=800 ???
-RSol=0.09    # R position of the solenoid [m] (0.09 Inner Solenoid :: 0.13 Outer Solenoid)
+nSol=210;     # Solenoid Central Windings  [-]	   	#nSol=210,800
+RSol=0.13;    # R position of the solenoid [m]      #RSol=0.13,0.09
 ZMinSol=-1.0*ZScaleVessel # Min Z position
 ZMaxSol=1.0*ZScaleVessel  # Max Z position
 
@@ -193,34 +194,38 @@ Z_Div2=1.05*ZScaleCoil #Z Position of Div2 (m)
 #######################  DEFINE INITIAL PARAMETERS  #######################
 
 #Define any required constants
-mu0 = 1.2566e-06;   #Magnetic Moment [I/m^2]
+mu0 = 1.2566e-06; # Magnetic Moment      [I/m^2]
 
 #Define Operating Conditions
-RGeo = 0.4763		# Geometrical Radius [m]
-ZGeo = 0.0000		# Geometrical Axis   [m]
-epsilon = 1.985		# Aspect ratio       [-]
-a = RGeo/epsilon	# Minor radius       [m]
-kappa = 1.7			# Elongation         [-]
-Ip = 30e3			# Plasma current     [A]
-li2 = 1				#                    [-]
-#q_cyl = 2.821		# Safety Factor      [-]
-betaN = 3.529		#                    [-] (Obtained via VEST Excel)
-TauP = 0.020		# Pulse length       [s] (Also determines tstep for Ip plot)\r\n')
+Te = 250;         # Electron Temperature [eV]
+Ti = Te*0.1;      # Ion Temperature      [eV]
+BT = 0.1;         # Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = 30e3;        # Plasma current       [A]
+TauP = 0.020;     # Pulse length         [s] (Also determines tstep for Ip plot)
+RGeo = 0.450;     # Geometrical Radius   [m]
+ZGeo = 0.000;     # Geometrical Axis     [m]
+RSep = 0.700;     # Separatrix Radius    [m]
+a = RSep-RGeo     # Minor Radius         [m]
+Epsilon = RGeo/a  # Aspect ratio         [-]
+Kappa = 1.8;      # Elongation           [-]
+li2 = 1;          # Standard Value?      [-]
+#q_cyl = 2.821;   # Safety Factor?       [-]
+betaN = 3.529;    #                      [-] (Obtained via VEST Excel - LIKELY 2X TOO HIGH)
 
 #Compute Further Operating Conditions
-BT=0.1								# Toroidal B-Field            [T]
-Irod=BT*2*pi*RGeo/mu0				# Central Rod Current         [kA]
-S=np.sqrt( (1.0+kappa**2)/2.0 )		# Shaping factor              [-]
-betaT = betaN/a*(Ip/1e6)/BT			# Beta toroidal               [%]
-betaP = 25.0/(betaT/100)*(S**2)*((betaN/100)**2) # Beta Poloidal  [%]
-nT = 2.66*1e20*1e3*betaT*BT**2		# Density Temperature Product [eV m-3]
-n = 3e19							# Central Plasma Density      [m^-3
-T = nT/n							# Central Plasma Temperature  [eV]
-nGW = Ip*1e14/(pi*a**2)				# ??Central Current Density?? [kA m^2]
-BZ = -mu0*Ip/(4*pi*RGeo)*( log(8*epsilon)+betaP+0.5*li2-3/2 ) #Vertical field [T]
+Gr_Limit = 1e20*(Ip*1e-6/(pi*(a**2)*Kappa))	# Greenwald Limit         [m-3]
+Gr_Frac = 0.15                            	# Greenwald Fraction       [-]
+ne = Gr_Limit*Gr_Frac                     	# Electron Density         [m-3]  ~3E19
+Irod = BT*2*pi*RGeo/mu0                   	# Central Rod Current      [A]
+S = sqrt( (1.0+Kappa**2)/2.0 )             	# Shaping factor           [-]
+betaT = betaN/a*(Ip/1e6)/BT             	# Beta toroidal            [%]
+betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))**2*2*mu0*1.6e-19*Kappa # Beta Poloidal  [%]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Epsilon)+betaP+0.5*li2-3/2)    # Vertical field [T]
+nT = 2.66*1e23*betaT*BT**2               	# Density Temperature Product [eV m-3]
 #
-coil_density = 1;					# Coil Density                [Arb]
-coil_temp = 293.0;					# Coil Init Temperature       [K]
+coil_density = 1                        	# Relative Coil Density    [Arb]
+coil_temp = 293.0                       	# Initial Coil Temperature [K]
+
 
 
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
@@ -228,9 +233,10 @@ coil_temp = 293.0;					# Coil Init Temperature       [K]
 #Define number of time-steps (vertices) in the current waveforms
 nTime = 6      #[Steps]
 tstep = TauP   #[s]
-time = [-0.05, -0.03, 0, tstep, tstep+0.03, tstep+0.05]    #Phase1
-#time = [-0.11, -0.05, 0, tstep, tstep+0.1, tstep+0.11]    #Phase2
-#time = [-0.xx, -0.xx, 0, tstep, tstep+0.xx, tstep+0.xx]   #Phase3
+#time = [-0.05, -0.03, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_JuanJo
+time =  [-0.10, -0.05, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_Daniel
+#time = [-0.11, -0.05, 0, tstep, tstep+0.10, tstep+0.11]	#Phase2_JuanJo
+#time = [-0.xx, -0.xx, 0, tstep, tstep+0.xx, tstep+0.xx]   	#Phase3
 
 #Phase1 coil currents [kA] 
 #ISol_Waveform = [+1300,-500,-1300]
@@ -240,15 +246,15 @@ time = [-0.05, -0.03, 0, tstep, tstep+0.03, tstep+0.05]    #Phase1
 #IDiv2_Waveform = [+900]
 
 #Phase1 coil currents [kA]               #SJD210   %SJD800
-I_Sol_Start=+1300;     #+1300 -> +1500;  %+1300;   %+1300
-I_Sol_Equil=-500       #-0900 -> -1100;  %-0500;   %-900
-I_Sol_End=-1300        #-1300 -> -1500;  %-1300;   %-1300
+I_Sol_Start=+1250     #+1250 -> +xxxx;  %+1300;   %+1300
+I_Sol_Equil=-0000      #-0000 -> -0500;  %-0000;   %-900
+I_Sol_End=-1250        #-1250 -> -xxxx;  %-1300;   %-1300
 #Symmetric ISol is better for power supply
 #
-I_PF1=-370;            #-0900 -> -1200;  %-370;    %-1000
-I_PF2=-400             #-0800 -> -0900;  %-400;    %-0800
-I_Div1=+000            #-0000 -> -0000;  %+000;    %+0000
-I_Div2=+900            #+3200 -> +4200;  %+900;    %+3200
+I_PF1=-370             #-0350 -> -xxxx;  %-370;    %-1000
+I_PF2=-400             #-0400 -> -xxxx;  %-400;    %-0800
+I_Div1=+000            #-0000 -> -xxxx;  %+000;    %+0000
+I_Div2=+900            #+0900 -> +xxxx;  %+900;    %+3200
 
 #Phase2 coil currents [kA]
 #I_Sol_Start=+4700;    #+4700 -> +4700;     #+4700;
@@ -282,13 +288,16 @@ I_Div2=+900            #+3200 -> +4200;  %+900;    %+3200
 #====================================================================#
 
 #ParameterVaried = 'I_Sol_start' 
-#ParameterRange = [x/1.0 for x in range(1100,1500,50)]
+#ParameterRange = [x for x in range(500,1501,100)]
 
-#ParameterVaried = 'I_PF1' 
-#ParameterRange = [x/1.0 for x in range(-1200,-899,50)] 	
+#ParameterVaried = 'I_PF1'
+#ParameterRange = [x for x in range(-500,-349,10)]
+
+#ParameterVaried = 'I_PF2'
+#ParameterRange = [x for x in range(-500,-349,10)]
 
 #ParameterVaried = 'I_Div2'
-#ParameterRange = [x/1.0 for x in range(3200,4201,200)]
+#ParameterRange = [x for x in range(3200,4201,200)]
 
 #ParameterVaried = 'TauP'
 #ParameterRange = [x/1000.0 for x in range(10,31,2)]
@@ -297,10 +306,10 @@ I_Div2=+900            #+3200 -> +4200;  %+900;    %+3200
 #ParameterRange = [0.8,0.85,0.9,0.95,1.0]
 
 #ParameterVaried = 'nSol'
-#ParameterRange = [x/1 for x in range(200,801,100)]
+#ParameterRange = [x for x in range(200,801,100)]
 
 #ParameterVaried = 'RSol'
-#ParameterRange = [x/100 for x in range(7,15,1)]
+#ParameterRange = [x/100.0 for x in range(7,15,1)]
 
 ####################
 
@@ -310,23 +319,24 @@ ProjectName = 'SMARTxs-P1'			#Defult global project name
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
-SimNameList = ['BT','I_Sol_Start','I_PF1','I_PF2','I_Div1','I_Div2']
+SimNameList = ['BT','TauP','I_Sol_Start','I_PF1','I_PF2','I_Div1','I_Div2']
 
 #Define if simulations are to be run
 IAutorun = True			#Run requested simulation series
 IParallel = False			#Enable mutli-simulations in parallel
-IVerbose = True				#Verbose terminal output - not compatable with IParallel
+IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
 #Define equilibrium calculation method
-IEquilMethod = 'efit'			#'standard','efit','feedback'
+IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
+IefitCoils = ['PF1','PF2']					#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'TauP'		 #Define parameter to vary - Required for diagnostics
-ParameterRange = [x/1000.0 for x in range(10,31,2)]			 #Define range to vary over
+ParameterVaried = 'I_PF2'		 #Define parameter to vary - Required for diagnostics
+ParameterRange = [-400]#[x for x in range(-450,-349,10)]		 #Define range to vary over
 
 #Define which diagnostics are to be performed
-savefig_PlasmaCurrent = True		#Plots plasma current trends
-savefig_CoilCurrents = True			#Plots maximum dI/dt in each coil
+savefig_PlasmaCurrent = False		#Plots plasma current trends
+savefig_CoilCurrents = False		#Plots maximum dI/dt in each coil
 
 savefig_EquilTrends = False			#Plots general equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
@@ -334,7 +344,7 @@ savefig_IquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
 
 #Image overrides and tweaks
-Image_TrendAxisOverride=''			#Force trend figures to use different variable
+Image_TrendAxisOverride='Run'			#Force trend figures to use different variable
 
 #====================================================================#
 #====================================================================#
@@ -347,18 +357,25 @@ Image_TrendAxisOverride=''			#Force trend figures to use different variable
 #====================================================================#
 
 #TO DO
+#IMMEDIATE FIXES
+#Enable concurrent diagnostic use after running simulations - requires running twice atm
+# ^^^ ?This is likely due to being in the wrong directory after simulations finish? ^^^
+
 
 #CORE FUNCTIONALITY
-#Rename all output text files in a HPEM style format and make a standardised ASCII format
-#Enable immediate diagnostic use after running simulations, requires running twice atm
+#Unify PyESTA namelist inputs with .m namelist inputs 		- Ideally in external namelist file
+#Add capability to iterate towards fixed equilibrium conditions - i.e. iterate on single variable
+#Rename all FIESTA output text files in unified format      - Enable CSV or Row-Wise data storing
+#Save all PyESTA output data in seperate output folder      - Enable CSV or Row-Wise data storing
 #Add ability to change multiple variables per run
-#Add ability to use multiple cores 											- NEEDS TESTING!!!
+#Add ability to use multiple cores, including safety		- NEEDS TESTING!!!
 
 #DIAGNOSTICS
+#Add breakdown diagnostic calculating path length at each point in the current waveform
+#Add breakdown diagnostic calculating breakdown boolian for each simuatlion (true/false)
 #Add equilibrium Rmin,Rmax, Zmin,ZMax diagnostic showing extrema of seperatrix
 #Add equilibrium 'PROES-like' diagnostics - plot Radial slice at Z=0 with parameter range
 #Add equilibrium X point diagnostic, showing X-point location (R,Z) trends
-#Add breakdown diagnostics showing criterion and trends with breakdown time if possible
 #Add trend diagnostics for all of the default param(equil) outputs
 
 #ERROR HANDLING
@@ -841,8 +858,10 @@ print ''
 
 #Auto generate series folder name if requested
 if SeriesName == 'auto': SeriesName = 'Vary '+ParameterVaried
-#Enforce SimName to include varied param if requested
+#Ensure varied parameter appears first in SimulationName
+SimNameList = [SimNameList[i] for i in range(0,len(SimNameList)) if SimNameList[i]!=ParameterVaried]
 SimNameList = [ParameterVaried]+SimNameList
+
 
 #Autorun simulations over defined paramter range if requested
 if IAutorun == True:
@@ -858,25 +877,28 @@ if IAutorun == True:
 		#Create simulation folder for input parameter[i]
 		SimulationString = CreateSimName(SimNameList,ParameterVaried,ParameterRange[i])
 		SimulationDir = CreateNewFolder(SeriesDir,SimulationString)
+		if IVerbose == False: print SimulationString
 
 		#Copy FIESTA.m into simulation folder and cd into directory
 		os.system('cp '+FIESTAName+' '+'\''+SimulationDir+'\'')
 		os.chdir(SimulationDir)
 
-		#Update new FIESTA.m with fixed parameters from PyESTA namelist
+		#Update new FIESTA.m with fixed namelist parameters
 		MatlabProjectString = '\''+ProjectName+'\''
 		MatlabSimulationString = '\''+SimulationString+'\''
 		MatlabIEquilMethod = '\''+IEquilMethod+'\''
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'ProjectName',MatlabProjectString)
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'SimName',MatlabSimulationString)
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'IEquilMethod',MatlabIEquilMethod)
+		AlteredEntry = AlterNamelistVariable(FIESTAName,'NumThreads',NumThreads)
 
 		#####
 
-		#Update new FIESTA.m variable parameter namelist input for value [i]
+		#Update new FIESTA.m with variable namelist parameters for Parameter[i]
 		AlteredEntry = AlterNamelistVariable(FIESTAName,ParameterVaried,ParameterRange[i])
 
 		#Run modified FIESTA - Verbosity determines terminal output.
+		#TO IMPLIMENT::: MAXIMUM CONCURRENT RUNS = MaxNumThreads/NumThreads
 		RunFIESTA(FIESTAName,Verbose=IVerbose,Parallel=IParallel)
 	#endfor
 
@@ -948,7 +970,7 @@ if savefig_EquilTrends == True:
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
 
 #USEFUL TRENDS TO TRACK
-#Rgeo(m) 0.45
+#Rgeo 0.45
 #A 1.96
 #kappa 1.78
 #delta 0.14
@@ -956,7 +978,7 @@ if savefig_EquilTrends == True:
 #q95 6.10
 #betaT 0.022
 #betap 0.628
-#betaN(%) 1.74
+#betaN 1.74
 
 	print'-----------------------------'
 	print'# Equilibrium Trends Complete'
@@ -1035,12 +1057,17 @@ if savefig_PlasmaCurrent == True:
 	#===================##===================#
 	#===================##===================#
 
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
 	#Create figure for plasma current diagnostic
 	fig,ax = plt.subplots(1, figsize=(12,10))
 
 	#Plot plasma current with respect to adaptive_time
 	for i in range(0,len(Ip_Arrays)): ax.plot(Time_Arrays[i],Ip_Arrays[i], lw=2)
-	ax.set_title('Plasma Current Time-Trace for Varying '+ParameterVaried, fontsize=20, y=1.03)
+	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
 	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
 	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
 	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
@@ -1059,7 +1086,7 @@ if savefig_PlasmaCurrent == True:
 	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
 	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
 	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
-	ax2.set_xlabel('Varied Parameter: '+ParameterVaried, fontsize=15)
+	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
 #	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
 #	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
 	ax2.tick_params(axis='x', labelsize=14)
@@ -1126,11 +1153,12 @@ if savefig_CoilCurrents == True:
 	#Rescale data for plotting: [A] to [kA]
 	for i in range(0,len(ISol_Arrays)):
 		for j in range(0,len(ISol_Arrays[i])):
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*800)		#ODD SCALING!?
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
-			IPF3_Arrays[i][j] = IPF3_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)		#ODD SCALING!?
+		 	#Coil currents are saved scaled by the number of windings (For reasons...)
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*nSol)
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
+			IPF3_Arrays[i][j] = IPF3_Arrays[i][j]/(1000.0*24)
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
 		#endfor
 	#endfor
 
@@ -1170,6 +1198,11 @@ if savefig_CoilCurrents == True:
 	#===================##===================#
 	#===================##===================#
 
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
 	#Create output folder for all coil current timetraces
 #	TimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_TimeTraces/')
 	#For every simulation folder in the current series:
@@ -1186,8 +1219,8 @@ if savefig_CoilCurrents == True:
 		ax[0].plot(Time_Arrays[l],IDiv2_Arrays[l], 'm-', lw=2)
 
 		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
-		ax[0].set_title('Time-Traces of Coil Currents for '+ParameterVaried+' in '+Range, fontsize=20, y=1.03)
-		Legend = ['Sol','PF2','PF3','Div1','Div2']
+		ax[0].set_title('Time-Traces of Coil Currents for '+Parameter+' in '+Range, fontsize=20, y=1.03)
+		Legend = ['Sol','PF1','PF2','Div1','Div2']
 		ax[0].legend(Legend, fontsize=22, ncol=2, frameon=False)
 		ax[0].set_ylabel('Coil Current $I$ [kA]', fontsize=25)
 #		ax[0].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
@@ -1206,8 +1239,8 @@ if savefig_CoilCurrents == True:
 		ax[1].plot(Time_Arrays[l][1::],DeltaIDiv2[l], 'm-', lw=2)
 
 		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
-		ax[1].set_title('Time-Traces of Delta Coil Currents for '+ParameterVaried+' in '+Range, fontsize=20, y=1.03)
-		Legend = ['Sol','PF2','PF3','Div1','Div2']
+		ax[1].set_title('Time-Traces of Delta Coil Currents for '+Parameter+' in '+Range, fontsize=20, y=1.03)
+		Legend = ['Sol','PF1','PF2','Div1','Div2']
 		ax[1].legend(Legend, fontsize=22, ncol=2, frameon=False)
 		ax[1].set_ylabel('Change in Coil Current \n $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
 		ax[1].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
@@ -1245,11 +1278,11 @@ if savefig_CoilCurrents == True:
 	ax.plot(TrendAxis,MaxDeltaIDiv1, 'c*-', ms=10, lw=2)
 	ax.plot(TrendAxis,MaxDeltaIDiv2, 'mh-', ms=10, lw=2)
 
-	ax.set_title('Maximum Delta Coil Current for Varying '+ParameterVaried, fontsize=20, y=1.03)
-	Legend = ['Sol','PF2','PF3','Div1','Div2']
+	ax.set_title('Maximum Delta Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
+	Legend = ['Sol','PF1','PF2','Div1','Div2']
 	ax.legend(Legend, fontsize=22, ncol=2, frameon=False)
 	ax.set_ylabel('Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
-	ax.set_xlabel(ParameterVaried, fontsize=25)
+	ax.set_xlabel(Parameter, fontsize=25)
 #	ax.xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
 #	ax.yaxis.set_major_locator(ticker.MultipleLocator(50))
 	ax.tick_params(axis='x', labelsize=20)
