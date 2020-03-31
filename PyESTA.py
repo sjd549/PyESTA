@@ -247,7 +247,7 @@ time =  [-0.10, -0.05, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_Daniel
 
 #Phase1 coil currents [kA]               #SJD210   %SJD800
 I_Sol_Start=+1250      #+1250 -> +xxxx;  %+1300;   %+1300
-I_Sol_Equil=-500       #-0000 -> -0500;  %-0000;   %-900
+I_Sol_Equil=-400       #-0000 -> -0400;  %-0000;   %-900
 I_Sol_End=-1250        #-1250 -> -xxxx;  %-1300;   %-1300
 #Symmetric ISol is better for power supply
 #
@@ -287,29 +287,50 @@ I_Div2=+900            #+0900 -> +xxxx;  %+900;    %+3200
 					  #SWITCHBOARD AND SETTINGS#
 #====================================================================#
 
-#ParameterVaried = 'I_Sol_start' 
+#ParameterVaried = 'I_Sol_Start' 
 #ParameterRange = [x for x in range(500,1501,100)]
 
+#ParameterVaried = 'I_Sol_Equil' 
+#ParameterRange = [x for x in range(000,451,50)]
+
 #ParameterVaried = 'I_PF1'
-#ParameterRange = [x for x in range(-500,-349,10)]
+#ParameterRange = [x for x in range(-700,-339,20)]
 
 #ParameterVaried = 'I_PF2'
-#ParameterRange = [x for x in range(-500,-349,10)]
+#ParameterRange = [x for x in range(-700,-399,20)]
+
+#ParameterVaried = 'I_Div1'
+#ParameterRange = [x for x in range(000,1501,100)]
 
 #ParameterVaried = 'I_Div2'
-#ParameterRange = [x for x in range(3200,4201,200)]
+#ParameterRange = [x for x in range(600,951,50)]
+
 
 #ParameterVaried = 'TauP'
 #ParameterRange = [x/1000.0 for x in range(10,31,2)]
 
-#ParameterVaried = 'ZScaleCoil'
-#ParameterRange = [0.8,0.85,0.9,0.95,1.0]
+#ParameterVaried = 'Ip'
+#ParameterRange = [x for x in range(20000,40000,2000)]
 
-#ParameterVaried = 'nSol'
-#ParameterRange = [x for x in range(200,801,100)]
+#ParameterVaried = 'Gr_Frac'
+#ParameterRange = [x/100.0 for x in range(10,27,2)]
 
-#ParameterVaried = 'RSol'
-#ParameterRange = [x/100.0 for x in range(7,15,1)]
+#ParameterVaried = 'Z_eff'
+#ParameterRange = [1.0,2.0,11.85]	#H, H2, Ar8+  (Old Resistivity ~34)
+
+
+#ParameterVaried = 'Rgeo'
+#ParameterRange = [x/10.0 for x in range(40,50,1)]
+
+#ParameterVaried = 'Kappa'
+#ParameterRange = [x/10.0 for x in range(10,20,1)]
+
+#ParameterVaried = 'delta'
+#ParameterRange = [x/100.0 for x in range(10,31,2)]
+
+#Define feedback plasma geometry
+#efit_Geometry = [RGeo, ZGeo, a, Kappa, delta]
+#efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2]
 
 ####################
 
@@ -328,23 +349,23 @@ IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
 #Define equilibrium calculation method
 IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
-IefitCoils = ['PF1','PF2']					#Define coils for which efit, feedback is applied
+IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'I_PF2'		 #Define parameter to vary - Required for diagnostics
-ParameterRange = [-400]#[x for x in range(-450,-349,10)]		 #Define range to vary over
+ParameterVaried = 'I_Sol_Start'		 #Define parameter to vary - Required for diagnostics
+ParameterRange = [x for x in range(500,1501,100)]	 #Define range to vary over
 
 #Define which diagnostics are to be performed
-savefig_PlasmaCurrent = False		#Plots plasma current trends
+savefig_PlasmaCurrent = True		#Plots plasma current trends
 savefig_CoilCurrents = True		#Plots maximum dI/dt in each coil
 
-savefig_EquilTrends = False			#Plots general equilibrium trends from Param(equil)
+savefig_EquilTrends = True			#Plots general equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 savefig_IquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
 
 #Image overrides and tweaks
-Image_TrendAxisOverride='Run'			#Force trend figures to use different variable
+Image_TrendAxisOverride=''			#Force trend figures to use different variable
 
 #====================================================================#
 #====================================================================#
@@ -360,6 +381,7 @@ Image_TrendAxisOverride='Run'			#Force trend figures to use different variable
 #IMMEDIATE FIXES
 #Enable concurrent diagnostic use after running simulations - requires running twice atm
 # ^^^ ?This is likely due to being in the wrong directory after simulations finish? ^^^
+#Enable auto-detection of output folders so user doesn't have to change parameter variable
 
 
 #CORE FUNCTIONALITY
@@ -572,8 +594,6 @@ def AlterNamelistVariable(Namelist_Dir,ParameterVaried,VariableValue):
 #Can supply directories relative to cwd() or relative to root ('/home/...')
 #Example: SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)[1]
 def ExtractSubDirs(SeriesDirString,Root=True):
-
-
 
 	#Obtain simulation series folder directories and create list for contents
 	try:
@@ -969,16 +989,59 @@ if savefig_EquilTrends == True:
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
 
-#USEFUL TRENDS TO TRACK
-#Rgeo 0.45
-#A 1.96
-#kappa 1.78
-#delta 0.14
-#Vol(m3) 0.771
-#q95 6.10
-#betaT 0.022
-#betap 0.628
-#betaN 1.74
+	#List equilibrium parameters by index - !!! CONVERT INTO INDEX LIBRARY !!!
+	#!!! MAKE LAMBDA FUNCTION TO EXTRACT REQUESTED PARAMETERS FOR PLOTTING !!!
+	#!!! USER SUPPLIES WHICH TRENDS TO PLOT ON THIS FIGURE !!!
+#	for i in range(len(ParamEquil[l])):
+#		print i, ParamEquil[l][i]
+#		requested_trend_parameter = lambda( [USER ARRAY OF TREND NAMES], ParamEquil[l])
+#		requested_trend_index = ParamEquil[l].index( requested_trend_parameter )
+#		requested_trend_value = ValueEquil[l][requested_trend_index]
+	#endfor
+
+	#USEFUL TRENDS TO TRACK
+	#Vol(m3) #q95 #betaT #betap #betaN
+
+	#Quick and dirty removal of most useful trends
+	RGeo,ZGeo,Kappa,Epsilon,delta = list(),list(),list(),list(),list()	#efit params
+	for l in range(0,len(SimulationDirs)):
+		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
+#		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
+		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
+		Epsilon.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
+		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(1, figsize=(10,8))
+
+	#Plot requested equil parameter trends over full simulation series
+	ax.plot(TrendAxis,RGeo,'ko-', ms=12, lw=2)
+	ax.plot(TrendAxis,Kappa,'r^-', ms=12, lw=2)
+	ax.plot(TrendAxis,Epsilon,'bs-', ms=12, lw=2)
+	ax.plot(TrendAxis,delta,'mh-', ms=12, lw=2)
+
+	Legend = ['RGeo', 'Elongation', 'Aspect Ratio', 'Triangularity']
+	ax.legend(Legend, fontsize=16, frameon=False)
+	ax.set_ylabel('Equilibrium Parameter Trends [-]', fontsize=25)
+	ax.set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax.tick_params(axis='x', labelsize=20)
+	ax.tick_params(axis='y', labelsize=20)
+#	ax.set_xlim(0.00,1.00)
+#	ax.set_ylim(0.00,1.00)
+
+	plt.tight_layout()
+	plt.savefig(SeriesDirString+'/Equil_Trends.png')
+#	plt.show()
+	plt.close('all')
 
 	print'-----------------------------'
 	print'# Equilibrium Trends Complete'

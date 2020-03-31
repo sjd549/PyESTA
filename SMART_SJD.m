@@ -86,9 +86,10 @@ TauP = 0.020;     % Pulse length         [s] (Also determines tstep for Ip plot)
 RGeo = 0.450;     % Geometrical Radius   [m]
 ZGeo = 0.000;     % Geometrical Axis     [m]
 RSep = 0.700;     % Separatrix Radius    [m]
-a = RSep-RGeo;    % Minor Radius         [m]
-Epsilon = RGeo/a; % Aspect ratio         [-] (~1.909)
+a = RSep-RGeo;    % Minor Radius         [m] (~0.25)
+Epsilon = RGeo/a; % Aspect ratio         [-] (~1.8)
 Kappa = 1.8;      % Elongation           [-]
+delta = 0.20;     % Triangularity        [-] (~0.2)
 li2 = 1;          % Standard Value?      [-]
 %q_cyl = 2.821;   % Safety Factor?       [-]
 %betaN = 3.529;   % Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
@@ -108,9 +109,13 @@ betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))^2*2*mu0*1.6e-19*Kappa; % Beta Poloidal 
 BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Epsilon)+betaP+0.5*li2-3/2);    % Vertical field [T]
 
 %Coil density, temperature and resistivity
-coil_density = 1;                        % Relative Coil Density      [Arb]
-coil_temp = 293.0;                       % Initial Coil Temperature   [K]
+coil_density = 1;                       % Relative Coil Density      [Arb]
+coil_temp = 293.0;                      % Initial Coil Temperature   [K]
 resistivity = copper_resistivity_at_temperature(coil_temp);
+
+%Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV)
+%https://www.webelements.com/argon/atoms.html
+Z_eff=1.0;                              % Effective Nuclear Charge   [e-]
 
 %%%%%%%%
 
@@ -154,12 +159,12 @@ time =  [-0.10 -0.05 0 tstep tstep+0.03 tstep+0.05];    %Phase1_Daniel
 
 %Phase1 coil currents [kA]               %SJD210   %SJD800
 I_Sol_Start=+1250;     %+1300 -> +1500;  %+1250;   %+1300
-I_Sol_Equil=-500;      %-0500 -> +0000;  %-0000;   %-900
+I_Sol_Equil=-400;      %-0000 -> +0400;  %-0000;   %-900
 I_Sol_End=-1250;       %-1300 -> -1500;  %-1250;   %-1300
 %Symmetric ISol is better for power supply
 %
-I_PF1=-373.61;            %-0900 -> -1200;  %-370;    %-1000
-I_PF2=-401.61;            %-0800 -> -0900;  %-400;    %-0800
+I_PF1=-370;            %-0900 -> -1200;  %-370;    %-1000
+I_PF2=-400;            %-0800 -> -0900;  %-400;    %-0800
 I_Div1=+000;           %-0000 -> -0000;  %+000;    %+0000
 I_Div2=+900;           %+3200 -> +4200;  %+900;    %+3200
 
@@ -310,12 +315,12 @@ jprofile = fiesta_jprofile_topeol2( 'Topeol2', betaP, 1, li2, Ip );
 %%%%%%%%%%%%%%%%%%%%%%  COMPUTE TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%
 
 %Define numerical technique applied to equilibrium
-IEquilMethod = 'standard';         %'standard','efit','feedback'
+IEquilMethod = 'efit';         %'standard','efit','feedback'
 
 %Standard equilibrium model (steady state coil currents)
 if strcmp(IEquilMethod, 'standard');
 
-	%Calculate equilibrium for given coil geometry and currents.
+	%Forward equilibrium which computes the jprofile for the input Irod and icoil configuration
 	%icoil includes solenoid equilibrium current as default - equilibrium uses isol
 	equil = fiesta_equilibrium('STV2C2', config, Irod, jprofile, control, [], icoil);   %'SST'???
 	EquilParams = parameters(equil);
@@ -324,19 +329,25 @@ if strcmp(IEquilMethod, 'standard');
 
 %Standard efit equilibrium (fit coil currents to jprofile)
 elseif strcmp(IEquilMethod, 'efit');
+    
+    %Define efit plasma geometry
+    %efit_Geometry = [RGeo, ZGeo, a, Kappa, delta];
+    efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2];
 
-	%Efit will find new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
-	%Expected Variables: [Rgeo, Zgeo, a, Kappa, delta], (N.B. Kappa and delta are optional)
-	[efit_config, signals, weights, index] = efit_shape_controller(config, {'PF1','PF2'}, [0.44, 0.0, 0.44/1.85, 1.8, 0.20]);
-	%Calculate equilibrium fitting coil currents to provided jprofile
+    %Efit outputs coil currents resulting in the supplied jprofile, icoil and geometry
+	%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
+	%Expected plasma geometry vars: [RGeo, ZGeo, a, Kappa, delta], (N.B. Kappa and delta are optional)
+	[efit_config, signals, weights, index] = efit_shape_controller(config, {'PF1','PF2'}, efit_Geometry);
+
+	%Inverse equilibrium, outputs coil currents resulting in the supplied jprofile and icoil config
 	equil = fiesta_equilibrium('ST', config, Irod, jprofile, control, efit_config, icoil, signals, weights);
 	EquilParams = parameters(equil);
 
 	%Extract the new coil currents from the efit-equilibrium:
 	icoil = get(equil,'icoil');
 	efitCurrents = get(icoil,'currents');
-	I_PF1 = efitCurrents(iPF1);				%%% MATCHES DANIEL WHEN COMMENTED OUT %%%%
-	I_PF2 = efitCurrents(iPF2);				%%% MATCHES DANIEL WHEN COMMENTED OUT %%%%
+	I_PF1 = efitCurrents(iPF1);
+	I_PF2 = efitCurrents(iPF2);
 	I_Div1 = efitCurrents(iDiv1);
 	I_Div2 = efitCurrents(iDiv2);
 
@@ -344,11 +355,17 @@ elseif strcmp(IEquilMethod, 'efit');
 
 %Standard efit equilibrium (fit coil currents to jprofile)
 elseif strcmp(IEquilMethod, 'feedback');
+    
+    %Define feedback plasma geometry
+    %efit_Geometry = [RGeo, ZGeo, a, Kappa, delta];
+    efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2];
 
-	%Feedback efit equilibrium (???????????????)
-	%Expected Variables: [Rgeo, Zgeo, a, Kappa, delta], (N.B. Kappa and delta are optional)
-	feedback = shape_controller(config, {'PF2','PF3','Div1','Div2'}, RGeo, ZGeo, a, Kappa, delta_esti);
-	[efit_config, signals, weights, index] = efit_shape_controller(config, {'PF1','PF2','Div1','Div2'}, [0.44, 0.0, 0.44/1.85, 1.8, 0.20]);
+    %Efit outputs coil currents resulting in the supplied jprofile, icoil and geometry
+	%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
+	%Expected plasma geometry vars: [RGeo, ZGeo, a, Kappa, delta], (N.B. Kappa and delta are optional)
+	feedback = shape_controller(config, {'PF2','PF3','Div1','Div2'}, RGeo, ZGeo, a, Kappa, delta);
+	[efit_config, signals, weights, index] = efit_shape_controller(config, {'PF1','PF2','Div1','Div2'}, efit_Geometry);
+
 	%Calculate equilibrium fitting coil currents to provided jprofile
 	equil = set(equil, config, 'feedback',feedback);
 	EquilParams=parameters(equil);
@@ -427,14 +444,20 @@ BP_virt_theta = [BP_virt_theta  BP_virt_theta+pi/2];
 for iSensor=nSensors+1:2*nSensors
     BP_virt_names{iSensor} = ['Vertical Bp Virtual Sensor #' num2str(iSensor) ];
 end
-sensor_btheta = fiesta_sensor_btheta( 'sensor', BP_virt_R, BP_virt_Z,BP_virt_theta, BP_virt_names );
+sensor_btheta = fiesta_sensor_btheta( 'sensor', BP_virt_R, BP_virt_Z, BP_virt_theta, BP_virt_names );
 
 %%%%%%%%%%%%%%  INITIATE RZIP - INCLUDING VIRTUAL SENSORS  %%%%%%%%%%%%%%
 
-%RZIP computes ??!!!!????!!!!?? using the null field sensors
+%Calculate perpendicular and parallel plasma resistivity using Spitzer model
+Lambda=(12*pi*((8.854E-12*1.6E-19*Te)^3/(ne*(1.6E-19)^6))^(1/2));
+PlasmaResistPerp=(0.74*1.65E-9*Z_eff*log(Lambda))/((Te*1E-3)^(3/2));
+PlasmaResistPara=PlasmaResistPerp/1.96;
+%PlasmaResistPerpOLD = 5.94e-6		%!!!OLD VALUE!!!
+
+%RZIP computes coefficients [A B C D] using the null field sensors
+%Output C is later used to compute the null-field pre-pulse coil currents in I_PF_NULL
 rzip_config = fiesta_rzip_configuration( 'RZIP', config, vessel, {sensor_btheta} );
-plasma_resistance = 5.94e-6;
-[A, B, C, D, curlyM, curlyR, gamma, plasma_parameters, index, label_index, state] = response(rzip_config, equil, 'rp', plasma_resistance);
+[A, B, C, D, curlyM, curlyR, gamma, plasma_parameters, index, label_index, state] = response(rzip_config, equil, 'rp', PlasmaResistPerp);
 
 %%%%%%%%%%%%%%%%  PLOT VIRTUAL SENSORS ONTO EQUILIBRIUM  %%%%%%%%%%%%%%%%%
 
@@ -458,7 +481,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                       PLOT OPTIMISED NULL-FIELD                       %
+%               CALCULATE OPTIMISED NULL-FIELD EQUILBRIUM               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Copied from ST25D Simulation
@@ -477,6 +500,9 @@ icoil_null = fiesta_icoil( coilset, coil_currents_null );
 equil_optimised_null = fiesta_equilibrium( 'ST25D optimised null', config, Irod, icoil_null );
 EquilNullParams = parameters(equil_optimised_null);
 
+
+%%%%%%%%%%%%%  CALCULATE POLOIDAL FIELD & CONNECTION LENGTH  %%%%%%%%%%%%%%
+
 %Extract the null poloidal field
 Brdata = get(get(equil_optimised_null,'Br'),'data');         %Optimized null
 Bzdata = get(get(equil_optimised_null,'Bz'),'data');         %Optimized null
@@ -490,13 +516,13 @@ Bzdata = reshape( Bzdata, length(zgrid), length(rgrid) );
 Bphidata = reshape( Bphidata, length(zgrid), length(rgrid) );
 
 %Find minimum null poloidal field and associated array indices
-Bpoldata = sqrt(Bzdata.^2+Brdata.^2);       %Compute Bpoloidal vector
+Bpoldata = sqrt(Bzdata.^2+Brdata.^2);       %Compute BPoloidal vector
 Btordata = sqrt(Bphidata.^2);               %Compute BToroidal vector
 Bpolmin = min(min(Bpoldata));				%Minimum BPoloidal value
 [BpolminIndex_Row, BpolminIndex_Column] = find(Bpoldata==Bpolmin);
 
 %Average null poloidal and toroidal fields over a small region to improve statistics
-%Default to the null field sensor region (0.05meter/0.0055cell/meter = 10)
+%Default to the null field sensor region (Range = 0.05[m] / 0.0055[cell/m] = 10)
 BpolMinAvg = 0.0;       %Initiate accumulator value to zero
 BtorMinAvg = 0.0;       %Initiate accumulator value to zero
 Range = 10;             %Radius over which to average null poloidal field
@@ -510,12 +536,23 @@ for i =1:Range
 end
 BpolMinAvg = BpolMinAvg/(Range^2);      %Connection length BPoloidal value
 BtorMinAvg = BtorMinAvg/(Range^2);      %Connection length BToroidal value
-%
-aeff = Virt_Radius;							     %Effective null field radius
-ConLength = 0.25*aeff*(BtorMinAvg/BpolMinAvg);    %Connection length from null field to wall
-%
 
-%!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!
+%Hacky methods of increasing the abnormally low Bpoloidal null-field
+%Artificially scale the Bpol by an arbitary scale factor
+Bpol_Scale_Factor = 1;						%Default 1E3
+BpolMinAvg = BpolMinAvg*Bpol_Scale_Factor;
+%Artificially replace Bpolmin with ~Earth's field as a lower limit
+%if BpolMinAvg < 1E-5;
+%	BpolMinAvg = 1E-5;					
+%end
+
+%Compute the effective connection length between null-field region and wall
+%Effective minor radius (aeff) taken to be radius of null-field region
+aeff = Virt_Radius;							 %Effective null field radius
+LCon = 0.25*aeff*(BtorMinAvg/BpolMinAvg);    %Connection length from null field to wall
+
+
+%%%%%%%%%%%%%  CALCULATE FIESTA NULL-FIELD CONNECTION LENGTH  %%%%%%%%%%%%%%
 
 %Extract null-field RGeo and relevent psi surface for connection length
 %RGeo_null_line = fiesta_line('RGeo_Line', EquilNullParams.RGeo, ZGeo)
@@ -525,7 +562,10 @@ ConLength = 0.25*aeff*(BtorMinAvg/BpolMinAvg);    %Connection length from null f
 %Omitting line 2 defaults to a line from half the grid radius to maximimum grid radius at z=0
 %[length_3d, length_2d, connection, phi, path_3d, path_2d, seg1, seg2] = connection_length3(equil, psi_null_surf, RGeo_null_line) %,line2,['REVERSE'])
 
-%!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!!!!TEST!!!!
+
+
+
+%%%%%%%%%%%%%  PLOT THE OPTIMISED POLOIDAL NULL-FIELD REGION  %%%%%%%%%%%%%%
 
 %Plot the optimised null field region - required for the breakdown diagnostic
 figure;
@@ -902,6 +942,10 @@ fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
 Filename = strcat(ASCIIDir,'IPass.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive']);
+
+Filename = strcat(ASCIIDir,'LCon.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%1.12f\r\n',LCon);
 
 %Extract coil current time-traces (Multiplied by number of windings)
 a=I_PF_output(:,1).*turns(iSol);   %Sol
