@@ -245,16 +245,16 @@ time =  [-0.10, -0.05, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_Daniel
 #IDiv1_Waveform = [+000]
 #IDiv2_Waveform = [+900]
 
-#Phase1 coil currents [kA]               #SJD210   %SJD800
-I_Sol_Start=+1250      #+1250 -> +xxxx;  %+1300;   %+1300
-I_Sol_Equil=-400       #-0000 -> -0400;  %-0000;   %-900
-I_Sol_End=-1250        #-1250 -> -xxxx;  %-1300;   %-1300
+#Phase1 coil currents [kA]               #SJD210
+I_Sol_Start=+725       #+1250 -> +xxxx;  %+725;
+I_Sol_Equil=-300       #-0000 -> -0400;  %-0000;
+I_Sol_End=-725         #-1250 -> -xxxx;  %-725;
 #Symmetric ISol is better for power supply
 #
-I_PF1=-370             #-0350 -> -xxxx;  %-370;    %-1000
-I_PF2=-400             #-0400 -> -xxxx;  %-400;    %-0800
-I_Div1=+000            #-0000 -> -xxxx;  %+000;    %+0000
-I_Div2=+900            #+0900 -> +xxxx;  %+900;    %+3200
+I_PF1=-370             #-0350 -> -xxxx;  %-370;
+I_PF2=-400             #-0400 -> -xxxx;  %-400;
+I_Div1=+000            #-0000 -> -xxxx;  %+000;
+I_Div2=+900            #+0900 -> +xxxx;  %+900;
 
 #Phase2 coil currents [kA]
 #I_Sol_Start=+4700;    #+4700 -> +4700;     #+4700;
@@ -343,17 +343,17 @@ SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 SimNameList = ['BT','TauP','I_Sol_Start','I_PF1','I_PF2','I_Div1','I_Div2']
 
 #Define if simulations are to be run
-IAutorun = True			#Run requested simulation series
+IAutorun = True				#Run requested simulation series
 IParallel = False			#Enable mutli-simulations in parallel
-IVerbose = True			#Verbose terminal output - not compatable with IParallel
+IVerbose = True				#Verbose terminal output - not compatable with IParallel
 
 #Define equilibrium calculation method
 IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'I_Sol_Start'		 #Define parameter to vary - Required for diagnostics
-ParameterRange = [x for x in range(500,1501,100)]	 #Define range to vary over
+ParameterVaried = 'I_Sol_Start'		 	#Define parameter to vary - Required for diagnostics
+ParameterRange = [700,725,750,775,800]	 #Define range to vary over
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = True		#Plots plasma current trends
