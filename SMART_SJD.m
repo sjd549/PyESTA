@@ -145,17 +145,17 @@ time =  [-0.10 -0.05 0 tstep tstep+TauP tstep+0.05];    %Phase1_Daniel
 %IDiv1_Waveform = [+000];
 %IDiv2_Waveform = [+900];
 
-%Solenoid coil currents [kA]             %SJD210   %SJD800
-I_Sol_Start=+1250;     %+1300 -> +1500;  %+1250;   %+1300
-I_Sol_Equil=-400;      %-0000 -> +0400;  %-0000;   %-900
-I_Sol_End=-1250;       %-1300 -> -1500;  %-1250;   %-1300
+%Solenoid coil currents [kA]	%H+			%He2+
+I_Sol_Start=+900;				%+0900;		%+1000
+I_Sol_Equil=-500;				%-0500;		%-0500
+I_Sol_End=-900;					%-0900;		%-1000
 %Symmetric ISol is better for power supply
 
 %PF coil currents (For Equilibrium)
-I_PF1=-370;            %-0900 -> -1200;  %-370;    %-1000
-I_PF2=-400;            %-0800 -> -0900;  %-400;    %-0800
-I_Div1=+000;           %-0000 -> -0000;  %+000;    %+0000
-I_Div2=+900;           %+3200 -> +4200;  %+900;    %+3200
+I_PF1=-390;						%-390;		%-0000
+I_PF2=-385;						%-385;		%-0000
+I_Div1=+000;					%+000;		%+0000
+I_Div2=+900;					%+900;		%+0000
 
 
 %%%%%%%%%%%%%%%%%  DISPLAY VARIABLE OUTPUT TO USER  %%%%%%%%%%%%%%%%%%%%%
@@ -592,9 +592,9 @@ BtorMinAvg = BtorMinAvg/(Range^2);      %Connection length BToroidal value
 %Artificially scale the Bpol by an arbitary scale factor
 Bpol_Scale_Factor = 1;						%Default 1E3
 BpolMinAvg = BpolMinAvg*Bpol_Scale_Factor;
-%Enforce lower limit for Bpolmin as ~Earth's B-field
-if BpolMinAvg < 4.5E-5;
-	BpolMinAvg = 4.5E-5;					
+%Enforce lower limit for Bpolmin as ~Earth's B-field (5.0E-5 [T])
+if BpolMinAvg < 5.0E-5;
+	BpolMinAvg = 5.0E-5;					
 end
 
 %Compute the effective connection length between null-field region and wall

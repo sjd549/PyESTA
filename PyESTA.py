@@ -194,49 +194,56 @@ Z_Div2=1.05*ZScaleCoil #Z Position of Div2 (m)
 #######################  DEFINE INITIAL PARAMETERS  #######################
 
 #Define any required constants
-mu0 = 1.2566e-06; # Magnetic Moment      [I/m^2]
+mu0 = 1.2566e-06 # Magnetic Moment      [I/m^2]
 
 #Define Operating Conditions
-Te = 250;         # Electron Temperature [eV]
-Ti = Te*0.1;      # Ion Temperature      [eV]
-BT = 0.1;         # Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 30e3;        # Plasma current       [A]
-TauP = 0.020;     # Pulse length         [s] (Also determines tstep for Ip plot)
-RGeo = 0.450;     # Geometrical Radius   [m]
-ZGeo = 0.000;     # Geometrical Axis     [m]
-RSep = 0.700;     # Separatrix Radius    [m]
-a = RSep-RGeo     # Minor Radius         [m]
-Epsilon = RGeo/a  # Aspect ratio         [-]
-Kappa = 1.8;      # Elongation           [-]
-li2 = 1;          # Standard Value?      [-]
-#q_cyl = 2.821;   # Safety Factor?       [-]
-betaN = 3.529;    #                      [-] (Obtained via VEST Excel - LIKELY 2X TOO HIGH)
+Te = 250         # Electron Temperature [eV]
+Ti = Te*0.1      # Ion Temperature      [eV]
+BT = 0.1         # Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = 30e3        # Plasma current       [A]
+TauR = 0.020     # Ramp Timescale       [s] (Also determines tstep for Ip plot)
+TauP = 0.030     # Pulse Timescale      [s]
+RGeo = 0.450     # Geometrical Radius   [m]
+ZGeo = 0.000     # Geometrical Axis     [m]
+RSep = 0.700     # Separatrix Radius    [m]
+a = RSep-RGeo    # Minor Radius         [m] (~0.25)
+Epsilon = RGeo/a # Aspect ratio         [-] (~1.8)
+Kappa = 1.8      # Elongation           [-]
+delta = 0.20     # Triangularity        [-] (~0.2)
+li2 = 1          # Standard Value?      [-]
+#q_cyl = 2.821   # Safety Factor?       [-]
+#betaN = 3.529   # Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
 
 #Compute Further Operating Conditions
-Gr_Limit = 1e20*(Ip*1e-6/(pi*(a**2)*Kappa))	# Greenwald Limit         [m-3]
-Gr_Frac = 0.15                            	# Greenwald Fraction       [-]
-ne = Gr_Limit*Gr_Frac                     	# Electron Density         [m-3]  ~3E19
-Irod = BT*2*pi*RGeo/mu0                   	# Central Rod Current      [A]
-S = sqrt( (1.0+Kappa**2)/2.0 )             	# Shaping factor           [-]
-betaT = betaN/a*(Ip/1e6)/BT             	# Beta toroidal            [%]
-betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))**2*2*mu0*1.6e-19*Kappa # Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Epsilon)+betaP+0.5*li2-3/2)    # Vertical field [T]
-nT = 2.66*1e23*betaT*BT**2               	# Density Temperature Product [eV m-3]
-#
-coil_density = 1                        	# Relative Coil Density    [Arb]
-coil_temp = 293.0                       	# Initial Coil Temperature [K]
+Gr_Limit = 1e20*(Ip*1e-6/(pi*a**2*Kappa))  # Greenwald Limit          [m-3]
+Gr_Frac = 0.15                             # Greenwald Fraction       [-]
+ne = Gr_Limit*Gr_Frac                      # Electron Density         [m-3]  ~3E19
+Irod = BT*2*pi*RGeo/mu0                    # Central Rod Current      [A]
+S = sqrt( (1.0+Kappa**2)/2.0 )             # Shaping factor           [-]
+#deltaUp = (RGe-Rup)/a                     # Upper-Triangularity      [-]
+#deltaLo = (RGe-Rlo)/a                     # Lower-Triangularity      [-]
+#delta = (deltaUp+deltaLo)/2.0             # Triangularity            [-]
+#betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        # Normalised Beta          [%] 
+#betaT = (betaN/a*(Ip*1e-6))/BT            # Beta toroidal            [%]
+betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))**2*2*mu0*1.6e-19*Kappa  # Beta Poloidal  [%]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Epsilon)+betaP+0.5*li2-3/2)      # Vertical field [T]
 
+#Coil density, temperature and resistivity
+coil_density = 1                       # Relative Coil Density      [Arb]
+coil_temp = 293.0                      # Initial Coil Temperature   [K]
+
+#Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV)
+#https://www.webelements.com/argon/atoms.html
+Z_eff=1.0                              # Effective Nuclear Charge   [e-]
 
 
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
 #Define number of time-steps (vertices) in the current waveforms
-nTime = 6      #[Steps]
-tstep = TauP   #[s]
-#time = [-0.05, -0.03, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_JuanJo
-time =  [-0.10, -0.05, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_Daniel
-#time = [-0.11, -0.05, 0, tstep, tstep+0.10, tstep+0.11]	#Phase2_JuanJo
-#time = [-0.xx, -0.xx, 0, tstep, tstep+0.xx, tstep+0.xx]   	#Phase3
+nTime = 6       #[Steps]
+tstep = TauR	#[s]
+time =  [-0.10, -0.05, 0, tstep, tstep+TauP, tstep+0.05]    #Phase1_Daniel
+#time = [-0.11, -0.05, 0, tstep, tstep+0.10, tstep+0.11]    #Phase2_JuanJo
 
 #Phase1 coil currents [kA] 
 #ISol_Waveform = [+1300,-500,-1300]
@@ -245,16 +252,16 @@ time =  [-0.10, -0.05, 0, tstep, tstep+0.03, tstep+0.05]	#Phase1_Daniel
 #IDiv1_Waveform = [+000]
 #IDiv2_Waveform = [+900]
 
-#Phase1 coil currents [kA]               #SJD210
-I_Sol_Start=+725       #+1250 -> +xxxx;  %+725;
-I_Sol_Equil=-300       #-0000 -> -0400;  %-0000;
-I_Sol_End=-725         #-1250 -> -xxxx;  %-725;
+#Phase1 coil currents [kA]               #SJD
+I_Sol_Start=+900       #+1250 -> +xxxx;  %+900;
+I_Sol_Equil=-900       #-0000 -> -0400;  %-900;
+I_Sol_End=-900         #-1250 -> -xxxx;  %-900;
 #Symmetric ISol is better for power supply
 #
-I_PF1=-370             #-0350 -> -xxxx;  %-370;
-I_PF2=-400             #-0400 -> -xxxx;  %-400;
-I_Div1=+000            #-0000 -> -xxxx;  %+000;
-I_Div2=+900            #+0900 -> +xxxx;  %+900;
+I_PF1=-390             #-0350 -> -xxxx;  %-370;	%-390;
+I_PF2=-385             #-0400 -> -xxxx;  %-400;	%-385;
+I_Div1=+000            #-0000 -> -xxxx;  %+000;	%-000;
+I_Div2=+900            #+0900 -> +xxxx;  %+900;	%+900;
 
 #Phase2 coil currents [kA]
 #I_Sol_Start=+4700;    #+4700 -> +4700;     #+4700;
@@ -287,11 +294,15 @@ I_Div2=+900            #+0900 -> +xxxx;  %+900;
 					  #SWITCHBOARD AND SETTINGS#
 #====================================================================#
 
+#ParameterVaried = 'R_Div2'
+#ParameterRange = [x/100.0 for x in range(30,61,5)]
+
+
 #ParameterVaried = 'I_Sol_Start' 
-#ParameterRange = [x for x in range(500,1501,100)]
+#ParameterRange = [x for x in range(500,1001,100)]
 
 #ParameterVaried = 'I_Sol_Equil' 
-#ParameterRange = [x for x in range(000,451,50)]
+#ParameterRange = [-x for x in range(000,501,50)]
 
 #ParameterVaried = 'I_PF1'
 #ParameterRange = [x for x in range(-700,-339,20)]
@@ -306,8 +317,11 @@ I_Div2=+900            #+0900 -> +xxxx;  %+900;
 #ParameterRange = [x for x in range(600,951,50)]
 
 
-#ParameterVaried = 'TauP'
+#ParameterVaried = 'TauR'
 #ParameterRange = [x/1000.0 for x in range(10,31,2)]
+
+#ParameterVaried = 'TauP'
+#ParameterRange = [x/1000.0 for x in range(20,41,2)]
 
 #ParameterVaried = 'Ip'
 #ParameterRange = [x for x in range(20000,40000,2000)]
@@ -332,6 +346,7 @@ I_Div2=+900            #+0900 -> +xxxx;  %+900;
 #efit_Geometry = [RGeo, ZGeo, a, Kappa, delta]
 #efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2]
 
+
 ####################
 
 #Define FIESTA namelist and project directory names
@@ -340,26 +355,27 @@ ProjectName = 'SMARTxs-P1'			#Defult global project name
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
-SimNameList = ['BT','TauP','I_Sol_Start','I_PF1','I_PF2','I_Div1','I_Div2']
+SimNameList = ['BT','TauR','I_Sol_Start','I_PF1','I_PF2','I_Div1','I_Div2']
 
 #Define if simulations are to be run
-IAutorun = True				#Run requested simulation series
-IParallel = False			#Enable mutli-simulations in parallel
-IVerbose = True				#Verbose terminal output - not compatable with IParallel
+IAutorun = True			#Run requested simulation series
+IParallel = False		#Enable mutli-simulations in parallel
+IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
 #Define equilibrium calculation method
 IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'I_Sol_Start'		 	#Define parameter to vary - Required for diagnostics
-ParameterRange = [700,725,750,775,800]	 #Define range to vary over
+ParameterVaried = 'R_Div2'		 	#Define parameter to vary - Required for diagnostics
+ParameterRange = [x/100.0 for x in range(30,61,5)]	 #Define range to vary over
 
 #Define which diagnostics are to be performed
-savefig_PlasmaCurrent = True		#Plots plasma current trends
-savefig_CoilCurrents = True		#Plots maximum dI/dt in each coil
+savefig_PlasmaCurrent = False		#Plots plasma current trends
+savefig_CoilCurrents = False		#Plots PF coil current timetraces
+savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents
 
-savefig_EquilTrends = True			#Plots general equilibrium trends from Param(equil)
+savefig_EquilTrends = False			#Plots general equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 savefig_IquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
@@ -704,33 +720,38 @@ def ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical'):
 
 #=========================#
 
-def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Vertical'):
+def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Vertical',Reorder=True):
 
 	#Create any required arrays for data storage and record HomeDir for navigation
-	GlobalDataArray,OrderedDataArrays = list(),list()
+	GlobalDataArrays,ReorderedDataArrays = list(),list()
 	HomeDir = os.getcwd()
 
 	#For all simulation directories in the requested simulation series
 	for i in range(0,len(SeriesSubDirs)):
 		#cd into the relevent directory and extract the data
 		os.chdir(SeriesSubDirs[i]+'/RawData/')
-		GlobalDataArray.append(ReadDataFromFile(DataFileName,Dimension='2D',Orientation='Vertical'))
+		GlobalDataArrays.append(ReadDataFromFile(DataFileName,Dimension='2D',Orientation='Vertical'))
 	#endfor
 	#cd back into PyESTA directory for continuity
 	os.chdir(HomeDir)
 
 	#Reformat GlobalDataArray to enable easy splitting of column-wise variables
-	for i in range(0,len(GlobalDataArray[0])): OrderedDataArrays.append(list())
-	#GlobalDataArray organized as [Folder][Variable][Value]
-	#OrderedDataArrays organised as [Variable][Folder][Value]
-	for i in range(0,len(OrderedDataArrays)):
-		for j in range(0,len(GlobalDataArray)): 
-			OrderedDataArrays[i].append(GlobalDataArray[j][i])
+	if Reorder == True:
+		for i in range(0,len(GlobalDataArrays[0])): ReorderedDataArrays.append(list())
+		#GlobalDataArray organized as [Folder][Variable][Value]
+		#ReorderedDataArrays organised as [Variable][Folder][Value]
+		for i in range(0,len(ReorderedDataArrays)):
+			for j in range(0,len(GlobalDataArrays)): 
+				ReorderedDataArrays[i].append(GlobalDataArrays[j][i])
+			#endfor
 		#endfor
-	#endfor
+		OutputDataArrays = ReorderedDataArrays
+	else:
+		OutputDataArrays = GlobalDataArrays
+	#endif
 
 	#Return ordered data arrays
-	return(OrderedDataArrays)
+	return(OutputDataArrays)
 #enddef
 
 #=========================#
@@ -1015,6 +1036,8 @@ if savefig_EquilTrends == True:
 	#===================##===================#
 	#===================##===================#
 
+#	#Create output folder for all coil trend figures
+#	EquilTrendsDir = CreateNewFolder(SeriesDirString,'/Equil_Trends/')
 	#Organize figure labelling variables
 	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
 	else: Parameter = ParameterVaried
@@ -1196,8 +1219,8 @@ if savefig_CoilCurrents == True:
 	#Extract coil currents and time axis from series directories
 	Filename = 'CoilCurrents.txt'
 	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-	IPF3_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
 	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
 	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
 	Filename = 't.txt'
@@ -1218,56 +1241,44 @@ if savefig_CoilCurrents == True:
 		for j in range(0,len(ISol_Arrays[i])):
 		 	#Coil currents are saved scaled by the number of windings (For reasons...)
 			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*nSol)
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
-			IPF3_Arrays[i][j] = IPF3_Arrays[i][j]/(1000.0*24)
+			IPF1_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
+			IPF2_Arrays[i][j] = IPF3_Arrays[i][j]/(1000.0*24)
 			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
 			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
 		#endfor
 	#endfor
 
 	#Calculate dI/dt for each coil set
-	DeltaIPF2,DeltaIPF3 = list(),list()
+	DeltaIPF1,DeltaIPF2 = list(),list()
 	DeltaIDiv1,DeltaIDiv2 = list(),list()
 	DeltaISol = list()
 	for i in range(0,len(ISol_Arrays)):
 		DeltaISol.append(list())
+		DeltaIPF1.append(list())
 		DeltaIPF2.append(list())
-		DeltaIPF3.append(list())
 		DeltaIDiv1.append(list())
 		DeltaIDiv2.append(list())
 		for j in range(1,len(ISol_Arrays[i])):
 			Delta_t = Time_Arrays[i][j]-Time_Arrays[i][j-1]
 			#
 			DeltaISol[i].append( (ISol_Arrays[i][j]-ISol_Arrays[i][j-1])/Delta_t )
+			DeltaIPF1[i].append( (IPF1_Arrays[i][j]-IPF1_Arrays[i][j-1])/Delta_t )
 			DeltaIPF2[i].append( (IPF2_Arrays[i][j]-IPF2_Arrays[i][j-1])/Delta_t )
-			DeltaIPF3[i].append( (IPF3_Arrays[i][j]-IPF3_Arrays[i][j-1])/Delta_t )
 			DeltaIDiv1[i].append( (IDiv1_Arrays[i][j]-IDiv1_Arrays[i][j-1])/Delta_t )
 			DeltaIDiv2[i].append( (IDiv2_Arrays[i][j]-IDiv2_Arrays[i][j-1])/Delta_t )
 		#endfor
 	#endfor
 
-	#Calculate maximum change in current experienced for each coil set
-	MaxDeltaIPF2,MaxDeltaIPF3 = list(),list()
-	MaxDeltaIDiv1,MaxDeltaIDiv2 = list(),list()
-	MaxDeltaISol = list()
-	for i in range(0,len(DeltaISol)):
-		MaxDeltaISol.append( max(DeltaISol[i], key=abs) )
-		MaxDeltaIPF2.append( max(DeltaIPF2[i], key=abs) )
-		MaxDeltaIPF3.append( max(DeltaIPF3[i], key=abs) )
-		MaxDeltaIDiv1.append( max(DeltaIDiv1[i], key=abs) )
-		MaxDeltaIDiv2.append( max(DeltaIDiv2[i], key=abs) )
-	#endfor
-
 	#===================##===================#
 	#===================##===================#
 
+#	#Create output folder for all coil trend figures
+#	ICoilTimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
 	#Organize figure labelling variables
 	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
 	else: Parameter = ParameterVaried
 	#endif
 
-	#Create output folder for all coil current timetraces
-#	TimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_TimeTraces/')
 	#For every simulation folder in the current series:
 	for l in range(0,len(ISol_Arrays)):
 
@@ -1276,8 +1287,8 @@ if savefig_CoilCurrents == True:
 
 		#Plot each coil current with respect to time
 		ax[0].plot(Time_Arrays[l],ISol_Arrays[l], 'k-', lw=2)
-		ax[0].plot(Time_Arrays[l],IPF2_Arrays[l], 'r-', lw=2)
-		ax[0].plot(Time_Arrays[l],IPF3_Arrays[l], 'b-', lw=2)
+		ax[0].plot(Time_Arrays[l],IPF1_Arrays[l], 'r-', lw=2)
+		ax[0].plot(Time_Arrays[l],IPF2_Arrays[l], 'b-', lw=2)
 		ax[0].plot(Time_Arrays[l],IDiv1_Arrays[l], 'c-', lw=2)
 		ax[0].plot(Time_Arrays[l],IDiv2_Arrays[l], 'm-', lw=2)
 
@@ -1296,8 +1307,8 @@ if savefig_CoilCurrents == True:
 
 		#Plot derivitive of each coil current with respect to time
 		ax[1].plot(Time_Arrays[l][1::],DeltaISol[l], 'k-', lw=2)
-		ax[1].plot(Time_Arrays[l][1::],DeltaIPF2[l], 'r-', lw=2)
-		ax[1].plot(Time_Arrays[l][1::],DeltaIPF3[l], 'b-', lw=2)
+		ax[1].plot(Time_Arrays[l][1::],DeltaIPF1[l], 'r-', lw=2)
+		ax[1].plot(Time_Arrays[l][1::],DeltaIPF2[l], 'b-', lw=2)
 		ax[1].plot(Time_Arrays[l][1::],DeltaIDiv1[l], 'c-', lw=2)
 		ax[1].plot(Time_Arrays[l][1::],DeltaIDiv2[l], 'm-', lw=2)
 
@@ -1315,7 +1326,7 @@ if savefig_CoilCurrents == True:
 #		ax[1].set_ylim(2,32)
 
 		plt.tight_layout(pad=3.0,h_pad=1.0)
-#		plt.savefig(TimeTracesDir+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
+#		plt.savefig(ICoilTimeTracesDir+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
 		plt.savefig(SeriesDirString+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
 
 		plt.show()
@@ -1325,10 +1336,163 @@ if savefig_CoilCurrents == True:
 	print'# Coil Current Timetraces Complete'
 	print'----------------------------------'
 
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+#====================================================================#
+				  #COIL CURRENT TRENDS DIAGNOSTIC#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_CoilCurrentTrends == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+
+	#Extract coil currents and time axis from series directories
+	Filename = 'CoilCurrents.txt'
+	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	Filename = 't.txt'
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+
+	#Rescale data for plotting: [s] to [ms]
+	for i in range(0,len(Time_Arrays)):
+		for j in range(0,len(Time_Arrays[i])):
+			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
+		#endfor
+	#endfor
+
+	#Rescale data for plotting: [A] to [kA]
+	for i in range(0,len(ISol_Arrays)):
+		for j in range(0,len(ISol_Arrays[i])):
+		 	#Coil currents are saved scaled by the number of windings (For reasons...)
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*nSol)
+			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/(1000.0*24)
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
+		#endfor
+	#endfor
+
+	#Calculate dI/dt for each coil set
+	DeltaIPF1,DeltaIPF2 = list(),list()
+	DeltaIDiv1,DeltaIDiv2 = list(),list()
+	DeltaISol = list()
+	for i in range(0,len(ISol_Arrays)):
+		DeltaISol.append(list())
+		DeltaIPF1.append(list())
+		DeltaIPF2.append(list())
+		DeltaIDiv1.append(list())
+		DeltaIDiv2.append(list())
+		for j in range(1,len(ISol_Arrays[i])):
+			Delta_t = Time_Arrays[i][j]-Time_Arrays[i][j-1]
+			#
+			DeltaISol[i].append( (ISol_Arrays[i][j]-ISol_Arrays[i][j-1])/Delta_t )
+			DeltaIPF1[i].append( (IPF1_Arrays[i][j]-IPF1_Arrays[i][j-1])/Delta_t )
+			DeltaIPF2[i].append( (IPF2_Arrays[i][j]-IPF2_Arrays[i][j-1])/Delta_t )
+			DeltaIDiv1[i].append( (IDiv1_Arrays[i][j]-IDiv1_Arrays[i][j-1])/Delta_t )
+			DeltaIDiv2[i].append( (IDiv2_Arrays[i][j]-IDiv2_Arrays[i][j-1])/Delta_t )
+		#endfor
+	#endfor
+
+	#Calculate maximum change in current experienced for each coil set
+	MaxDeltaIPF1,MaxDeltaIPF2 = list(),list()
+	MaxDeltaIDiv1,MaxDeltaIDiv2 = list(),list()
+	MaxDeltaISol = list()
+	for i in range(0,len(DeltaISol)):
+		MaxDeltaISol.append( max(DeltaISol[i], key=abs) )
+		MaxDeltaIPF1.append( max(DeltaIPF1[i], key=abs) )
+		MaxDeltaIPF2.append( max(DeltaIPF2[i], key=abs) )
+		MaxDeltaIDiv1.append( max(DeltaIDiv1[i], key=abs) )
+		MaxDeltaIDiv2.append( max(DeltaIDiv2[i], key=abs) )
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+#	#Create output folder for all coil trend figures
+#	CurrentTrendsDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Determine number of panels (Fixed for now)
+	NumCoils = len(ExtractFIESTAData(SimulationDirs,'CoilCurrents.txt','2D','Vertical'))
+
+	#For every simulation folder in the current series:
+	for i in range(0,NumCoils):
+
+		#Set which coil current timetrace to compare
+		if i == 0: 	
+			Coil = 'ISol'
+			Current_Arrays = ISol_Arrays
+		if i == 1:
+			Coil = 'IPF1'
+			Current_Arrays = IPF1_Arrays
+		if i == 2: 
+			Coil = 'IPF2'	
+			Current_Arrays = IPF2_Arrays
+		if i == 3: 	
+			Coil = 'IDiv1'
+			Current_Arrays = IDiv1_Arrays
+		if i == 4: 	
+			Coil = 'IDiv2'
+			Current_Arrays = IDiv2_Arrays
+		#endif
+
+		#Create figure for Coil Maximum Ramp Diagnostic
+		fig,ax = plt.subplots(1, figsize=(12,8))
+
+		#Plot each coil current with respect to time
+		for j in range(0,len(Current_Arrays)):
+			ax.plot(Time_Arrays[j],Current_Arrays[j], lw=2)
+		#endfor
+
+		#Set title, legend and savestrings
+		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
+		Title = 'Time-Traces of '+Coil+' Coil Currents for '+Parameter+' in '+Range
+		Legend = TrendAxis
+		SaveString = SeriesDirString+'/'+Coil+'_Current_Trends.png'
+
+		ax.set_title(Title, fontsize=20, y=1.03)
+		ax.legend(Legend, fontsize=22, ncol=2, frameon=False)
+		ax.set_ylabel('Coil Current $I$ [kA]', fontsize=25)
+		ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#		ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#		ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
+		ax.tick_params(axis='x', labelsize=20)
+		ax.tick_params(axis='y', labelsize=20)
+#		ax.set_xlim(-50,100)		
+#		ax.set_ylim(2,32)
+
+		plt.tight_layout(pad=3.0,h_pad=1.0)
+		plt.savefig(SaveString)
+		plt.show()
+		plt.close('all')
+	#endfor
+
+	print'------------------------------'
+	print'# Coil Current Trends Complete'
+	print'------------------------------'
+
 	#=================#
 
 	#Create image limits
-	GlobalMaxDelta = MaxDeltaISol+MaxDeltaIPF2+MaxDeltaIPF3+MaxDeltaIDiv1+MaxDeltaIDiv2
+	GlobalMaxDelta = MaxDeltaISol+MaxDeltaIPF1+MaxDeltaIPF2+MaxDeltaIDiv1+MaxDeltaIDiv2
 	Ylims = [min(GlobalMaxDelta),max(GlobalMaxDelta)]
 
 	#Create figure for Coil Maximum Ramp Diagnostic
@@ -1336,8 +1500,8 @@ if savefig_CoilCurrents == True:
 
 	#Plot derivitive of each coil current with respect to time
 	ax.plot(TrendAxis,MaxDeltaISol, 'ko-', ms=10, lw=2)
-	ax.plot(TrendAxis,MaxDeltaIPF2, 'r^-', ms=10, lw=2)
-	ax.plot(TrendAxis,MaxDeltaIPF3, 'bs-', ms=10, lw=2)
+	ax.plot(TrendAxis,MaxDeltaIPF1, 'r^-', ms=10, lw=2)
+	ax.plot(TrendAxis,MaxDeltaIPF2, 'bs-', ms=10, lw=2)
 	ax.plot(TrendAxis,MaxDeltaIDiv1, 'c*-', ms=10, lw=2)
 	ax.plot(TrendAxis,MaxDeltaIDiv2, 'mh-', ms=10, lw=2)
 
@@ -1358,10 +1522,10 @@ if savefig_CoilCurrents == True:
 	plt.show()
 	plt.close('all')
 
-	print'--------------------------------'
-	print'# Coil Ramp Diagnostics Complete'
-	print'--------------------------------'
-#endif
+	print'----------------------------'
+	print'# Coil Current Ramp Complete'
+	print'----------------------------'
+#endfor
 
 #=====================================================================#
 #=====================================================================#
