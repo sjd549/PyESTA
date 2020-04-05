@@ -236,6 +236,13 @@ coil_temp = 293.0                      # Initial Coil Temperature   [K]
 #https://www.webelements.com/argon/atoms.html
 Z_eff=1.0                              # Effective Nuclear Charge   [e-]
 
+#Stability diagnostic perturbations (must be smaller than initial variable!)
+deltaRGeo = 0.00	# Small radial perturbation         [m]
+deltaZGeo = 0.00	# Small axial perturbation          [m]
+deltaAspect = 0.00	# Small aspect ratio perturbation   [-]
+deltaKappa = 0.00	# Small elongation perturbation     [-]
+deltadelta = 0.00	# Small triangiularity perturbation [-]
+
 
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
@@ -246,42 +253,24 @@ time =  [-0.10, -0.05, 0, tstep, tstep+TauP, tstep+0.05]    #Phase1_Daniel
 #time = [-0.11, -0.05, 0, tstep, tstep+0.10, tstep+0.11]    #Phase2_JuanJo
 
 #Phase1 coil currents [kA] 
-#ISol_Waveform = [+1300,-500,-1300]
-#IPF1_Waveform = [-370]
-#IPF2_Waveform = [-400]
-#IDiv1_Waveform = [+000]
-#IDiv2_Waveform = [+900]
+#Default zero at beginning and end, add other vertices in array form
+#ISol_Waveform = [+900, 000,-900];
+#IPF1_Waveform = [Null,-390,-390];
+#IPF2_Waveform = [Null,-385,-385];
+#IDiv1_Waveform = [Null,+000,000];
+#IDiv2_Waveform = [Null,+900,+900];
 
-#Phase1 coil currents [kA]               #SJD
-I_Sol_Start=+900       #+1250 -> +xxxx;  %+900;
-I_Sol_Equil=-900       #-0000 -> -0400;  %-900;
-I_Sol_End=-900         #-1250 -> -xxxx;  %-900;
+#Solenoid coil currents [kA]	#H+			#He2+
+I_Sol_Start=+900;				#+0900;		#+1000
+I_Sol_Equil=-500;				#-0500;		#-0500
+I_Sol_End=-I_Sol_Start;			#-0900;		#-1000
 #Symmetric ISol is better for power supply
-#
-I_PF1=-390             #-0350 -> -xxxx;  %-370;	%-390;
-I_PF2=-385             #-0400 -> -xxxx;  %-400;	%-385;
-I_Div1=+000            #-0000 -> -xxxx;  %+000;	%-000;
-I_Div2=+900            #+0900 -> +xxxx;  %+900;	%+900;
 
-#Phase2 coil currents [kA]
-#I_Sol_Start=+4700;    #+4700 -> +4700;     #+4700;
-#I_Sol_Equil=+500;     #+500  -> +500       #+500;
-#I_Sol_End=-4700;      #-4700 -> -4700;     #-4700;
-#
-#I_PF1=-3000;          #-3000 -> -3000      #-3000;
-#I_PF2=-940;           #-940  -> -940       #-940;
-#I_Div1=-000;          #-000  -> -000       #-000;
-#I_Div2=+9090;         #+9090 -> +9090      #+9090;
-
-#Phase3 coil currents [kA]
-#I_Sol_Start=4700;     #4200;
-#I_Sol_Equil=500;      #
-#I_Sol_End=-4700;      #-5200;
-#
-#I_PF1=-6000;          #
-#I_PF2=-3100;          #
-#I_Div1=-000;          #
-#I_Div2=15880;         #
+#PF coil currents (For Equilibrium)
+I_PF1_Equil=-390;				#-390;		#-0000
+I_PF2_Equil=-385;				#-385;		#-0000
+I_Div1_Equil=+000;				#+000;		#+0000
+I_Div2_Equil=+900;				#+900;		#+0000
 
 #====================================================================#
 #====================================================================#
@@ -293,6 +282,19 @@ I_Div2=+900            #+0900 -> +xxxx;  %+900;	%+900;
 #====================================================================#
 					  #SWITCHBOARD AND SETTINGS#
 #====================================================================#
+
+#Define feedback plasma geometry
+#efit_Geometry = [RGeo, ZGeo, a, Kappa, delta]
+#efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2]
+
+#ParameterVaried = 'RGeo'
+#ParameterRange = [x/100.0 for x in range(40,50,2)]
+
+#ParameterVaried = 'Kappa'
+#ParameterRange = [x/10.0 for x in range(10,20,1)]
+
+#ParameterVaried = 'delta'
+#ParameterRange = [x/100.0 for x in range(10,31,2)]
 
 #ParameterVaried = 'R_Div2'
 #ParameterRange = [x/100.0 for x in range(30,61,5)]
@@ -333,19 +335,8 @@ I_Div2=+900            #+0900 -> +xxxx;  %+900;	%+900;
 #ParameterRange = [1.0,2.0,11.85]	#H, H2, Ar8+  (Old Resistivity ~34)
 
 
-#ParameterVaried = 'Rgeo'
-#ParameterRange = [x/10.0 for x in range(40,50,1)]
-
-#ParameterVaried = 'Kappa'
-#ParameterRange = [x/10.0 for x in range(10,20,1)]
-
-#ParameterVaried = 'delta'
-#ParameterRange = [x/100.0 for x in range(10,31,2)]
-
-#Define feedback plasma geometry
-#efit_Geometry = [RGeo, ZGeo, a, Kappa, delta]
-#efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2]
-
+#ParameterVaried = 'deltaZGeo'
+#ParameterRange = [x/100.0 for x in range(0,31,3)]
 
 ####################
 
@@ -355,7 +346,7 @@ ProjectName = 'SMARTxs-P1'			#Defult global project name
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
-SimNameList = ['BT','TauR','I_Sol_Start','I_PF1','I_PF2','I_Div1','I_Div2']
+SimNameList = ['BT','TauR','I_Sol_Start','I_PF1_Equil','I_PF2_Equil','I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
 IAutorun = True			#Run requested simulation series
@@ -367,17 +358,18 @@ IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'R_Div2'		 	#Define parameter to vary - Required for diagnostics
-ParameterRange = [x/100.0 for x in range(30,61,5)]	 #Define range to vary over
+ParameterVaried = 'deltaZGeo'		 	#Define parameter to vary - Required for diagnostics
+ParameterRange = [x/100.0 for x in range(0,31,3)]		#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
-savefig_PlasmaCurrent = False		#Plots plasma current trends
-savefig_CoilCurrents = False		#Plots PF coil current timetraces
-savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents
+savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
+savefig_CoilCurrents = True			#Plots PF coil current timetraces for each simulation
+savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
 
-savefig_EquilTrends = False			#Plots general equilibrium trends from Param(equil)
+savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
+savefig_EquilTrends = True			#Plots general equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
-savefig_IquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
+savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
 
 #Image overrides and tweaks
@@ -879,7 +871,7 @@ print '-----------------------------------------'
 if IAutorun == True:
 	print'# Simulation Series Autorun'
 	print''
-if True in [savefig_EquilTrends,savefig_EquilSeperatrix,savefig_IquilMidplane,savefig_EquilXpoint]:
+if True in [savefig_EquilTrends,savefig_EquilSeperatrix,savefig_EquilMidplane,savefig_EquilXpoint]:
 	print'# 2D Equilibrium Analysis'
 if True in [savefig_PlasmaCurrent]:
 	print'# 1D Plasma Current Analysis'
@@ -992,7 +984,7 @@ if IAutorun == True:
 #====================================================================#
 
 #====================================================================#
-				       #EQUILIBRIUM DIAGNOSTICS#
+				     #EQUILIBRIUM GENERAL TRENDS#
 #====================================================================#
 
 #Plot general equilibrium trends from Param(equil)
@@ -1003,9 +995,10 @@ if savefig_EquilTrends == True:
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
-	#Extract plasma current data from series directories
-	ParamEquil = ExtractFIESTAData(SimulationDirs,'EquilParam.txt','2D','Vertical')[0]
-	ValueEquil = ExtractFIESTAData(SimulationDirs,'EquilParam.txt','2D','Vertical')[1]
+	#Extract equilibrium data from series directories
+	Filename = 'Equil_Data/EquilParam.txt'
+	ParamEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1077,13 +1070,124 @@ if savefig_EquilTrends == True:
 
 
 
+#====================================================================#
+				         #EQUILIBRIUM STABILITY#
+#====================================================================#
 
+if savefig_EquilStability == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
+	#Extract equilibrium data from series directories
+	Filename = 'Equil_Data/EquilParam.txt'
+	ParamEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
+	#Extract coil current data from series directories
+	Filename = 'icoil_Data/efit_icoil.txt'
+	ISol_efit = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	IPF1_efit = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF2_efit = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IDiv1_efit = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv2_efit = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	Filename = 'icoil_Data/Perturbed_icoil.txt'
+	ISol_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	IPF1_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF2_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IDiv1_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv2_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
 
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
 
+	#Quick and dirty removal of relevent trends
+	RGeo,ZGeo,Kappa,Epsilon,delta = list(),list(),list(),list(),list()	#efit params
+	for l in range(0,len(SimulationDirs)):
+		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
+#		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
+		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
+		Epsilon.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
+		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
+	#endfor
 
+	#Calculate ratio of coil currents between efit and perturbed equilibria
+	PertFracISol,PertFracIPF1,PertFracIPF2 = list(),list(),list()
+	PertFracIDiv1,PertFracIDiv2 = list(),list()
+	for i in range(0,len(ISol_efit)):
+		try: PertFracISol.append( ISol_Pert[i][0]/ISol_efit[i][0] )
+		except: PertFracISol.append( np.nan )
+		try: PertFracIPF1.append( IPF1_Pert[i][0]/IPF1_efit[i][0] )
+		except: PertFracIPF1.append( np.nan )
+		try: PertFracIPF2.append( IPF2_Pert[i][0]/IPF2_efit[i][0] )
+		except: PertFracIPF2.append( np.nan )
+		try: PertFracIDiv1.append( IDiv1_Pert[i][0]/IDiv1_efit[i][0] )
+		except: PertFracIDiv1.append( np.nan )
+		try: PertFracIDiv2.append( IDiv2_Pert[i][0]/IDiv2_efit[i][0] )
+		except: PertFracIDiv2.append( np.nan )
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(2, figsize=(12,14))
+
+#	ax[0].plot(TrendAxis,ISol_Pert, 'ko-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,IPF1_efit, 'r--', ms=10, lw=2)
+	ax[0].plot(TrendAxis,IPF1_Pert, 'r^-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,IPF2_efit, 'b--', ms=10, lw=2)
+	ax[0].plot(TrendAxis,IPF2_Pert, 'bs-', ms=10, lw=2)
+#	ax[0].plot(TrendAxis,IDiv1_Pert, 'c*-', ms=10, lw=2)
+#	ax[0].plot(TrendAxis,IDiv2_Pert, 'mh-', ms=10, lw=2)
+
+	ax[0].set_title('Variation in Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
+	Legend = ['PF1 efit','PF2 Pert','Div1 efit','Div2 Pert']
+	ax[0].legend(Legend, fontsize=22, frameon=False)
+	ax[0].set_ylabel('Coil Current [kA]', fontsize=25)
+#	ax[0].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax[0].tick_params(axis='x', labelsize=20)
+	ax[0].tick_params(axis='y', labelsize=20)
+#	ax[0].set_xlim(0,1)		
+#	ax[0].set_ylim(2,32)
+
+	##########
+
+	#Plot plasma current with respect to adaptive_time
+#	ax[1].plot(TrendAxis,PertFracISol, 'ko-', ms=10, lw=2)
+	ax[1].plot(TrendAxis,PertFracIPF1, 'r^-', ms=10, lw=2)
+	ax[1].plot(TrendAxis,PertFracIPF2, 'bs-', ms=10, lw=2)
+#	ax[1].plot(TrendAxis,PertFracIDiv1, 'c*-', ms=10, lw=2)
+#	ax[1].plot(TrendAxis,PertFracIDiv2, 'mh-', ms=10, lw=2)
+
+	Legend = ['PF1','PF2']	
+	ax[1].legend(Legend, fontsize=22, frameon=False)
+	ax[1].set_ylabel('Fractional Change In \n Coil Current [-]', fontsize=25)
+	ax[1].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax[1].tick_params(axis='x', labelsize=20)
+	ax[1].tick_params(axis='y', labelsize=20)
+#	ax[1].set_xlim(0,1)		
+#	ax[1].set_ylim(0,1)
+
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(SeriesDirString+'/VerticalStability_Trends.png')
+#	plt.show()
+	plt.close('all')
+
+	print'--------------------------------'
+	print'# Equilibrium stability Complete'
+	print'--------------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
 
 
 
@@ -1113,8 +1217,9 @@ if savefig_PlasmaCurrent == True:
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract plasma current data from series directories
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,'Ip.txt','2D','Vertical')[0]
-	Ip_Arrays = ExtractFIESTAData(SimulationDirs,'Ip.txt','2D','Vertical')[1]
+	Filename = 'Ip.txt'
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1204,6 +1309,8 @@ if savefig_PlasmaCurrent == True:
 
 
 
+
+
 #====================================================================#
 				  #COIL CURRENT WAVEFORM DIAGNOSTIC#
 #====================================================================#
@@ -1217,14 +1324,13 @@ if savefig_CoilCurrents == True:
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract coil currents and time axis from series directories
-	Filename = 'CoilCurrents.txt'
-	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
-	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
-	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
-	Filename = 't.txt'
+	Filename = 'icoil_Data/CoilCurrents.txt'
 	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1241,8 +1347,8 @@ if savefig_CoilCurrents == True:
 		for j in range(0,len(ISol_Arrays[i])):
 		 	#Coil currents are saved scaled by the number of windings (For reasons...)
 			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*nSol)
-			IPF1_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
-			IPF2_Arrays[i][j] = IPF3_Arrays[i][j]/(1000.0*24)
+			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/(1000.0*24)
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
 			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
 			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
 		#endfor
@@ -1356,14 +1462,15 @@ if savefig_CoilCurrentTrends == True:
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract coil currents and time axis from series directories
-	Filename = 'CoilCurrents.txt'
-	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
-	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
-	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
-	Filename = 't.txt'
+	Filename = 'icoil_Data/CoilCurrents.txt'
+	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
 	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
+
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1385,6 +1492,20 @@ if savefig_CoilCurrentTrends == True:
 			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
 			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
 		#endfor
+	#endfor
+
+	#Calculate maximum coil current for each coil
+	MaxIPF1,MaxIPF2 = list(),list()
+	MaxIDiv1,MaxIDiv2 = list(),list()
+	MaxISol = list()
+	MaxIAvg = list()
+	for i in range(0,len(ISol_Arrays)):
+		MaxISol.append( max(ISol_Arrays[i], key=abs) )
+		MaxIPF1.append( max(IPF1_Arrays[i], key=abs) )
+		MaxIPF2.append( max(IPF2_Arrays[i], key=abs) )
+		MaxIDiv1.append( max(IDiv1_Arrays[i], key=abs) )
+		MaxIDiv2.append( max(IDiv2_Arrays[i], key=abs) )
+		MaxIAvg.append( (abs(MaxISol[i])+abs(MaxIPF1[i])+abs(MaxIPF2[i])+abs(MaxIDiv1[i])+abs(MaxIDiv2[i]))/NumCoils )
 	#endfor
 
 	#Calculate dI/dt for each coil set
@@ -1430,9 +1551,6 @@ if savefig_CoilCurrentTrends == True:
 	else: Parameter = ParameterVaried
 	#endif
 
-	#Determine number of panels (Fixed for now)
-	NumCoils = len(ExtractFIESTAData(SimulationDirs,'CoilCurrents.txt','2D','Vertical'))
-
 	#For every simulation folder in the current series:
 	for i in range(0,NumCoils):
 
@@ -1454,7 +1572,7 @@ if savefig_CoilCurrentTrends == True:
 			Current_Arrays = IDiv2_Arrays
 		#endif
 
-		#Create figure for Coil Maximum Ramp Diagnostic
+		#Create figure to compare each coil current time-trace
 		fig,ax = plt.subplots(1, figsize=(12,8))
 
 		#Plot each coil current with respect to time
@@ -1496,26 +1614,49 @@ if savefig_CoilCurrentTrends == True:
 	Ylims = [min(GlobalMaxDelta),max(GlobalMaxDelta)]
 
 	#Create figure for Coil Maximum Ramp Diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,8))
+	fig,ax = plt.subplots(2, figsize=(12,14))
 
 	#Plot derivitive of each coil current with respect to time
-	ax.plot(TrendAxis,MaxDeltaISol, 'ko-', ms=10, lw=2)
-	ax.plot(TrendAxis,MaxDeltaIPF1, 'r^-', ms=10, lw=2)
-	ax.plot(TrendAxis,MaxDeltaIPF2, 'bs-', ms=10, lw=2)
-	ax.plot(TrendAxis,MaxDeltaIDiv1, 'c*-', ms=10, lw=2)
-	ax.plot(TrendAxis,MaxDeltaIDiv2, 'mh-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,MaxISol, 'ko-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,MaxIPF1, 'r^-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,MaxIPF2, 'bs-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,MaxIDiv1, 'c*-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,MaxIDiv2, 'mh-', ms=10, lw=2)
+	ax[0].plot(TrendAxis,MaxIAvg, 'kv:', markerfacecolor='none', ms=10, lw=2)			 #Avg ICoil
+	ax[0].plot(TrendAxis[MaxIAvg.index(min(MaxIAvg))],min(MaxIAvg), 'kv', ms=14, lw=2.0) #Min Avg
 
-	ax.set_title('Maximum Delta Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
+	ax[0].set_title('Maximum Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
+	Legend = ['Sol','PF1','PF2','Div1','Div2','Avg']
+	ax[0].legend(Legend, fontsize=22, ncol=2, frameon=False)
+	ax[0].set_ylabel('Maximum Coil \n Current $I$ [kA]', fontsize=25)
+#	ax[0].set_xlabel(Parameter, fontsize=25)
+#	ax[0].xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
+#	ax[0].yaxis.set_major_locator(ticker.MultipleLocator(50))
+	ax[0].tick_params(axis='x', labelsize=20)
+	ax[0].tick_params(axis='y', labelsize=20)
+	ax[0].set_xlim(TrendAxis[0],TrendAxis[-1])		
+	ax[0].set_ylim(-1.5,1.5)
+
+	##########
+
+	#Plot derivitive of each coil current with respect to time
+	ax[1].plot(TrendAxis,MaxDeltaISol, 'ko-', ms=10, lw=2)
+	ax[1].plot(TrendAxis,MaxDeltaIPF1, 'r^-', ms=10, lw=2)
+	ax[1].plot(TrendAxis,MaxDeltaIPF2, 'bs-', ms=10, lw=2)
+	ax[1].plot(TrendAxis,MaxDeltaIDiv1, 'c*-', ms=10, lw=2)
+	ax[1].plot(TrendAxis,MaxDeltaIDiv2, 'mh-', ms=10, lw=2)
+
+	ax[1].set_title('Maximum Delta Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
 	Legend = ['Sol','PF1','PF2','Div1','Div2']
-	ax.legend(Legend, fontsize=22, ncol=2, frameon=False)
-	ax.set_ylabel('Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
-	ax.set_xlabel(Parameter, fontsize=25)
-#	ax.xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
-#	ax.yaxis.set_major_locator(ticker.MultipleLocator(50))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim(TrendAxis[0],TrendAxis[-1])		
-	ax.set_ylim(Ylims[0],Ylims[1]*1.25)
+	ax[1].legend(Legend, fontsize=22, ncol=2, frameon=False)
+	ax[1].set_ylabel('Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
+	ax[1].set_xlabel(Parameter, fontsize=25)
+#	ax[1].xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
+#	ax[1].yaxis.set_major_locator(ticker.MultipleLocator(50))
+	ax[1].tick_params(axis='x', labelsize=20)
+	ax[1].tick_params(axis='y', labelsize=20)
+	ax[1].set_xlim(TrendAxis[0],TrendAxis[-1])		
+	ax[1].set_ylim(Ylims[0]*1.25,Ylims[1]*1.25)
 
 	plt.tight_layout(pad=3.0,h_pad=1.0)
 	plt.savefig(SeriesDirString+'/CoilRamp_Trends.png')
