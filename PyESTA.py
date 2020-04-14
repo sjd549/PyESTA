@@ -202,17 +202,26 @@ Ti = Te*0.1      # Ion Temperature      [eV]
 BT = 0.1         # Toroidal B-Field     [T] (Defined at Rgeo)
 Ip = 30e3        # Plasma current       [A]
 TauR = 0.020     # Ramp Timescale       [s] (Also determines tstep for Ip plot)
-TauP = 0.030     # Pulse Timescale      [s]
+TauP = 0.020     # Pulse Timescale      [s]
 RGeo = 0.450     # Geometrical Radius   [m]
 ZGeo = 0.000     # Geometrical Axis     [m]
 RSep = 0.700     # Separatrix Radius    [m]
 a = RSep-RGeo    # Minor Radius         [m] (~0.25)
-Epsilon = RGeo/a # Aspect ratio         [-] (~1.8)
+A = RGeo/a       # Aspect ratio         [-] (~1.8)
 Kappa = 1.8      # Elongation           [-]
 delta = 0.20     # Triangularity        [-] (~0.2)
 li2 = 1          # Standard Value?      [-]
 #q_cyl = 2.821   # Safety Factor?       [-]
 #betaN = 3.529   # Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
+
+#Define efit Equilibrium Operating Conditions
+RGeo_efit = 0.44					# Geometrical Radius	[m] (0.44)
+ZGeo_efit = 0.0						# Geometrical Axis		[m] (0.00)
+A_efit = 1.85						# Aspect Ratio			[-] (1.85)
+a_efit = RGeo_efit/A_efit			# Minor Radius			[m] (0.44/1.85)
+Kappa_efit = 1.8					# Elongation			[-] (1.8)
+delta_efit = 0.2					# Triangularity			[-] (0.2)
+efit_Geometry_Init = [RGeo_efit, ZGeo_efit, a_efit, Kappa_efit, delta_efit]
 
 #Compute Further Operating Conditions
 Gr_Limit = 1e20*(Ip*1e-6/(pi*a**2*Kappa))  # Greenwald Limit          [m-3]
@@ -226,15 +235,18 @@ S = sqrt( (1.0+Kappa**2)/2.0 )             # Shaping factor           [-]
 #betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        # Normalised Beta          [%] 
 #betaT = (betaN/a*(Ip*1e-6))/BT            # Beta toroidal            [%]
 betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))**2*2*mu0*1.6e-19*Kappa  # Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Epsilon)+betaP+0.5*li2-3/2)      # Vertical field [T]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*A)+betaP+0.5*li2-3/2)      		 # Vertical field [T]
 
 #Coil density, temperature and resistivity
-coil_density = 1                       # Relative Coil Density      [Arb]
-coil_temp = 293.0                      # Initial Coil Temperature   [K]
+coil_density = 1						# Relative Coil Density      [Arb]
+coil_temp = 293.0						# Initial Coil Temperature   [K]
 
 #Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV)
 #https://www.webelements.com/argon/atoms.html
-Z_eff=1.0                              # Effective Nuclear Charge   [e-]
+Z_eff=1.0								# Effective Nuclear Charge   [e-]
+
+#Null field region radius, specifies Sensor_btheta radius
+a_eff=0.10;								# Null field region radius	 [m]
 
 #Stability diagnostic perturbations (must be smaller than initial variable!)
 deltaRGeo = 0.00	# Small radial perturbation         [m]
@@ -283,62 +295,43 @@ I_Div2_Equil=+900;				#+900;		#+0000
 					  #SWITCHBOARD AND SETTINGS#
 #====================================================================#
 
-#Define feedback plasma geometry
-#efit_Geometry = [RGeo, ZGeo, a, Kappa, delta]
-#efit_Geometry = [0.44, 0.0, 0.44/1.85, 1.8, 0.2]
+#Vessel and Coil Geometry Ranges
+#'R_Div1' [x/100.0 for x in range(02,25,2)]
+#'R_Div2' [x/100.0 for x in range(30,61,2)]
+#'Z_PF1' [x/100.0 for x in range(00,81,2)]
+#'Z_PF2' [x/100.0 for x in range(00,81,2)]
 
-#ParameterVaried = 'RGeo'
-#ParameterRange = [x/100.0 for x in range(40,50,2)]
+#Common General Parameter Ranges
+#'Ip' [x for x in range(20000,40000,2000)]
+#'Gr_Frac' [x/100.0 for x in range(9,26,3)]
+#'Te' [x for x in range(50,251,50)]
+#'Z_eff' [1.0,2.0,11.85]	#H, H2, Ar8+  (Old Resistivity ~34)
+#'BPolEarth' [x/100000.0 for x in range(1,11,2.5)]
 
-#ParameterVaried = 'Kappa'
-#ParameterRange = [x/10.0 for x in range(10,20,1)]
+#Common Coil Current Ranges
+#'I_Sol_Start' [x for x in range(500,1001,100)]
+#'I_Sol_Equil' [-x for x in range(000,501,50)]
+#'I_PF1' [x for x in range(-700,-339,20)]
+#'I_PF2' [x for x in range(-700,-399,20)]
+#'I_Div1' [x for x in range(000,1501,100)]
+#'I_Div2' [x for x in range(600,951,50)]
 
-#ParameterVaried = 'delta'
-#ParameterRange = [x/100.0 for x in range(10,31,2)]
+#Coil Pulse Ranges
+#'TauR' [x/1000.0 for x in range(10,31,2)]
+#'TauP' [x/1000.0 for x in range(20,41,2)]
 
-#ParameterVaried = 'R_Div2'
-#ParameterRange = [x/100.0 for x in range(30,61,5)]
+#Equilibrium Stability Ranges
+#'deltaZGeo' #[x/100.0 for x in range(0,21,2)]
+#'deltaRGeo' #[x/100.0 for x in range(0,21,2)]
 
+#Common Efit Geometry Ranges
+#'RGeo_efit' [x/100.0 for x in range(40,50,2)]
+#'ZGeo_efit' [x/100.0 for x in range(0,0,1)]
+#'a_efit' [x/10.0 for x in range(10,20,1)]
+#'Kappa_efit' [x/100.0 for x in range(120,140,5)], [x/100.0 for x in range(175,281,10)]
+#'delta_efit' [-x/10.0 for x in range(0,31,1)],   [0.0,0.2,0.4,1.0,1.1]
 
-#ParameterVaried = 'I_Sol_Start' 
-#ParameterRange = [x for x in range(500,1001,100)]
-
-#ParameterVaried = 'I_Sol_Equil' 
-#ParameterRange = [-x for x in range(000,501,50)]
-
-#ParameterVaried = 'I_PF1'
-#ParameterRange = [x for x in range(-700,-339,20)]
-
-#ParameterVaried = 'I_PF2'
-#ParameterRange = [x for x in range(-700,-399,20)]
-
-#ParameterVaried = 'I_Div1'
-#ParameterRange = [x for x in range(000,1501,100)]
-
-#ParameterVaried = 'I_Div2'
-#ParameterRange = [x for x in range(600,951,50)]
-
-
-#ParameterVaried = 'TauR'
-#ParameterRange = [x/1000.0 for x in range(10,31,2)]
-
-#ParameterVaried = 'TauP'
-#ParameterRange = [x/1000.0 for x in range(20,41,2)]
-
-#ParameterVaried = 'Ip'
-#ParameterRange = [x for x in range(20000,40000,2000)]
-
-#ParameterVaried = 'Gr_Frac'
-#ParameterRange = [x/100.0 for x in range(10,27,2)]
-
-#ParameterVaried = 'Z_eff'
-#ParameterRange = [1.0,2.0,11.85]	#H, H2, Ar8+  (Old Resistivity ~34)
-
-
-#ParameterVaried = 'deltaZGeo'
-#ParameterRange = [x/100.0 for x in range(0,31,3)]
-
-####################
+########################################
 
 #Define FIESTA namelist and project directory names
 FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
@@ -346,10 +339,10 @@ ProjectName = 'SMARTxs-P1'			#Defult global project name
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
-SimNameList = ['BT','TauR','I_Sol_Start','I_PF1_Equil','I_PF2_Equil','I_Div1_Equil','I_Div2_Equil']
+SimNameList = ['delta_efit','Kappa_efit','I_Sol_Start','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = True			#Run requested simulation series
+IAutorun = False			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -358,13 +351,16 @@ IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'deltaZGeo'		 	#Define parameter to vary - Required for diagnostics
-ParameterRange = [x/100.0 for x in range(0,31,3)]		#Define paramter range to vary over
+ParameterVaried = 'R_Div1'		 	#Define parameter to vary - Required for diagnostics
+ParameterRange = [x/100.0 for x in range(02,25,2)]	#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
-savefig_CoilCurrents = True			#Plots PF coil current timetraces for each simulation
+savefig_CoilCurrentTraces = True	#Plots PF coil current timetraces for each simulation
 savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
+
+savefig_ConnectionLength = True		#Plots trends in average connection length over all simulations
+savefig_PaschenCurves = True		#Plots Paschen curves for each simulation using Lc
 
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
 savefig_EquilTrends = True			#Plots general equilibrium trends from Param(equil)
@@ -387,35 +383,26 @@ Image_TrendAxisOverride=''			#Force trend figures to use different variable
 
 #TO DO
 #IMMEDIATE FIXES
-#Enable concurrent diagnostic use after running simulations - requires running twice atm
-# ^^^ ?This is likely due to being in the wrong directory after simulations finish? ^^^
 #Enable auto-detection of output folders so user doesn't have to change parameter variable
 
 
 #CORE FUNCTIONALITY
 #Unify PyESTA namelist inputs with .m namelist inputs 		- Ideally in external namelist file
-#Add capability to iterate towards fixed equilibrium conditions - i.e. iterate on single variable
 #Rename all FIESTA output text files in unified format      - Enable CSV or Row-Wise data storing
 #Save all PyESTA output data in seperate output folder      - Enable CSV or Row-Wise data storing
+#Add capability to iterate towards fixed equilibrium conditions - i.e. iterate on single variable
 #Add ability to change multiple variables per run
 #Add ability to use multiple cores, including safety		- NEEDS TESTING!!!
 
 #DIAGNOSTICS
-#Add breakdown diagnostic calculating path length at each point in the current waveform
-#Add breakdown diagnostic calculating breakdown boolian for each simuatlion (true/false)
 #Add equilibrium Rmin,Rmax, Zmin,ZMax diagnostic showing extrema of seperatrix
 #Add equilibrium 'PROES-like' diagnostics - plot Radial slice at Z=0 with parameter range
 #Add equilibrium X point diagnostic, showing X-point location (R,Z) trends
-#Add trend diagnostics for all of the default param(equil) outputs
 
 #ERROR HANDLING
 #Add ability to safely-eject from matlab if convergence fails 				- IMPORTANT!!!
 #Add ability to produce 'nan' data files if one-or-more simulations fail	- IMPORTANT!!!
 #Add general error messages to aid in debugging as the program grows larger
-
-#EXTRA IDEAS
-#Add meta-convergence function, enabling self iteration towards a fixed input equilibrium
-#This will require feedback between PyESTA and the output files: [Param(equil), ???, ???]
 
 
 #====================================================================#
@@ -532,8 +519,8 @@ def RunFIESTA(FIESTAName,Verbose=False,Parallel=False):
 	FIESTA_Splash = '-nodisplay -nosplash -nodesktop -r '
 	FIESTA_RunCMD = '\"run(\''+FIESTA_RootDir+'\');exit;\"'
 	if Verbose == True or IDebugMode == True:	 FIESTA_Output = ''
-	elif Verbose == False and Parallel == False: FIESTA_Output = ' > Conv.out'
-	elif Verbose == False and Parallel == True:  FIESTA_Output = ' > Conv.out &'
+	elif Verbose == False and Parallel == False: FIESTA_Output = ' > Conv.txt'
+	elif Verbose == False and Parallel == True:  FIESTA_Output = ' > Conv.txt &'
 	#####
 	ExecuteFIESTA = 'matlab '+FIESTA_Splash+FIESTA_RunCMD+FIESTA_Output
 
@@ -863,7 +850,7 @@ print '|  |_)  |  \   \/   /  |  |__     |   (----`---|  |----`  /  ^  \    '
 print '|   ___/    \_    _/   |   __|     \   \       |  |      /  /_\  \   '
 print '|  |          |  |     |  |____.----)   |      |  |     /  _____  \  '
 print '| _|          |__|     |_______|_______/       |__|    /__/     \__\ '
-print '                                                               V0.1.0'
+print '                                                               V0.2.0'
 print '---------------------------------------------------------------------'
 print ''
 print 'The following diagnostics were requested:'
@@ -875,7 +862,7 @@ if True in [savefig_EquilTrends,savefig_EquilSeperatrix,savefig_EquilMidplane,sa
 	print'# 2D Equilibrium Analysis'
 if True in [savefig_PlasmaCurrent]:
 	print'# 1D Plasma Current Analysis'
-if True in [savefig_CoilCurrents]:
+if True in [savefig_CoilCurrentTraces]:
 	print'# 1D Coil Current Analysis'
 print '-----------------------------------------'
 print ''
@@ -933,6 +920,9 @@ if IAutorun == True:
 		#Run modified FIESTA - Verbosity determines terminal output.
 		#TO IMPLIMENT::: MAXIMUM CONCURRENT RUNS = MaxNumThreads/NumThreads
 		RunFIESTA(FIESTAName,Verbose=IVerbose,Parallel=IParallel)
+
+		#Return to home directory to enable diagnostic processing
+		os.chdir(HomeDir)
 	#endfor
 
 	#=================#
@@ -953,7 +943,7 @@ if IAutorun == True:
 
 		#Update user of simulation convergence
 		print '------------------------------------------------'
-		print 'Series Convergence Achieved:',str(TimeConv)+'[s]'
+		print 'Simulation Series Converged:',str(TimeConv)+'[s]'
 		print '------------------------------------------------'
 	#endfor
 #endif
@@ -1017,12 +1007,12 @@ if savefig_EquilTrends == True:
 	#Vol(m3) #q95 #betaT #betap #betaN
 
 	#Quick and dirty removal of most useful trends
-	RGeo,ZGeo,Kappa,Epsilon,delta = list(),list(),list(),list(),list()	#efit params
+	RGeo,ZGeo,Kappa,A,delta = list(),list(),list(),list(),list()	#efit params
 	for l in range(0,len(SimulationDirs)):
 		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
 #		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
 		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
-		Epsilon.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
+		A.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
 		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
 	#endfor
 
@@ -1042,7 +1032,7 @@ if savefig_EquilTrends == True:
 	#Plot requested equil parameter trends over full simulation series
 	ax.plot(TrendAxis,RGeo,'ko-', ms=12, lw=2)
 	ax.plot(TrendAxis,Kappa,'r^-', ms=12, lw=2)
-	ax.plot(TrendAxis,Epsilon,'bs-', ms=12, lw=2)
+	ax.plot(TrendAxis,A,'bs-', ms=12, lw=2)
 	ax.plot(TrendAxis,delta,'mh-', ms=12, lw=2)
 
 	Legend = ['RGeo', 'Elongation', 'Aspect Ratio', 'Triangularity']
@@ -1104,12 +1094,12 @@ if savefig_EquilStability == True:
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
 
 	#Quick and dirty removal of relevent trends
-	RGeo,ZGeo,Kappa,Epsilon,delta = list(),list(),list(),list(),list()	#efit params
+	RGeo,ZGeo,Kappa,A,delta = list(),list(),list(),list(),list()	#efit params
 	for l in range(0,len(SimulationDirs)):
 		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
 #		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
 		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
-		Epsilon.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
+		A.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
 		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
 	#endfor
 
@@ -1148,8 +1138,9 @@ if savefig_EquilStability == True:
 #	ax[0].plot(TrendAxis,IDiv1_Pert, 'c*-', ms=10, lw=2)
 #	ax[0].plot(TrendAxis,IDiv2_Pert, 'mh-', ms=10, lw=2)
 
-	ax[0].set_title('Variation in Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
-	Legend = ['PF1 efit','PF2 Pert','Div1 efit','Div2 Pert']
+	Title = 'Variation in coil current required \n to restore equilibrium for varying '+Parameter
+	ax[0].set_title(Title, fontsize=20, y=1.03)
+	Legend = ['PF1 efit','PF1 Pert','PF2 efit','PF2 Pert']
 	ax[0].legend(Legend, fontsize=22, frameon=False)
 	ax[0].set_ylabel('Coil Current [kA]', fontsize=25)
 #	ax[0].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
@@ -1204,109 +1195,6 @@ if savefig_EquilStability == True:
 
 
 
-#====================================================================#
-					  #PLASMA CURRENT DIAGNOSTIC#
-#====================================================================#
-
-#Compare optimised plasma current profiles
-if savefig_PlasmaCurrent == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+'_'+ProjectName
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract plasma current data from series directories
-	Filename = 'Ip.txt'
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
-
-	#Rescale data for plotting: [s] to [ms]
-	for i in range(0,len(Time_Arrays)):
-		for j in range(0,len(Time_Arrays[i])):
-			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
-		#endfor
-	#endfor
-
-	#Rescale data for plotting: [A] to [kA]
-	for i in range(0,len(Ip_Arrays)):
-		for j in range(0,len(Ip_Arrays[i])):
-			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
-		#endfor
-	#endfor
-
-	#Calculate maximum Ip for each simulation over the full series
-	Ip_MaxTrend,Ip_MinTrend = list(),list()
-	for i in range(0,len(Ip_Arrays)):
-		Ip_MaxTrend.append(max(Ip_Arrays[i]))
-		Ip_MinTrend.append(min(Ip_Arrays[i]))
-	#endfor
-
-	#===================##===================#
-	#===================##===================#
-
-	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
-	else: Parameter = ParameterVaried
-	#endif
-
-	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,10))
-
-	#Plot plasma current with respect to adaptive_time
-	for i in range(0,len(Ip_Arrays)): ax.plot(Time_Arrays[i],Ip_Arrays[i], lw=2)
-	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
-	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
-	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
-	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim( min(Time_Arrays[0])*1.20,max(Time_Arrays[0])*1.50 )		
-#	ax.set_ylim(2,32)
-
-	#Plot trend in plasma current with respect to varied parameter
-	from mpl_toolkits.axes_grid.inset_locator import inset_axes
-	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
-	ax2 = fig.add_axes([left, bottom, width, height])
-	###
-	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
-	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
-	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
-	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
-#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
-#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
-	ax2.tick_params(axis='x', labelsize=14)
-	ax2.tick_params(axis='y', labelsize=14)
-#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
-#	ax2.set_ylim(0.79,1.01)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/Ip_Trends.png')
-#	plt.show()
-	plt.close('all')
-
-	print'-------------------------'
-	print'# Ip Diagnostics Complete'
-	print'-------------------------'
-#endif
-
-#=====================================================================#
-#=====================================================================#
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1316,7 +1204,7 @@ if savefig_PlasmaCurrent == True:
 #====================================================================#
 
 #Compare optimised plasma current profiles
-if savefig_CoilCurrents == True:
+if savefig_CoilCurrentTraces == True:
 
 	#Obtain simulation folder directories for project and requested series
 	SeriesDirString = SeriesName+'_'+ProjectName
@@ -1686,6 +1574,291 @@ if savefig_CoilCurrentTrends == True:
 
 
 
+
+
+
+
+#====================================================================#
+					  #PLASMA CURRENT DIAGNOSTICS#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_PlasmaCurrent == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+
+	#Extract plasma current data from series directories
+	Filename = 'Ip.txt'
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+
+	#Rescale data for plotting: [s] to [ms]
+	for i in range(0,len(Time_Arrays)):
+		for j in range(0,len(Time_Arrays[i])):
+			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
+		#endfor
+	#endfor
+
+	#Rescale data for plotting: [A] to [kA]
+	for i in range(0,len(Ip_Arrays)):
+		for j in range(0,len(Ip_Arrays[i])):
+			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
+		#endfor
+	#endfor
+
+	#Calculate maximum Ip for each simulation over the full series
+	Ip_MaxTrend,Ip_MinTrend = list(),list()
+	for i in range(0,len(Ip_Arrays)):
+		Ip_MaxTrend.append(max(Ip_Arrays[i]))
+		Ip_MinTrend.append(min(Ip_Arrays[i]))
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(1, figsize=(12,10))
+
+	#Plot plasma current with respect to adaptive_time
+	for i in range(0,len(Ip_Arrays)): ax.plot(Time_Arrays[i],Ip_Arrays[i], lw=2)
+	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
+	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
+	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
+	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
+	ax.tick_params(axis='x', labelsize=20)
+	ax.tick_params(axis='y', labelsize=20)
+	ax.set_xlim( min(Time_Arrays[0])*1.20,max(Time_Arrays[0])*1.50 )		
+#	ax.set_ylim(2,32)
+
+	#Plot trend in plasma current with respect to varied parameter
+	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
+	ax2 = fig.add_axes([left, bottom, width, height])
+	###
+	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
+	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
+	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
+	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
+#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
+#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
+	ax2.tick_params(axis='x', labelsize=14)
+	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
+#	ax2.set_ylim(0.79,1.01)
+
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(SeriesDirString+'/Ip_Trends.png')
+#	plt.show()
+	plt.close('all')
+
+	print'-------------------------'
+	print'# Ip Diagnostics Complete'
+	print'-------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#====================================================================#
+					  #PLASMA BREAKDOWN DIAGNOSTICS#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_ConnectionLength == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+
+	#Extract relevent data from series directories
+	Filename = 'LCon.txt'
+	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Filename = 'Eta.txt'
+	Eta_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+
+	#Split resistivity into perp and parallel components
+#	EtaPerp, EtaPara = list(),list()
+#	for i in range(0,len(Eta_Array)):
+#		EtaPerp.append(Eta_Array[i].split()[0])
+#		EtaPara.append(Eta_Array[i].split()[1])
+	#endfor
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(1, figsize=(12,10))
+
+	#Plot plasma current with respect to adaptive_time
+	ax.plot(TrendAxis,Lc_Array, 'ko-', ms=10, lw=2)
+
+	ax.set_title('Connection Length for Varying '+Parameter, fontsize=20, y=1.03)
+	Legend = ['Lc']
+	ax.legend(Legend, fontsize=22, frameon=False)
+	ax.set_ylabel('Connection Length [m]', fontsize=25)
+	ax.set_xlabel('Varying: '+Parameter, fontsize=25)
+	ax.ticklabel_format(style='sci', axis='x', scilimits=(-2,2))
+#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
+	ax.tick_params(axis='x', labelsize=20)
+	ax.tick_params(axis='y', labelsize=20)
+#	ax.set_xlim(0,1)		
+#	ax.set_ylim(2,32)
+
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(SeriesDirString+'/Lc_Trends.png')
+#	plt.show()
+	plt.close('all')
+
+	print'------------------------'
+	print'# Lc Diagnostic Complete'
+	print'------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+#=====================================================================#
+#=====================================================================#
+
+if savefig_PaschenCurves == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+
+	#Extract relevent data from series directories
+	Filename = 'LCon.txt'
+	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+
+	#Create arbitary pressure array over 1E-5 --> 1E-3 Torr
+	Limits,Resolution = [1E-5,1E-2],10000
+	PressureArray = np.linspace(Limits[0],Limits[1],Resolution).tolist()
+
+	#Initialise required arrays EMinArrays 
+	EMinArrays,MinEMinArray = list(),list()
+	for i in range(0,len(Lc_Array)): EMinArrays.append( list() )
+
+	#Construct EMinArrays for each Lcon by varying background pressure
+	#N.B. !!! Lcon will vary with background pressure so this is only approximate !!!
+	for i in range(0,len(EMinArrays)):
+		for j in range(0,len(PressureArray)):
+
+			#Compute minimum E-field for breakdown as cited from Song2017
+			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Array[i][0])
+			if EMin < 0: EMin = np.nan
+
+			EMinArrays[i].append( EMin )
+		#endfor
+		MinEMinArray.append( min(filter(lambda v: v==v, EMinArrays[i])) )  
+	#endfor
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Round connective length for plotting
+	for i in range(0,len(Lc_Array)): Lc_Array[i] = round(Lc_Array[i][0],1)
+	#Scale pressure array for plotting
+	for i in range(0,len(PressureArray)): PressureArray[i] = PressureArray[i]*1000	#[mTorr]
+
+	#===================##===================#
+	#===================##===================#
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(1, figsize=(12,10), sharex=True)
+
+	#Plot minimum electric field for breakdown for each connection length
+	for i in range(0,len(Lc_Array)):
+		ax.plot(PressureArray,EMinArrays[i], '--', lw=2, ms=12)
+	#####
+	Legend = [Parameter+'='+str(TrendAxis[i]) for i in range(0,len(TrendAxis))]
+	ax.legend(Legend, fontsize=20, loc=4, frameon=False)
+	ax.set_xlabel('Prefill Pressure $P$ [mTorr]', fontsize=26)
+	ax.set_ylabel('Toroidal E-Field $\\bf{E}$ [V m$^{-1}$]', fontsize=26)
+	#ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5E21))
+	ax.tick_params(axis='x', labelsize=20)
+	ax.tick_params(axis='y', labelsize=20)
+	ax.set_xscale("log")
+	ax.set_yscale("log")
+	ax.set_xlim(1e-2,10)		#Pressure [mTorr]
+	ax.set_ylim(0.25,25)		#E-Field [Vm-1]
+
+	#Plot trend in minimum breakdown E-field with respect to varied parameter
+	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+	left, bottom, width, height = [0.19,0.19,0.25,0.20]			#[0.62,0.27,0.23,0.23]
+	ax2 = fig.add_axes([left, bottom, width, height])
+	###
+	ax2.plot(TrendAxis,MinEMinArray,'ko--', markerfacecolor='none', ms=8, lw=1.5)
+	ax2.plot(TrendAxis[MinEMinArray.index(min(MinEMinArray))],min(MinEMinArray),'ko', ms=10)
+	ax2.set_ylabel('Minimum $\\bf{E}$ [V m$^{-1}$]', labelpad=0, fontsize=14.5)
+	ax2.set_xlabel('Varying: '+Parameter, fontsize=15)
+	ax2.tick_params(axis='x', labelsize=14)
+	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.set_xlim(0,1)
+#	ax2.set_ylim(0.79,1.01)
+
+	plt.tight_layout(pad=2.0)
+	plt.savefig(SeriesDirString+'/Paschen_Breakdown.png')
+#	plt.show()
+	plt.close('all')
+
+	print'-----------------------------'
+	print'# Paschen Diagnostic Complete'
+	print'-----------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
 
 
 

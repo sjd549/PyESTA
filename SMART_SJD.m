@@ -86,25 +86,35 @@ Z_Div2=(0.85*ZScaleCoil)+ww_Z/2; %Z Position of Div2 (m)		%0.85m
 %%%%%%%%%%%%%%%%%%%%%  DEFINE INITIAL PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%%
 
 %Define any required constants
-mu0 = 1.2566e-06; % Magnetic Moment      [I/m^2]
+mu0 = 1.2566e-06; % Magnetic Moment      	[I/m^2]
+BPolEarth = 5E-5; % Earth's Magnetic Field	[T]
 
-%Define Operating Conditions
-Te = 250;         % Electron Temperature [eV]
-Ti = Te*0.1;      % Ion Temperature      [eV]
-BT = 0.1;         % Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 30e3;        % Plasma current       [A]
-TauR = 0.020;     % Ramp Timescale       [s] (Also determines tstep for Ip plot)
-TauP = 0.030;     % Pulse Timescale      [s]
-RGeo = 0.450;     % Geometrical Radius   [m]
-ZGeo = 0.000;     % Geometrical Axis     [m]
-RSep = 0.700;     % Separatrix Radius    [m]
-a = RSep-RGeo;    % Minor Radius         [m] (~0.25)
-Epsilon = RGeo/a; % Aspect ratio         [-] (~1.8)
-Kappa = 1.8;      % Elongation           [-]
-delta = 0.20;     % Triangularity        [-] (~0.2)
-li2 = 1;          % Inductance	         [-]
-%q_cyl = 2.821;   % Safety Factor?       [-]
-%betaN = 3.529;   % Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
+%Define Forward Equilibrium Operating Conditions
+Te = 250;			% Electron Temperature [eV]
+Ti = Te*0.1;		% Ion Temperature      [eV]
+BT = 0.1;			% Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = 30e3;			% Plasma current       [A]
+TauR = 0.020;		% Ramp Timescale       [s] (Also determines tstep for Ip plot)
+TauP = 0.020;		% Pulse Timescale      [s]
+RGeo = 0.450;		% Geometrical Radius   [m]
+ZGeo = 0.000;		% Geometrical Axis     [m]
+RSep = 0.700;		% Separatrix Radius    [m]
+a = RSep-RGeo;		% Minor Radius         [m] (~0.25)
+Epsilon = RGeo/a;	% Aspect ratio         [-] (~1.85)
+Kappa = 1.8;		% Elongation           [-]
+delta = 0.20;		% Triangularity        [-] (~0.2)
+li2 = 1;			% Inductance	       [-]
+%q_cyl = 2.821;		% Safety Factor?       [-]
+%betaN = 3.529;		% Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
+
+%Define efit Equilibrium Operating Conditions
+RGeo_efit = 0.44;					% Geometrical Radius	[m] (0.44)
+ZGeo_efit = 0.0;					% Geometrical Axis		[m] (0.00)
+Epsilon_efit = 1.85;				% Aspect Ratio			[-] (1.85)
+a_efit = RGeo_efit/Epsilon_efit;	% Minor Radius			[m] (0.44/1.85)
+Kappa_efit = 1.8;					% Elongation			[-] (1.8)
+delta_efit = 0.2;					% Triangularity			[-] (0.2)
+efit_Geometry_Init = [RGeo_efit, ZGeo_efit, a_efit, Kappa_efit, delta_efit];
 
 %Compute Further Operating Conditions
 Gr_Limit = 1e20*(Ip*1e-6/(pi*a^2*Kappa));  % Greenwald Limit          [m-3]
@@ -129,12 +139,8 @@ resistivity = copper_resistivity_at_temperature(coil_temp);
 %https://www.webelements.com/argon/atoms.html
 Z_eff=1.0;                              % Effective Nuclear Charge   [e-]
 
-%Stability diagnostic perturbations (must be smaller than initial variable!)
-deltaRGeo = 0.00;	% Small radial perturbation         [m]
-deltaZGeo = 0.00;	% Small axial perturbation          [m]
-deltaAspect = 0.00;	% Small aspect ratio perturbation   [-]
-deltaKappa = 0.00;	% Small elongation perturbation     [-]
-deltadelta = 0.00;	% Small triangiularity perturbation [-]
+%Null field region radius, specifies Sensor_btheta radius
+a_eff=0.10;								% Null field region radius	 [m]
 
 
 %%%%%%%%%%%%%%%%%%  DEFINE SOL RAMP & COIL CURRENTS  %%%%%%%%%%%%%%%%%%%%
@@ -162,8 +168,37 @@ I_Sol_End=-I_Sol_Start;			%-0900;		%-1000
 %PF coil currents (For Equilibrium)
 I_PF1_Equil=-390;				%-390;		%-0000
 I_PF2_Equil=-385;				%-385;		%-0000
-I_Div1_Equil=000;				%+000;		%+0000
+I_Div1_Equil=I_Sol_Equil;		%+000;		%+0000
 I_Div2_Equil=+900;				%+900;		%+0000
+
+
+%%%%%%%%%%%%%%%%%%%  DEFINE DIAGNOSTIC PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%
+
+%Stability diagnostic perturbations (must be smaller than initial variable!)
+deltaRGeo = 0.00;	% Small radial perturbation         [m]
+deltaZGeo = 0.00;	% Small axial perturbation          [m]
+deltaAspect = 0.00;	% Small aspect ratio perturbation   [-]
+deltaKappa = 0.00;	% Small elongation perturbation     [-]
+deltadelta = 0.00;	% Small triangiularity perturbation [-]
+
+
+%%%%%%%%%%%%%%%%%  DEFINE DATA OUTPUT PARAMETERS  %%%%%%%%%%%%%%%%%%%%
+
+%Define figure extension
+FigExt = '.png'; 		%'.png','.eps','.pdf'
+
+%Define project and series names
+ProjectName = 'SMARTxs-P1';			%Define global project name
+SeriesName = 'VaryTauP';		%Define parameter scan series name
+
+%Create global output folders for saved data and figures
+ASCIIDir = 'RawData/'; mkdir(ASCIIDir);
+%FigDir = 'Figures/'; mkdir(FigDir);			%NOT CURRENTLY USED
+
+%Create simulation name based upon relevant run parameters
+SimName = 'DefaultSimName';
+disp([ 'SimName: ' SimName ]);
+disp([ ' ' ]);
 
 
 %%%%%%%%%%%%%%%%%  DISPLAY VARIABLE OUTPUT TO USER  %%%%%%%%%%%%%%%%%%%%%
@@ -181,6 +216,7 @@ disp([ 'BZ = ' num2str(BZ) ' [T]' ]);
 disp([ 'ne = ' num2str(ne) ' [m-3]' ]);
 disp([ 'Te = ' num2str(Te) ' [eV]' ]);
 disp([ 'Ti = ' num2str(Ti) ' [eV]' ]);
+
 disp([ 'RGeo = ' num2str(RGeo) ' [m]' ]);
 disp([ 'ZGeo = ' num2str(ZGeo) ' [m]' ]);
 disp([ 'RSep = ' num2str(RSep) ' [m]' ]);
@@ -200,25 +236,6 @@ disp([ 'I_PF1_Equil = ' num2str(I_PF1_Equil/1000) ' [kA]' ]);
 disp([ 'I_PF2_Equil = ' num2str(I_PF2_Equil/1000) ' [kA]' ]);
 disp([ 'I_Div1_Equil = ' num2str(I_Div1_Equil/1000) ' [kA]' ]);
 disp([ 'I_Div2_Equil = ' num2str(I_Div2_Equil/1000) ' [kA]' ]);
-disp([ ' ' ]);
-
-
-%%%%%%%%%%%%%%%%%  DEFINE DATA OUTPUT PARAMETERS  %%%%%%%%%%%%%%%%%%%%
-
-%Define figure extension
-FigExt = '.png'; 		%'.png','.eps','.pdf'
-
-%Define project and series names
-ProjectName = 'SMARTxs-P1';			%Define global project name
-SeriesName = 'VaryTauP';		%Define parameter scan series name
-
-%Create global output folders for saved data and figures
-ASCIIDir = 'RawData/'; mkdir(ASCIIDir);
-%FigDir = 'Figures/'; mkdir(FigDir);			%NOT CURRENTLY USED
-
-%Create simulation name based upon relevant run parameters
-SimName = 'DefaultSimName';
-disp([ 'SimName: ' SimName ]);
 disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -246,19 +263,6 @@ ZGrid=get(Grid,'Z'); %1*50200, 50200=251*250
 
 
 %%%%%%%%%%%%%%%%%%  INITIATE VACUUM VESSEL FILAMENTS  %%%%%%%%%%%%%%%%%%%
-
-%pnts = [ VesselRMinInner VesselZMaxInner VesselRMaxInner VesselZMaxInner];
-%pnts2 = [pnts; [pnts(end:-1:1,1),-pnts(end:-1:1,2)]; pnts(1,:)];    
-
-%Approximate vessel geometry in 'pixelated' form through Bresenham algorithm
-%ww =1.5e-2;         %Wall Thickness [m]
-%xaccum = [];
-%yaccum = [];
-%for i=1:length(pnts2)-1
-%    [xx,yy]=bresenham( pnts2(i,1)/ww,pnts2(i,2)/ww,pnts2(i+1,1)/ww,pnts2(i+1,2)/ww);
-%    xaccum = [xaccum;xx*ww];
-%   yaccum = [yaccum;yy*ww];
-%end
 
 %Define four vertices defined as the centre of each vessel corner
 %Not currently used for calculation - would be good to use these to make linspace...
@@ -399,7 +403,7 @@ if strcmp(IEquilMethod, 'standard');
 elseif strcmp(IEquilMethod, 'efit');
 
     %Define efit plasma geometry [RGeo, ZGeo, a, Kappa, delta] (Kappa and delta optional)
-	efit_Geometry_Init = [0.44, 0.0, 0.44/1.85, 1.8, 0.2];	%[RGeo, ZGeo, a, Kappa, delta]
+%	efit_Geometry_Init = [0.44, 0.0, 0.44/1.85, 1.8, 0.2];	%[RGeo, ZGeo, a, Kappa, delta]
 
     %Efit outputs coil currents resulting from the supplied jprofile, icoil and geometry
 	%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
@@ -416,8 +420,8 @@ elseif strcmp(IEquilMethod, 'efit');
 	efitCurrents = get(icoil,'currents');
 	I_PF1_Equil = efitCurrents(iPF1);
 	I_PF2_Equil = efitCurrents(iPF2);
-	I_Div1_Equil = efitCurrents(iDiv1);
-	I_Div2_Equil = efitCurrents(iDiv2);
+	I_Div1_Equil = efitCurrents(iDiv1);		%!!!! ENSURE Div1 in series with Sol !!!!
+	I_Div2_Equil = efitCurrents(iDiv2);		 
 
 %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
 
@@ -425,7 +429,7 @@ elseif strcmp(IEquilMethod, 'efit');
 elseif strcmp(IEquilMethod, 'feedback');
     
     %Define efit plasma geometry [RGeo, ZGeo, a, Kappa, delta] (Kappa and delta optional)
-	efit_Geometry_Init = [0.44, 0.0, 0.44/1.85, 1.8, 0.2];	%[RGeo, ZGeo, a, Kappa, delta]
+%	efit_Geometry_Init = [0.44, 0.0, 0.44/1.85, 1.8, 0.2];	%[RGeo, ZGeo, a, Kappa, delta]
 
     %Efit outputs coil currents resulting in the supplied jprofile, icoil and geometry
 	%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
@@ -443,7 +447,7 @@ elseif strcmp(IEquilMethod, 'feedback');
 	efitCurrents = get(icoil,'currents');
 	I_PF1_Equil = efitCurrents(iPF1);
 	I_PF2_Equil = efitCurrents(iPF2);
-	I_Div1_Equil = efitCurrents(iDiv1);
+	I_Div1_Equil = efitCurrents(iDiv1);		%!!!! ENSURE Div1 in series with Sol !!!!
 	I_Div2_Equil = efitCurrents(iDiv2);
 end
 
@@ -496,7 +500,7 @@ elseif strcmp(IEquilMethod, 'efit');
 
 	%Apply small perturbation(s) to the efit_Geometry_init values
 	RGeo_Pert = efit_Geometry_Init(1)+deltaRGeo;
-	ZGeo_Pert = efit_Geometry_Equil(2)+deltaZGeo;		%!!!FUDGE!!! USES EQUIL OR RZIP DIES!!!
+	ZGeo_Pert = efit_Geometry_Equil(2)+deltaZGeo;		%!!!FUDGE!!! USE EQUIL OR RZIP DIES!!!
 	a_Pert = efit_Geometry_Init(3)+deltaAspect;
 	Kappa_Pert = efit_Geometry_Init(4)+deltaKappa;
 	delta_Pert = efit_Geometry_Init(5)+deltadelta;
@@ -522,7 +526,6 @@ elseif strcmp(IEquilMethod, 'efit');
 	%Recompute betaP and jprofile for the perturbed equilibrium
 	betaP_Pert = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a_Pert))^2*2*mu0*1.6e-19*Kappa_Pert;	% [%]
 	jprofile_Pert = fiesta_jprofile_topeol2( 'Topeol2', betaP_Pert, 1, li2, Ip );	%
-
 	%Compute forward equilibrium using new jprofile and old icoil
 %	equil_pert = fiesta_equilibrium('STV2C2', config, Irod, jprofile_Pert, control, [], icoil_init);
 end
@@ -559,9 +562,10 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %Set up virtual sensors to detect the null field region prior to breakdown
 
 %Define null field region as defined by the equilibrium RGeo and ZGeo
-RNull = 0.05;
-BP_virt_R = linspace(EquilParams.RGeo-RNull,EquilParams.RGeo+RNull,10);
-BP_virt_Z = linspace(ZGeo-RNull,ZGeo+RNull,10);
+%Null-field region radius taken as effective minor radius (a_eff)
+Rnull = a_eff;
+BP_virt_R = linspace(EquilParams.RGeo-Rnull,EquilParams.RGeo+Rnull,10);
+BP_virt_Z = linspace(ZGeo-Rnull,ZGeo+Rnull,10);
 
 %Create null field region grid
 [BP_virt_R,BP_virt_Z] = meshgrid(BP_virt_R,BP_virt_Z);
@@ -626,16 +630,17 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %               CALCULATE OPTIMISED NULL-FIELD EQUILBRIUM               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%Copied from ST25D Simulation
+%Extract scaling factors for null-field coil currents - Copied from ST25D Simulation
 C_temp = C(end-get(sensor_btheta,'n')+1:end,1:nPF);
 C1 = C_temp(:,1);
 D1 = C_temp(:,2:end);
 
 %Produces a pre-pulse current for PF/Div coils which creates the null poloidal field
 coil_currents_null = zeros(1,nPF);
-I_PF_null = -pinv(D1) * (C1*I_Sol_Start);
-coil_currents_null(iSol) = I_Sol_Start;
-coil_currents_null(2:end) = I_PF_null';
+I_PF_null = -pinv(D1) * (C1*I_Sol_Start);		%Scaling factors for null-field coil currents
+coil_currents_null(iSol) = I_Sol_Start;			%Set I_Sol null-field current
+coil_currents_null(2:end) = I_PF_null';			%Scale PF, Div coils relative to I_Sol
+coil_currents_null(4) = I_Sol_Start;			%!!!! IF Div1 in series with Sol !!!!
 
 %Generate new icoil with pre-pulse (null field) configuration
 icoil_null = fiesta_icoil( coilset, coil_currents_null );
@@ -678,19 +683,19 @@ for i =1:Range
 end
 BpolMinAvg = BpolMinAvg/(Range^2);      %Connection length BPoloidal value
 BtorMinAvg = BtorMinAvg/(Range^2);      %Connection length BToroidal value
+%BtorMinAvg = Btordata(BpolminIndex_Row,BpolminIndex_Column) %If you don't want to average btor
 
 %Hacky methods of increasing the abnormally low Bpoloidal null-field
 %Artificially scale the Bpol by an arbitary scale factor
 Bpol_Scale_Factor = 1;						%Default 1E3
 BpolMinAvg = BpolMinAvg*Bpol_Scale_Factor;
 %Enforce lower limit for Bpolmin as ~Earth's B-field (5.0E-5 [T])
-if BpolMinAvg < 5.0E-5;
-	BpolMinAvg = 5.0E-5;					
+%Song2017 suggests Bpolmin as 0.2mT -> 1mT (2e-4 -- 1e-3)
+if BpolMinAvg < BPolEarth;
+	BpolMinAvg = BpolMinAvg+BPolEarth;					
 end
 
 %Compute the effective connection length between null-field region and wall
-%Effective minor radius (a_eff) assumed equal to null-field region radius
-a_eff = RNull;								%Effective null-field minor radius
 LCon = 0.25*a_eff*(BtorMinAvg/BpolMinAvg);	%Connection length from null field to wall
 
 
@@ -758,26 +763,26 @@ I_PF_input(3,:) = 0;
 %Define Solenoid current waveform vertices :: Startup --> Pre-pulse
 I_PF_input(2,iSol) = I_Sol_Start;            %Sets Sol to pre-pulse current
 I_PF_input(2,2:end) = I_PF_null;             %Sets all PF/Div coils to I_PF_null
-%I_PF_input(2,iDiv1) = I_Sol_Start;          % !!!! IF Div1 in series with Sol !!!!
+I_PF_input(2,iDiv1) = I_Sol_Start;           %!!!! ENSURE Div1 in series with Sol !!!!
 
 %Define Solenoid current waveform vertices :: Pre-pulse --> Pulse
 I_PF_input(3,iSol) = I_Sol_Start;            %Sets Sol to pre-pulse current
 I_PF_input(3,2:end) = I_PF_null;             %Sets all PF/Div coils to I_PF_null
-%I_PF_input(3,iDiv1) = I_Sol_Start;          % !!!! IF Div1 in series with Sol !!!!
+I_PF_input(3,iDiv1) = I_Sol_Start;           %!!!! ENSURE Div1 in series with Sol !!!!
 
 %Define coilset current waveforms vertices :: Pulse --> Equilibrium
-I_PF_input(4,iSol) = I_Sol_Equil;		%Solenoid Equilibrium current
-I_PF_input(4,iPF1) = I_PF1_Equil;		%
-I_PF_input(4,iPF2) = I_PF2_Equil;		%
-I_PF_input(4,iDiv1) = I_Div1_Equil;		%Div1 in series with Sol
-I_PF_input(4,iDiv2) = I_Div2_Equil;		%
+I_PF_input(4,iSol) = I_Sol_Equil;			%Solenoid Equilibrium current
+I_PF_input(4,iPF1) = I_PF1_Equil;			%
+I_PF_input(4,iPF2) = I_PF2_Equil;			%
+I_PF_input(4,iDiv1) = I_Sol_Equil;			%!!!! ENSURE Div1 in series with Sol !!!!
+I_PF_input(4,iDiv2) = I_Div2_Equil;			%
 
 %Define coilset current waveforms vertices :: Equilibrium --> Finish
-I_PF_input(5,iSol) = I_Sol_End;			%I_Sol_End = -I_Sol_Start (By Default)
-I_PF_input(5,iPF1) = I_PF1_Equil;		%
-I_PF_input(5,iPF2) = I_PF2_Equil;		%
-I_PF_input(5,iDiv1) = I_Div1_Equil;		%Div1 in series with Sol
-I_PF_input(5,iDiv2) = I_Div2_Equil;		%
+I_PF_input(5,iSol) = I_Sol_End;				%I_Sol_End = -I_Sol_Start (By Default)
+I_PF_input(5,iPF1) = I_PF1_Equil;			%
+I_PF_input(5,iPF2) = I_PF2_Equil;			%
+I_PF_input(5,iDiv1) = I_Sol_End;			%!!!! ENSURE Div1 in series with Sol !!!!
+I_PF_input(5,iDiv2) = I_Div2_Equil;			%
 
 %All coil currents end at zero
 I_PF_input(6,iSol)=0;
@@ -803,8 +808,8 @@ Vp_long = NaN(size(time_long));
 
 %Name and colour coils for plotting
 coil_names{iSol} = 'Sol';
-coil_names{iPF1} = 'PF2';
-coil_names{iPF2} = 'PF3';
+coil_names{iPF1} = 'PF1';
+coil_names{iPF2} = 'PF2';
 coil_names{iDiv1} = 'Div1';
 coil_names{iDiv2} = 'Div2';
 PF_colors{iSol} = 'Red';
@@ -1205,14 +1210,6 @@ disp([ ' ' ]);
 disp([ 'Equilibrium Parameters:' ]);
 disp([ EquilParam ]);
 disp([ ' ' ]);
-
-%Print efit geometry values to terminal
-%disp([ ' ' ]);
-%disp([ 'efit Geometry inputs' ]);
-%disp([ efit_Geometry_Init ]);
-%disp([ efit_Geometry_Equil ]);
-%disp([ efit_Geometry_Pert ]);
-%disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
