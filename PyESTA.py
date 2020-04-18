@@ -258,32 +258,44 @@ deltadelta = 0.00	# Small triangiularity perturbation [-]
 
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
-#Define number of time-steps (vertices) in the current waveforms
-nTime = 6;      #[Steps]
-#Time  [PrePulse  PrePulse  Zero  Breakdown  EndofEquil  EndofSim
-time = [-4*TauR,  -2*TauR,  0,    TauR,      TauR+TauP,  TauR+TauP+(2*TauR)]
-#time = [-0.10 -0.05 0 TauR TauR+TauP tstep+0.05];		%Old Phase1_Daniel
-#time = [-0.11 -0.05 0 tstep tstep+0.10 tstep+0.11];	%Old Phase2_JuanJo
+#Definition of time intervals:
+#time(1)--> All coils and Sol initiate at zero current          Init
+#time(2)--> All coils initiate null-field configuration         PrePulse
+#time(3)--> All coils maintain null-field configuration         InitRampDown
+#time(4)--> Sol ramps down, PF/Div coils init equilibrium       MidRampDown - InitEquil
+#time(5)--> Sol completes ramp down, maintain PF/Div coils      EndRampDown - MidEquil
+#time(6)--> All coils maintain equilibrium configuration        EndEquil
+#time(7)--> All coils and Sol terminate at zero current         Terminate
+########
+#time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
+#time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
+########
 
-#Phase1 coil currents [kA] 
+#Define number of time-steps (vertices) in the current waveforms
+nTime = 7		  #[Steps]
+#Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
+time =  [-4*TauR,  -2*TauR,  0,            TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauR)]
+
+#!!!!! WOULD BE NICE TO IMPLIMENT CURRENT WAVEFORM ARRAYS !!!!!
 #Default zero at beginning and end, add other vertices in array form
 #ISol_Waveform = [+900, 000,-900];
-#IPF1_Waveform = [Null,-390,-390];
-#IPF2_Waveform = [Null,-385,-385];
-#IDiv1_Waveform = [Null,+000,000];
-#IDiv2_Waveform = [Null,+900,+900];
+#IPF1_Waveform = ['Null',-390,-390];
+#IPF2_Waveform = ['Null',-385,-385];
+#IDiv1_Waveform = ['Null',+000,000];
+#IDiv2_Waveform = ['Null',+900,+900];
 
-#Solenoid coil currents [kA]	#Phase1		#Phase2
-I_Sol_Start=+900;				#+0900;		#+2200
-I_Sol_Equil=-500;				#-0500;		#-0500
-I_Sol_End=-I_Sol_Start;			#-0900;		#-2200
+#Solenoid coil currents [kA]		%Phase1		%Phase2
+I_Sol_PrePulse=+900;				#+0900;		#+2200
+I_Sol_InitEquil=0;					#-0000;		#-0000
+I_Sol_MidEquil=0;                   #Dynamic    #Dynamic
+I_Sol_EndEquil=-I_Sol_PrePulse;		#-0900;		#-2200
 #Symmetric ISol is better for power supply
 
-#PF coil currents (For Equilibrium)
-I_PF1_Equil=-390;				#-390;		#-1100
-I_PF2_Equil=-385;				#-385;		#-1700
-I_Div1_Equil=+000;				#+000;		#+0000
-I_Div2_Equil=+900;				#+900;		#+3300
+#PF coil currents (At Equilibrium, time(4,5,6))
+I_PF1_Equil=-390;					#-390;		#-1100
+I_PF2_Equil=-385;					#-385;		#-1700
+I_Div1_Equil=I_Sol_InitEquil;		#+000;		#+0000
+I_Div2_Equil=+900;					#+900;		#+3300
 
 #====================================================================#
 #====================================================================#
@@ -310,7 +322,7 @@ I_Div2_Equil=+900;				#+900;		#+3300
 #'BPolEarth' [x/100000.0 for x in range(1,11,2.5)]
 
 #Common Coil Current Ranges
-#'I_Sol_Start' [x for x in range(500,1001,100)]
+#'I_Sol_PrePulse' [x for x in range(500,1001,100)]
 #'I_Sol_Equil' [-x for x in range(000,501,50)]
 #'I_PF1' [x for x in range(-700,-339,20)]
 #'I_PF2' [x for x in range(-700,-399,20)]
@@ -340,7 +352,7 @@ ProjectName = 'SMARTxs-P1'			#Defult global project name
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
-SimNameList = ['delta_efit','Kappa_efit','I_Sol_Start','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
+SimNameList = ['delta_efit','Kappa_efit','I_Sol_PrePulse','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
 IAutorun = True			#Run requested simulation series
@@ -353,7 +365,7 @@ IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
 ParameterVaried = 'I_Sol_Equil'		 	#Define parameter to vary - Required for diagnostics
-ParameterRange = [-x for x in range(000,501,50)]	#Define paramter range to vary over
+ParameterRange = [0]			#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
