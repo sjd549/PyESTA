@@ -215,12 +215,12 @@ li2 = 1          # Standard Value?      [-]
 #betaN = 3.529   # Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
 
 #Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.44					# Geometrical Radius	[m] (0.44)
-ZGeo_efit = 0.0						# Geometrical Axis		[m] (0.00)
-A_efit = 1.85						# Aspect Ratio			[-] (1.85)
-a_efit = RGeo_efit/A_efit			# Minor Radius			[m] (0.44/1.85)
-Kappa_efit = 1.8					# Elongation			[-] (1.8)
-delta_efit = 0.2					# Triangularity			[-] (0.2)
+RGeo_efit = 0.44					# Geometrical Radius	[m] (Default 0.44)
+ZGeo_efit = 0.0						# Geometrical Axis		[m] (Default 0.00)
+A_efit = 1.85						# Aspect Ratio			[-] (Default 1.85)
+a_efit = RGeo_efit/A_efit			# Minor Radius			[m] (Default 0.44/1.85)
+Kappa_efit = 1.8					# Elongation			[-] (Default 1.8)
+delta_efit = 0.2					# Triangularity			[-] (Default 0.2)
 efit_Geometry_Init = [RGeo_efit, ZGeo_efit, a_efit, Kappa_efit, delta_efit]
 
 #Compute Further Operating Conditions
@@ -250,7 +250,7 @@ a_eff=0.10;								# Null field region radius	 [m]
 
 #Stability diagnostic perturbations (must be smaller than initial variable!)
 deltaRGeo = 0.00	# Small radial perturbation         [m]
-deltaZGeo = 0.00	# Small axial perturbation          [m]
+deltaZGeo = 0.01	# Small axial perturbation          [m]
 deltaAspect = 0.00	# Small aspect ratio perturbation   [-]
 deltaKappa = 0.00	# Small elongation perturbation     [-]
 deltadelta = 0.00	# Small triangiularity perturbation [-]
@@ -259,10 +259,11 @@ deltadelta = 0.00	# Small triangiularity perturbation [-]
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
 #Define number of time-steps (vertices) in the current waveforms
-nTime = 6       #[Steps]
-tstep = TauR	#[s]
-time =  [-0.10, -0.05, 0, tstep, tstep+TauP, tstep+0.05]    #Phase1_Daniel
-#time = [-0.11, -0.05, 0, tstep, tstep+0.10, tstep+0.11]    #Phase2_JuanJo
+nTime = 6;      #[Steps]
+#Time  [PrePulse  PrePulse  Zero  Breakdown  EndofEquil  EndofSim
+time = [-4*TauR,  -2*TauR,  0,    TauR,      TauR+TauP,  TauR+TauP+(2*TauR)]
+#time = [-0.10 -0.05 0 TauR TauR+TauP tstep+0.05];		%Old Phase1_Daniel
+#time = [-0.11 -0.05 0 tstep tstep+0.10 tstep+0.11];	%Old Phase2_JuanJo
 
 #Phase1 coil currents [kA] 
 #Default zero at beginning and end, add other vertices in array form
@@ -272,17 +273,17 @@ time =  [-0.10, -0.05, 0, tstep, tstep+TauP, tstep+0.05]    #Phase1_Daniel
 #IDiv1_Waveform = [Null,+000,000];
 #IDiv2_Waveform = [Null,+900,+900];
 
-#Solenoid coil currents [kA]	#H+			#He2+
-I_Sol_Start=+900;				#+0900;		#+1000
+#Solenoid coil currents [kA]	#Phase1		#Phase2
+I_Sol_Start=+900;				#+0900;		#+2200
 I_Sol_Equil=-500;				#-0500;		#-0500
-I_Sol_End=-I_Sol_Start;			#-0900;		#-1000
+I_Sol_End=-I_Sol_Start;			#-0900;		#-2200
 #Symmetric ISol is better for power supply
 
 #PF coil currents (For Equilibrium)
-I_PF1_Equil=-390;				#-390;		#-0000
-I_PF2_Equil=-385;				#-385;		#-0000
+I_PF1_Equil=-390;				#-390;		#-1100
+I_PF2_Equil=-385;				#-385;		#-1700
 I_Div1_Equil=+000;				#+000;		#+0000
-I_Div2_Equil=+900;				#+900;		#+0000
+I_Div2_Equil=+900;				#+900;		#+3300
 
 #====================================================================#
 #====================================================================#
@@ -296,7 +297,7 @@ I_Div2_Equil=+900;				#+900;		#+0000
 #====================================================================#
 
 #Vessel and Coil Geometry Ranges
-#'R_Div1' [x/100.0 for x in range(02,25,2)]
+#'R_Div1' [x/100.0 for x in range(02,31,2)]
 #'R_Div2' [x/100.0 for x in range(30,61,2)]
 #'Z_PF1' [x/100.0 for x in range(00,81,2)]
 #'Z_PF2' [x/100.0 for x in range(00,81,2)]
@@ -314,7 +315,7 @@ I_Div2_Equil=+900;				#+900;		#+0000
 #'I_PF1' [x for x in range(-700,-339,20)]
 #'I_PF2' [x for x in range(-700,-399,20)]
 #'I_Div1' [x for x in range(000,1501,100)]
-#'I_Div2' [x for x in range(600,951,50)]
+#'I_Div2' [x for x in range(800,1151,50)]
 
 #Coil Pulse Ranges
 #'TauR' [x/1000.0 for x in range(10,31,2)]
@@ -328,8 +329,8 @@ I_Div2_Equil=+900;				#+900;		#+0000
 #'RGeo_efit' [x/100.0 for x in range(40,50,2)]
 #'ZGeo_efit' [x/100.0 for x in range(0,0,1)]
 #'a_efit' [x/10.0 for x in range(10,20,1)]
-#'Kappa_efit' [x/100.0 for x in range(120,140,5)], [x/100.0 for x in range(175,281,10)]
-#'delta_efit' [-x/10.0 for x in range(0,31,1)],   [0.0,0.2,0.4,1.0,1.1]
+#'Kappa_efit' [x/100.0 for x in range(170,271,10)]
+#'delta_efit' [-x/10.0 for x in range(0,31,2)], [x/10.0 for x in range(0,16,1)]
 
 ########################################
 
@@ -342,7 +343,7 @@ SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Start','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = False			#Run requested simulation series
+IAutorun = True			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -351,8 +352,8 @@ IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'R_Div1'		 	#Define parameter to vary - Required for diagnostics
-ParameterRange = [x/100.0 for x in range(02,25,2)]	#Define paramter range to vary over
+ParameterVaried = 'I_Sol_Equil'		 	#Define parameter to vary - Required for diagnostics
+ParameterRange = [-x for x in range(000,501,50)]	#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
@@ -363,7 +364,9 @@ savefig_ConnectionLength = True		#Plots trends in average connection length over
 savefig_PaschenCurves = True		#Plots Paschen curves for each simulation using Lc
 
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
-savefig_EquilTrends = True			#Plots general equilibrium trends from Param(equil)
+savefig_EfitEquilTrends = True		#Plots efit equilibrium geometry trends from Param(equil)
+
+savefig_UserEquilTrends = False		#Plots user defined equilibrium trends from Param(equil)
 savefig_EquilSeperatrix = False		#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 savefig_EquilXpoint = False			#Plots X-point location (R,Z) trends
@@ -385,7 +388,6 @@ Image_TrendAxisOverride=''			#Force trend figures to use different variable
 #IMMEDIATE FIXES
 #Enable auto-detection of output folders so user doesn't have to change parameter variable
 
-
 #CORE FUNCTIONALITY
 #Unify PyESTA namelist inputs with .m namelist inputs 		- Ideally in external namelist file
 #Rename all FIESTA output text files in unified format      - Enable CSV or Row-Wise data storing
@@ -403,7 +405,7 @@ Image_TrendAxisOverride=''			#Force trend figures to use different variable
 #Add ability to safely-eject from matlab if convergence fails 				- IMPORTANT!!!
 #Add ability to produce 'nan' data files if one-or-more simulations fail	- IMPORTANT!!!
 #Add general error messages to aid in debugging as the program grows larger
-
+#DEAL WITH CORRUPTED DOUBLE LINKED LISTS - NOTE THAT | OR \ APPEARS TO SKIP TO NEXT SIMULATION!!!
 
 #====================================================================#
 #====================================================================#
@@ -721,7 +723,13 @@ def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Ver
 		#ReorderedDataArrays organised as [Variable][Folder][Value]
 		for i in range(0,len(ReorderedDataArrays)):
 			for j in range(0,len(GlobalDataArrays)): 
-				ReorderedDataArrays[i].append(GlobalDataArrays[j][i])
+				#If data array contains only one float, append as float:
+				if len(GlobalDataArrays[j][i]) == 1:
+					ReorderedDataArrays[i].append(GlobalDataArrays[j][i][0])
+				#if data is list, append as list:
+				elif len(GlobalDataArrays[j][i]) > 1:
+					ReorderedDataArrays[i].append(GlobalDataArrays[j][i])
+				#endif
 			#endfor
 		#endfor
 		OutputDataArrays = ReorderedDataArrays
@@ -858,7 +866,8 @@ print '-----------------------------------------'
 if IAutorun == True:
 	print'# Simulation Series Autorun'
 	print''
-if True in [savefig_EquilTrends,savefig_EquilSeperatrix,savefig_EquilMidplane,savefig_EquilXpoint]:
+if True in [savefig_EfitEquilTrends,savefig_UserEquilTrends]:
+	#[savefig_EquilSeperatrix,savefig_EquilMidplane,savefig_EquilXpoint]
 	print'# 2D Equilibrium Analysis'
 if True in [savefig_PlasmaCurrent]:
 	print'# 1D Plasma Current Analysis'
@@ -974,11 +983,11 @@ if IAutorun == True:
 #====================================================================#
 
 #====================================================================#
-				     #EQUILIBRIUM GENERAL TRENDS#
+				       #Efit EQUILIBRIUM TRENDS#
 #====================================================================#
 
 #Plot general equilibrium trends from Param(equil)
-if savefig_EquilTrends == True:
+if savefig_EfitEquilTrends == True:
 
 	#Obtain simulation folder directories for project and requested series
 	SeriesDirString = SeriesName+'_'+ProjectName
@@ -1012,9 +1021,17 @@ if savefig_EquilTrends == True:
 		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
 #		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
 		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
-		A.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
+		A.append( ValueEquil[l][16] )			#Aspect Ratio 				[-]
 		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
 	#endfor
+
+
+	#RGeo_efit = 0.44					# Geometrical Radius	[m] (0.44)
+	#ZGeo_efit = 0.0						# Geometrical Axis		[m] (0.00)
+	#A_efit = 1.85						# Aspect Ratio			[-] (1.85)
+	#a_efit = RGeo_efit/A_efit			# Minor Radius			[m] (0.44/1.85)
+	#Kappa_efit = 1.8					# Elongation			[-] (1.8)
+	#delta_efit = 0.2					# Triangularity			[-] (0.2)
 
 	#===================##===================#
 	#===================##===================#
@@ -1027,17 +1044,106 @@ if savefig_EquilTrends == True:
 	#endif
 
 	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(10,8))
+	fig,ax = plt.subplots(2,2, figsize=(13,11))
+
+	fig.suptitle('Equilibrium efit_Geometry() Trends', y=0.99, fontsize=24)
 
 	#Plot requested equil parameter trends over full simulation series
-	ax.plot(TrendAxis,RGeo,'ko-', ms=12, lw=2)
-	ax.plot(TrendAxis,Kappa,'r^-', ms=12, lw=2)
-	ax.plot(TrendAxis,A,'bs-', ms=12, lw=2)
-	ax.plot(TrendAxis,delta,'mh-', ms=12, lw=2)
+	ax[0,0].plot(TrendAxis,RGeo,'ko-', ms=12, lw=2)
+#	ax[0,0].plot((min(TrendAxis),max(TrendAxis)),(RGeo_efit,RGeo_efit), 'k--', lw=1.5)
+	ax[0,0].set_ylabel('Geometric Radius R$_{\mathrm{Geo}}$ [m]', fontsize=25)
+#	ax[0,0].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax[0,0].tick_params(axis='x', labelsize=20)
+	ax[0,0].tick_params(axis='y', labelsize=20)
 
-	Legend = ['RGeo', 'Elongation', 'Aspect Ratio', 'Triangularity']
-	ax.legend(Legend, fontsize=16, frameon=False)
-	ax.set_ylabel('Equilibrium Parameter Trends [-]', fontsize=25)
+	ax[1,0].plot(TrendAxis,A,'bs-', ms=12, lw=2)
+#	ax[1,0].plot((min(TrendAxis),max(TrendAxis)),(A_efit,A_efit), 'b--', lw=1.5)
+	ax[1,0].set_ylabel('Aspect Ratio $A$ [-]', fontsize=25)
+	ax[1,0].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax[1,0].tick_params(axis='x', labelsize=20)
+	ax[1,0].tick_params(axis='y', labelsize=20)
+
+	ax[0,1].plot(TrendAxis,Kappa,'r^-', ms=12, lw=2)
+#	ax[0,1].plot((min(TrendAxis),max(TrendAxis)),(Kappa_efit,Kappa_efit), 'r--', lw=1.5)
+	ax[0,1].set_ylabel('Elongation $\kappa$ [-]', fontsize=25)
+#	ax[0,1].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax[0,1].tick_params(axis='x', labelsize=20)
+	ax[0,1].tick_params(axis='y', labelsize=20)
+
+	ax[1,1].plot(TrendAxis,delta,'mh-', ms=12, lw=2)
+#	ax[1,1].plot((min(TrendAxis),max(TrendAxis)),(delta_efit,delta_efit), 'm--', lw=1.5)
+	ax[1,1].set_ylabel('Triangularity $\delta$ [-]', fontsize=25)
+	ax[1,1].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
+	ax[1,1].tick_params(axis='x', labelsize=20)
+	ax[1,1].tick_params(axis='y', labelsize=20)
+
+	plt.tight_layout(pad=2.0)
+	plt.savefig(SeriesDirString+'/Equil_Trends.png')
+#	plt.show()
+	plt.close('all')
+
+	print'----------------------------------'
+	print'# Efit Equilibrium Trends Complete'
+	print'----------------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+#====================================================================#
+				       #USER EQUILIBRIUM TRENDS#
+#====================================================================#
+
+#Plot general equilibrium trends from Param(equil)
+if savefig_UserEquilTrends == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+
+	#Extract equilibrium data from series directories
+	Filename = 'Equil_Data/EquilParam.txt'
+	ParamEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+
+	#List equilibrium parameters by index - !!! CONVERT INTO INDEX LIBRARY !!!
+	#!!! MAKE LAMBDA FUNCTION TO EXTRACT REQUESTED PARAMETERS FOR PLOTTING !!!
+	#!!! USER SUPPLIES WHICH TRENDS TO PLOT ON THIS FIGURE !!!
+#	for i in range(len(ParamEquil[l])):
+#		print i, ParamEquil[l][i]
+#		requested_trend_parameter = lambda( [USER ARRAY OF TREND NAMES], ParamEquil[l])
+#		requested_trend_index = ParamEquil[l].index( requested_trend_parameter )
+#		requested_trend_value = ValueEquil[l][requested_trend_index]
+	#endfor
+
+	#USEFUL TRENDS TO TRACK
+	#Vol(m3) #q95 #betaT #betap #betaN
+
+	#===================##===================#
+	#===================##===================#
+
+#	#Create output folder for all coil trend figures
+#	EquilTrendsDir = CreateNewFolder(SeriesDirString,'/Equil_Trends/')
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(1, figsize=(12,10))
+
+	#Plot requested equil parameter trends over full simulation series
+	ax.plot(TrendAxis,UserEquilParameter,'ko-', ms=12, lw=2)
+	####
+	Legend = TrendAxis
+	ax.legend(Legend, fontsize=22, frameon=False)
+	ax.set_ylabel('Equilibrum Parameter [-]', fontsize=25)
 	ax.set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
 	ax.tick_params(axis='x', labelsize=20)
 	ax.tick_params(axis='y', labelsize=20)
@@ -1049,14 +1155,13 @@ if savefig_EquilTrends == True:
 #	plt.show()
 	plt.close('all')
 
-	print'-----------------------------'
-	print'# Equilibrium Trends Complete'
-	print'-----------------------------'
+	print'----------------------------------'
+	print'# User Equilibrium Trends Complete'
+	print'----------------------------------'
 #endif
 
 #=====================================================================#
 #=====================================================================#
-
 
 
 
@@ -1099,7 +1204,7 @@ if savefig_EquilStability == True:
 		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
 #		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
 		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
-		A.append( ValueEquil[l][16] )		#Aspect Ratio 				[-]
+		A.append( ValueEquil[l][16] )			#Aspect Ratio 				[-]
 		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
 	#endfor
 
@@ -1107,17 +1212,19 @@ if savefig_EquilStability == True:
 	PertFracISol,PertFracIPF1,PertFracIPF2 = list(),list(),list()
 	PertFracIDiv1,PertFracIDiv2 = list(),list()
 	for i in range(0,len(ISol_efit)):
-		try: PertFracISol.append( ISol_Pert[i][0]/ISol_efit[i][0] )
+		try: PertFracISol.append( ISol_Pert[i]/ISol_efit[i] )
 		except: PertFracISol.append( np.nan )
-		try: PertFracIPF1.append( IPF1_Pert[i][0]/IPF1_efit[i][0] )
+		try: PertFracIPF1.append( IPF1_Pert[i]/IPF1_efit[i] )
 		except: PertFracIPF1.append( np.nan )
-		try: PertFracIPF2.append( IPF2_Pert[i][0]/IPF2_efit[i][0] )
+		try: PertFracIPF2.append( IPF2_Pert[i]/IPF2_efit[i] )
 		except: PertFracIPF2.append( np.nan )
-		try: PertFracIDiv1.append( IDiv1_Pert[i][0]/IDiv1_efit[i][0] )
+		try: PertFracIDiv1.append( IDiv1_Pert[i]/IDiv1_efit[i] )
 		except: PertFracIDiv1.append( np.nan )
-		try: PertFracIDiv2.append( IDiv2_Pert[i][0]/IDiv2_efit[i][0] )
+		try: PertFracIDiv2.append( IDiv2_Pert[i]/IDiv2_efit[i] )
 		except: PertFracIDiv2.append( np.nan )
 	#endfor
+
+	#min(filter(lambda v: v==v, EMinArrays[i]))
 
 	#===================##===================#
 	#===================##===================#
@@ -1335,8 +1442,6 @@ if savefig_CoilCurrentTraces == True:
 
 
 
-
-
 #====================================================================#
 				  #COIL CURRENT TRENDS DIAGNOSTIC#
 #====================================================================#
@@ -1523,7 +1628,7 @@ if savefig_CoilCurrentTrends == True:
 	ax[0].tick_params(axis='x', labelsize=20)
 	ax[0].tick_params(axis='y', labelsize=20)
 	ax[0].set_xlim(TrendAxis[0],TrendAxis[-1])		
-	ax[0].set_ylim(-1.5,1.5)
+#	ax[0].set_ylim(-1.5,1.5)
 
 	##########
 
@@ -1558,122 +1663,6 @@ if savefig_CoilCurrentTrends == True:
 
 #=====================================================================#
 #=====================================================================#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#====================================================================#
-					  #PLASMA CURRENT DIAGNOSTICS#
-#====================================================================#
-
-#Compare optimised plasma current profiles
-if savefig_PlasmaCurrent == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+'_'+ProjectName
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract plasma current data from series directories
-	Filename = 'Ip.txt'
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
-
-	#Rescale data for plotting: [s] to [ms]
-	for i in range(0,len(Time_Arrays)):
-		for j in range(0,len(Time_Arrays[i])):
-			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
-		#endfor
-	#endfor
-
-	#Rescale data for plotting: [A] to [kA]
-	for i in range(0,len(Ip_Arrays)):
-		for j in range(0,len(Ip_Arrays[i])):
-			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
-		#endfor
-	#endfor
-
-	#Calculate maximum Ip for each simulation over the full series
-	Ip_MaxTrend,Ip_MinTrend = list(),list()
-	for i in range(0,len(Ip_Arrays)):
-		Ip_MaxTrend.append(max(Ip_Arrays[i]))
-		Ip_MinTrend.append(min(Ip_Arrays[i]))
-	#endfor
-
-	#===================##===================#
-	#===================##===================#
-
-	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
-	else: Parameter = ParameterVaried
-	#endif
-
-	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,10))
-
-	#Plot plasma current with respect to adaptive_time
-	for i in range(0,len(Ip_Arrays)): ax.plot(Time_Arrays[i],Ip_Arrays[i], lw=2)
-	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
-	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
-	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
-	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim( min(Time_Arrays[0])*1.20,max(Time_Arrays[0])*1.50 )		
-#	ax.set_ylim(2,32)
-
-	#Plot trend in plasma current with respect to varied parameter
-	from mpl_toolkits.axes_grid.inset_locator import inset_axes
-	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
-	ax2 = fig.add_axes([left, bottom, width, height])
-	###
-	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
-	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
-	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
-	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
-#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
-#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
-	ax2.tick_params(axis='x', labelsize=14)
-	ax2.tick_params(axis='y', labelsize=14)
-#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
-#	ax2.set_ylim(0.79,1.01)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/Ip_Trends.png')
-#	plt.show()
-	plt.close('all')
-
-	print'-------------------------'
-	print'# Ip Diagnostics Complete'
-	print'-------------------------'
-#endif
-
-#=====================================================================#
-#=====================================================================#
-
-
-
 
 
 
@@ -1790,7 +1779,7 @@ if savefig_PaschenCurves == True:
 		for j in range(0,len(PressureArray)):
 
 			#Compute minimum E-field for breakdown as cited from Song2017
-			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Array[i][0])
+			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Array[i])
 			if EMin < 0: EMin = np.nan
 
 			EMinArrays[i].append( EMin )
@@ -1807,7 +1796,7 @@ if savefig_PaschenCurves == True:
 	#endif
 
 	#Round connective length for plotting
-	for i in range(0,len(Lc_Array)): Lc_Array[i] = round(Lc_Array[i][0],1)
+	for i in range(0,len(Lc_Array)): Lc_Array[i] = round(Lc_Array[i],1)
 	#Scale pressure array for plotting
 	for i in range(0,len(PressureArray)): PressureArray[i] = PressureArray[i]*1000	#[mTorr]
 
@@ -1869,6 +1858,107 @@ if savefig_PaschenCurves == True:
 
 
 
+
+
+
+
+
+
+
+
+#====================================================================#
+					  #PLASMA CURRENT DIAGNOSTICS#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_PlasmaCurrent == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SeriesDirString = SeriesName+'_'+ProjectName
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+
+	#Extract plasma current data from series directories
+	Filename = 'Ip.txt'
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+
+	#Rescale data for plotting: [s] to [ms]
+	for i in range(0,len(Time_Arrays)):
+		for j in range(0,len(Time_Arrays[i])):
+			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
+		#endfor
+	#endfor
+
+	#Rescale data for plotting: [A] to [kA]
+	for i in range(0,len(Ip_Arrays)):
+		for j in range(0,len(Ip_Arrays[i])):
+			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
+		#endfor
+	#endfor
+
+	#Calculate maximum Ip for each simulation over the full series
+	Ip_MaxTrend,Ip_MinTrend = list(),list()
+	for i in range(0,len(Ip_Arrays)):
+		Ip_MaxTrend.append(max(Ip_Arrays[i]))
+		Ip_MinTrend.append(min(Ip_Arrays[i]))
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create figure for plasma current diagnostic
+	fig,ax = plt.subplots(1, figsize=(12,10))
+
+	#Plot plasma current with respect to adaptive_time
+	for i in range(0,len(Ip_Arrays)): ax.plot(Time_Arrays[i],Ip_Arrays[i], lw=2)
+	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
+	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
+	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
+	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
+#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
+	ax.tick_params(axis='x', labelsize=20)
+	ax.tick_params(axis='y', labelsize=20)
+	ax.set_xlim( min(Time_Arrays[0])*1.20,max(Time_Arrays[0])*1.50 )		
+#	ax.set_ylim(2,32)
+
+	#Plot trend in plasma current with respect to varied parameter
+	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
+	ax2 = fig.add_axes([left, bottom, width, height])
+	###
+	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
+	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
+	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
+	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
+#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
+#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
+	ax2.tick_params(axis='x', labelsize=14)
+	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
+#	ax2.set_ylim(0.79,1.01)
+
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(SeriesDirString+'/Ip_Trends.png')
+#	plt.show()
+	plt.close('all')
+
+	print'-------------------------'
+	print'# Ip Diagnostics Complete'
+	print'-------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
 
 
 

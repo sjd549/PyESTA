@@ -70,9 +70,9 @@ R_PF1=(0.9*RScaleCoil)+ww_R/2;   %R position of PF1 (m)			%0.90m
 Z_PF1=(0.3*ZScaleCoil)+ww_Z/2;   %Z Position of PF1 (m)			%0.30m
 R_PF2=(0.9*RScaleCoil)+ww_R/2;   %R Position of PF2 (m)			%0.90m
 Z_PF2=(0.6*ZScaleCoil)+ww_Z/2;   %Z Position of PF2 (m)			%0.60m
-R_Div1=(0.25*RScaleCoil)+ww_R/2; %R Position of Div1 (m)		%0.25m
+R_Div1=(0.15*RScaleCoil)+ww_R/2; %R Position of Div1 (m)		%0.15m	(Originally 0.25m)
 Z_Div1=(0.85*ZScaleCoil)+ww_Z/2; %Z Position of Div1 (m)		%0.85m
-R_Div2=(0.55*RScaleCoil)+ww_R/2; %R Position of Div2 (m)		%0.55m
+R_Div2=(0.45*RScaleCoil)+ww_R/2; %R Position of Div2 (m)		%0.45m	(Originally 0.55m)
 Z_Div2=(0.85*ZScaleCoil)+ww_Z/2; %Z Position of Div2 (m)		%0.85m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -101,19 +101,19 @@ ZGeo = 0.000;		% Geometrical Axis     [m]
 RSep = 0.700;		% Separatrix Radius    [m]
 a = RSep-RGeo;		% Minor Radius         [m] (~0.25)
 Epsilon = RGeo/a;	% Aspect ratio         [-] (~1.85)
-Kappa = 1.8;		% Elongation           [-]
+Kappa = 1.6;		% Elongation           [-] (~1.8)
 delta = 0.20;		% Triangularity        [-] (~0.2)
 li2 = 1;			% Inductance	       [-]
 %q_cyl = 2.821;		% Safety Factor?       [-]
 %betaN = 3.529;		% Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.44;					% Geometrical Radius	[m] (0.44)
-ZGeo_efit = 0.0;					% Geometrical Axis		[m] (0.00)
-Epsilon_efit = 1.85;				% Aspect Ratio			[-] (1.85)
-a_efit = RGeo_efit/Epsilon_efit;	% Minor Radius			[m] (0.44/1.85)
-Kappa_efit = 1.8;					% Elongation			[-] (1.8)
-delta_efit = 0.2;					% Triangularity			[-] (0.2)
+RGeo_efit = 0.44;					% Geometrical Radius	[m] (Default 0.44)
+ZGeo_efit = 0.0;					% Geometrical Axis		[m] (Default 0.00)
+Epsilon_efit = 1.85;				% Aspect Ratio			[-] (Default 1.85)
+a_efit = RGeo_efit/Epsilon_efit;	% Minor Radius			[m] (Default 0.44/1.85)
+Kappa_efit = 1.8;					% Elongation			[-] (Default 1.8)
+delta_efit = 0.2;					% Triangularity			[-] (Default 0.2)
 efit_Geometry_Init = [RGeo_efit, ZGeo_efit, a_efit, Kappa_efit, delta_efit];
 
 %Compute Further Operating Conditions
@@ -147,9 +147,10 @@ a_eff=0.10;								% Null field region radius	 [m]
 
 %Define number of time-steps (vertices) in the current waveforms
 nTime = 6;      %[Steps]
-tstep = TauR;	%[s]
-time =  [-0.10 -0.05 0 tstep tstep+TauP tstep+0.05];    %Phase1_Daniel
-%time = [-0.11 -0.05 0 tstep tstep+0.10 tstep+0.11];    %Phase2_JuanJo
+%Time   [PrePulse  PrePulse  Zero  Breakdown  EndofEquil  EndofSim
+time =  [-4*TauR   -2*TauR   0     TauR       TauR+TauP   TauR+TauP+(2*TauR)];
+%time =  [-0.10 -0.05 0 TauR TauR+TauP tstep+0.05];		%Old Phase1_Daniel
+%time = [-0.11 -0.05 0 tstep tstep+0.10 tstep+0.11];	%Old Phase2_JuanJo
 
 %!!!!! WOULD BE NICE TO IMPLIMENT CURRENT WAVEFORM ARRAYS !!!!!
 %Default zero at beginning and end, add other vertices in array form
@@ -159,24 +160,24 @@ time =  [-0.10 -0.05 0 tstep tstep+TauP tstep+0.05];    %Phase1_Daniel
 %IDiv1_Waveform = [Null,+000,000];
 %IDiv2_Waveform = [Null,+900,+900];
 
-%Solenoid coil currents [kA]	%H+			%He2+
-I_Sol_Start=+900;				%+0900;		%+1000
+%Solenoid coil currents [kA]	%Phase1		%Phase2
+I_Sol_Start=+900;				%+0900;		%+2200
 I_Sol_Equil=-500;				%-0500;		%-0500
-I_Sol_End=-I_Sol_Start;			%-0900;		%-1000
+I_Sol_End=-I_Sol_Start;			%-0900;		%-2200
 %Symmetric ISol is better for power supply
 
 %PF coil currents (For Equilibrium)
-I_PF1_Equil=-390;				%-390;		%-0000
-I_PF2_Equil=-385;				%-385;		%-0000
+I_PF1_Equil=-390;				%-390;		%-1100
+I_PF2_Equil=-385;				%-385;		%-1700
 I_Div1_Equil=I_Sol_Equil;		%+000;		%+0000
-I_Div2_Equil=+900;				%+900;		%+0000
+I_Div2_Equil=+900;				%+900;		%+3300
 
 
 %%%%%%%%%%%%%%%%%%%  DEFINE DIAGNOSTIC PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%
 
 %Stability diagnostic perturbations (must be smaller than initial variable!)
 deltaRGeo = 0.00;	% Small radial perturbation         [m]
-deltaZGeo = 0.00;	% Small axial perturbation          [m]
+deltaZGeo = 0.01;	% Small axial perturbation          [m]
 deltaAspect = 0.00;	% Small aspect ratio perturbation   [-]
 deltaKappa = 0.00;	% Small elongation perturbation     [-]
 deltadelta = 0.00;	% Small triangiularity perturbation [-]
@@ -302,6 +303,7 @@ for i=length(xaccum):-1:1
     vessel_filament(i) = fiesta_filament(xaccum(i),yaccum(i),ww_R,ww_Z,1,0,0);	%??? ww/3 ???
 end
 %Enable induced currents in vessel wall filaments - used only to calculate eddy currents
+#The vessel density and resistivity are set within fiesta_passive.m, may be settable here!
 passive = fiesta_passive('STVesselPas',vessel_filament,'g');
 vessel = fiesta_vessel( 'STVessel',passive);
 
@@ -756,6 +758,13 @@ I_PF_null = -pinv(D1) * (C1*I_Sol_Start);    %Copied From ST25D Simulation
 V_PF_input = NaN(nTime,nPF);
 I_PF_input = zeros(nTime,nPF);
 
+%Would be nice to impliment waveform current arrays
+%for i = 1:length(WaveformCurrentArrays)
+%	for j = 1:length(icoils)
+%		I_PF_input(i,j) = WaveformCurrentArrays(i,j)
+%	end
+%end
+
 %All Sol/PF/Div coil currents default to zero unless subsiquently set
 I_PF_input(2,:) = 0;
 I_PF_input(3,:) = 0;
@@ -847,8 +856,7 @@ Ip_long = NaN*Vp_long;									%Sets Ip_long to 'NaN' array
 [ V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, time_adaptive ] = ...
     state_space_including_passive_elements_v4( curlyM, curlyR, time_long, I_PF_input_long, V_PF_input_long, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names', coil_names, 'show_plot',true, 'turns',turns, 'currentScale',1e3, 'PF_colors',PF_colors );
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% PLOT PLASMA CURRENT %%%%%%%%%%%%%%%%%%%%%%%%%%            
+%%%%%%%%%%%%%%%%%%%%%%%%% PLOT PLASMA CURRENT %%%%%%%%%%%%%%%%%%%%%%%%%%%            
 
 %Plot plasma current over full timescale
 close all
@@ -860,6 +868,24 @@ ylabel(gca,'Plasma Current (kA)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 Filename = '_PlasmaCurrent';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+
+%%%%%%%%%%%%%%%%%%%%%% PLOT TOTAL EDDY CURRENTS %%%%%%%%%%%%%%%%%%%%%%%% 
+
+%I_Passive contains the eddy current at each time for each filament,
+%We have to sum all filaments (row-wise) to get the true passive current
+I_Passive_sum=sum(I_Passive,2); 
+
+%Plot total eddy current over full timescale
+close all
+plot(time_adaptive*1000, I_Passive_sum/1000)
+title(gca,'SMART Eddy Currents');
+legend(gca,'Eddy Current');
+xlabel(gca,'Time (ms)');
+ylabel(gca,'Plasma Current (kA)');
+set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+Filename = '_EddyCurrent';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1185,7 +1211,7 @@ fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
 
 Filename = strcat(ASCIIDir,'IPass.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive']);
+fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; I_Passive_sum']);
 
 Filename = strcat(ASCIIDir,'Eta.txt');
 fileID=fopen(Filename,'w');
