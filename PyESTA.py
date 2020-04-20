@@ -258,6 +258,21 @@ deltadelta = 0.00	# Small triangiularity perturbation [-]
 
 ###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
 
+#Notes:
+#Negative coil currents attract the plasma, positive repel the plasma
+#Symmetric I_Sol_Equil and ISol_PrePulse is better for power supply stability
+
+#Solenoid coil currents [kA]		#Phase1		#Phase2
+I_Sol_Equil=-800					#-0800;		#-2200
+I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic
+I_Sol_PrePulse=-I_Sol_Equil			#+0900;		#+2200
+
+#PF coil currents (At Equilibrium, time(4,5,6))
+I_PF1_Equil=-500					#-500;		%-1100
+I_PF2_Equil=-500					#-500;		%-1700
+I_Div1_Equil=I_Sol_Equil			#+000;		%+0000
+I_Div2_Equil=+900					#+900;		%+3300
+
 #Definition of time intervals:
 #time(1)--> All coils and Sol initiate at zero current          Init
 #time(2)--> All coils initiate null-field configuration         PrePulse
@@ -266,36 +281,23 @@ deltadelta = 0.00	# Small triangiularity perturbation [-]
 #time(5)--> Sol completes ramp down, maintain PF/Div coils      EndRampDown - MidEquil
 #time(6)--> All coils maintain equilibrium configuration        EndEquil
 #time(7)--> All coils and Sol terminate at zero current         Terminate
-########
+#######
 #time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 #time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
-########
+#######
 
 #Define number of time-steps (vertices) in the current waveforms
-nTime = 7		  #[Steps]
-#Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
-time =  [-4*TauR,  -2*TauR,  0,            TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauR)]
+nTime = 7;      #[Steps]
+#Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ]
+time =  [-4*TauR,  -2*TauR,  0.0,          TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauR)]
 
-#!!!!! WOULD BE NICE TO IMPLIMENT CURRENT WAVEFORM ARRAYS !!!!!
-#Default zero at beginning and end, add other vertices in array form
-#ISol_Waveform = [+900, 000,-900];
-#IPF1_Waveform = ['Null',-390,-390];
-#IPF2_Waveform = ['Null',-385,-385];
-#IDiv1_Waveform = ['Null',+000,000];
-#IDiv2_Waveform = ['Null',+900,+900];
-
-#Solenoid coil currents [kA]		%Phase1		%Phase2
-I_Sol_PrePulse=+900;				#+0900;		#+2200
-I_Sol_InitEquil=0;					#-0000;		#-0000
-I_Sol_MidEquil=0;                   #Dynamic    #Dynamic
-I_Sol_EndEquil=-I_Sol_PrePulse;		#-0900;		#-2200
-#Symmetric ISol is better for power supply
-
-#PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-390;					#-390;		#-1100
-I_PF2_Equil=-385;					#-385;		#-1700
-I_Div1_Equil=I_Sol_InitEquil;		#+000;		#+0000
-I_Div2_Equil=+900;					#+900;		#+3300
+#Construct Sol, PF/Div coil current waveforms vertices
+#Time   	      [1, 2,              3,              4,             5,            6,            7];
+ISol_Waveform =   [0, I_Sol_PrePulse, I_Sol_PrePulse, I_Sol_MidRamp, I_Sol_Equil,  I_Sol_Equil,  0];
+#IPF1_Waveform =  [0, 'Null-Field',   Null-Field',    I_PF1_Equil,   I_PF1_Equil,  I_PF1_Equil,  0];
+#IPF2_Waveform =  [0, 'Null-Field',   Null-Field',    I_PF2_Equil,   I_PF2_Equil,  I_PF2_Equil,  0];
+#IDiv1_Waveform = [0, 'Null-Field',   Null-Field',    I_Div1_Equil,  I_Div1_Equil, I_Div1_Equil, 0];
+#IDiv2_Waveform = [0, 'Null-Field',   Null-Field',    I_Div2_Equil,  I_Div2_Equil, I_Div2_Equil, 0];
 
 #====================================================================#
 #====================================================================#
@@ -309,7 +311,7 @@ I_Div2_Equil=+900;					#+900;		#+3300
 #====================================================================#
 
 #Vessel and Coil Geometry Ranges
-#'R_Div1' [x/100.0 for x in range(02,31,2)]
+#'R_Div1' [x/100.0 for x in range(12,31,2)]
 #'R_Div2' [x/100.0 for x in range(30,61,2)]
 #'Z_PF1' [x/100.0 for x in range(00,81,2)]
 #'Z_PF2' [x/100.0 for x in range(00,81,2)]
@@ -323,9 +325,9 @@ I_Div2_Equil=+900;					#+900;		#+3300
 
 #Common Coil Current Ranges
 #'I_Sol_PrePulse' [x for x in range(500,1001,100)]
-#'I_Sol_Equil' [-x for x in range(000,501,50)]
-#'I_PF1' [x for x in range(-700,-339,20)]
-#'I_PF2' [x for x in range(-700,-399,20)]
+#'I_Sol_Equil' [-x for x in range(200,851,50)]
+#'I_PF1' [-x for x in range(450,651,25)]
+#'I_PF2' [-x for x in range(450,651,25)]
 #'I_Div1' [x for x in range(000,1501,100)]
 #'I_Div2' [x for x in range(800,1151,50)]
 
@@ -355,7 +357,7 @@ SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_PrePulse','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = True			#Run requested simulation series
+IAutorun = True		#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -364,8 +366,20 @@ IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'I_Sol_Equil'		 	#Define parameter to vary - Required for diagnostics
-ParameterRange = [0]			#Define paramter range to vary over
+ParameterVaried = 'I_Div1'		#Define parameter to vary - Required for diagnostics
+ParameterRange = [x for x in range(000,901,100)]	#Define paramter range to vary over
+
+#I_PF1 CAUSES NOTABLE RESPONSE IN EFIT_GEOMETRY (when not forced)
+#I_PF2 CAUSES NOTABLE RESPONSE IN EFIT_GEOMETRY (when not forced)
+#I_DIV2 CAUSES NOTABLE RESPONSE IN EFIT_GEOMETRY!
+#TEST IF I_DIV1 CAUSES NOTABLE EQUILIBRIUM RESPONSE! 'I_Div1' [x for x in range(000,901,100)]
+####
+#I_SOL_EQUIL CAUSES NO NOTABLE RESPONSE TO EFIT_GEOMETRY OUTPUT!!!
+#I_SOL_EQUIL CAUSES A SIGNIFICANT DIFFERENCE TO THE TARGET EQUILIBRIUM
+#EFIT IS HAVING TO 'FORCE' THE TARGET EFIT_GEOMETRY HARDER
+#NEED TO VARY THE EFIT_GEOMETRY AND SEE IF STABILITY INCREASES
+#COULD ALSO BE RELATED TO THE JPROFILE GEOMETRY AS WELL
+####
 
 #Define which diagnostics are to be performed
 savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
@@ -723,13 +737,15 @@ def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Ver
 	for i in range(0,len(SeriesSubDirs)):
 		#cd into the relevent directory and extract the data
 		os.chdir(SeriesSubDirs[i]+'/RawData/')
-		GlobalDataArrays.append(ReadDataFromFile(DataFileName,Dimension='2D',Orientation='Vertical'))
+		#GlobalDataArray organized as [Folder][Variable][Value]
+		GlobalDataArrays.append(ReadDataFromFile(DataFileName,Dimension,Orientation))
 	#endfor
 	#cd back into PyESTA directory for continuity
 	os.chdir(HomeDir)
 
 	#Reformat GlobalDataArray to enable easy splitting of column-wise variables
 	if Reorder == True:
+		#Append a list for each seperate variable in the original data format
 		for i in range(0,len(GlobalDataArrays[0])): ReorderedDataArrays.append(list())
 		#GlobalDataArray organized as [Folder][Variable][Value]
 		#ReorderedDataArrays organised as [Variable][Folder][Value]
@@ -737,10 +753,10 @@ def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Ver
 			for j in range(0,len(GlobalDataArrays)): 
 				#If data array contains only one float, append as float:
 				if len(GlobalDataArrays[j][i]) == 1:
-					ReorderedDataArrays[i].append(GlobalDataArrays[j][i][0])
+					ReorderedDataArrays[i].append( GlobalDataArrays[j][i][0] )
 				#if data is list, append as list:
 				elif len(GlobalDataArrays[j][i]) > 1:
-					ReorderedDataArrays[i].append(GlobalDataArrays[j][i])
+					ReorderedDataArrays[i].append( GlobalDataArrays[j][i] )
 				#endif
 			#endfor
 		#endfor
@@ -1707,16 +1723,10 @@ if savefig_ConnectionLength == True:
 
 	#Extract relevent data from series directories
 	Filename = 'LCon.txt'
-	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 	Filename = 'Eta.txt'
-	Eta_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-
-	#Split resistivity into perp and parallel components
-#	EtaPerp, EtaPara = list(),list()
-#	for i in range(0,len(Eta_Array)):
-#		EtaPerp.append(Eta_Array[i].split()[0])
-#		EtaPara.append(Eta_Array[i].split()[1])
-	#endfor
+	Eta_Perp_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1][0]
+	Eta_Para_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1][1]
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1775,7 +1785,7 @@ if savefig_PaschenCurves == True:
 
 	#Extract relevent data from series directories
 	Filename = 'LCon.txt'
-	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create arbitary pressure array over 1E-5 --> 1E-3 Torr
 	Limits,Resolution = [1E-5,1E-2],10000
@@ -1894,6 +1904,12 @@ if savefig_PlasmaCurrent == True:
 	Filename = 'Ip.txt'
 	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+
+	#Remove any header string from the data
+	for i in range(0,len(Time_Arrays)):
+		Time_Arrays[i] = Time_Arrays[i][1::]
+		Ip_Arrays[i] = Ip_Arrays[i][1::]
+	#endfor
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
