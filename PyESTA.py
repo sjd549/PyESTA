@@ -257,7 +257,7 @@ a_eff=0.10;								# Null field region radius	 [m]
 I_Sol_Null=+775						#+0775;		#+900;			#+2200
 I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic		#Dynamic
 I_Sol_EndRamp=-I_Sol_Null			#Dynamic    #Dynamic		#Dynamic
-I_Sol_Equil=I_Sol_EndRamp			#Determines when equilibrium calculated
+I_Sol_Equil=-900;					#Default -I_Sol_Null		#Efit_Equil
 
 #PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-500;					#-500;		#-390;			#-1100
@@ -337,7 +337,7 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #Common Coil Current Ranges
 #'I_Sol_Null' [x for x in range(500,1001,100)]
-#'I_Sol_EndRamp' []
+#'I_Sol_EndRamp' [-x for x in range(700,1001,25)]
 #'I_Sol_Equil' [-x for x in range(200,851,50)]
 #'I_PF1' [-x for x in range(450,651,25)]
 #'I_PF2' [-x for x in range(450,651,25)]
@@ -370,7 +370,7 @@ SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = True			#Run requested simulation series
+IAutorun = False			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -380,7 +380,7 @@ IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
 ParameterVaried = 'I_Sol_EndRamp'		#Define parameter to vary - Required for diagnostics
-ParameterRange = [-x for x in range(750,901,25)]	#Define paramter range to vary over
+ParameterRange = [-x for x in range(975,1001,25)]	#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria

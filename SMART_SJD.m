@@ -147,10 +147,10 @@ a_eff=0.15;								% Null field region radius	 [m]
 %Symmetric Solenoid PrePulse and Equil currents aid power supply stability
 
 %Solenoid coil currents [kA]		%Phase1		%Phase1-Old		%Phase2
-I_Sol_Null=+775;                    %+0775;		%+900;			%+2200
-I_Sol_MidRamp='Linear';             %Dynamic    %Dynamic		%Dynamic
-I_Sol_EndRamp=-I_Sol_Null;          %Dynamic    %Dynamic		%Dynamic
-I_Sol_Equil=-I_Sol_Null;			%Determines when equilibrium calculated
+I_Sol_Null=775;						%+0775;		%+900;			%+2200
+I_Sol_MidRamp='Linear';				%Dynamic    %Dynamic		%Dynamic
+I_Sol_EndRamp=-I_Sol_Null;			%Dynamic    %Dynamic		%Dynamic
+I_Sol_Equil=-900;					%Default -I_Sol_Null		%Efit_Equil
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-500;					%-500;		%-390;			%-1100
@@ -178,13 +178,14 @@ else;
 	I_Sol_MidRamp = double(I_Sol_MidRamp)
 end
 
-%Construct Sol, PF/Div coil current waveforms vertices
+%Construct Sol, PF/Div coil current waveforms vertices						%!Efit Icoil!
 %Time   	     [1, 2,           3,          4,             5,             6,             7];
-ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_EndRamp, I_Sol_Equil,   0]
-IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,   0]
-IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,   0]
-IDiv1_Waveform = [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil,   I_Sol_Equil,   0]
-IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,  0]
+ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_EndRamp, I_Sol_Equil,   0];
+IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,   0];
+IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,   0];
+%IDiv1_Waveform = [0,  NaN,        NaN,        NaN,           I_Div1_Equil,  I_Div1_Equil,  0];
+IDiv1_Waveform = [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_EndRamp, I_Sol_Equil,   0];
+IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,  0];
 %%%%%
 CoilWaveforms = [ISol_Waveform; IPF1_Waveform; IPF2_Waveform; IDiv1_Waveform; IDiv2_Waveform]
 
@@ -376,10 +377,10 @@ icoil_init=fiesta_icoil(coilset);
 
 %Assign equilibrium coil currents to icoil object [kA]
 icoil_init.Sol=I_Sol_Equil;         %Solenoid Equilibrium Current at time(5,6)
-icoil_init.PF1=CoilWaveforms(2,5);	%PF1 Equilibrium Current at time(5,6)
-icoil_init.PF2=CoilWaveforms(3,5);	%PF2 Equilibrium Current at time(5,6)
-icoil_init.Div1=CoilWaveforms(4,5);	%Div1 Equilibrium Current at time(5,6)
-icoil_init.Div2=CoilWaveforms(5,5);	%Div2 Equilibrium Current at time(5,6)
+icoil_init.PF1=CoilWaveforms(2,6);	%PF1 Equilibrium Current at time(5,6)
+icoil_init.PF2=CoilWaveforms(3,6);	%PF2 Equilibrium Current at time(5,6)
+icoil_init.Div1=CoilWaveforms(4,6);	%Div1 Equilibrium Current at time(5,6)
+icoil_init.Div2=CoilWaveforms(5,6);	%Div2 Equilibrium Current at time(5,6)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -427,10 +428,10 @@ elseif strcmp(IEquilMethod, 'efit');
 	%Extract the new coil currents from the efit-equilibrium:
 	icoil_efit = get(equil,'icoil');
 	efitCurrents = get(icoil_efit,'currents');
-	CoilWaveforms(2,5:6) = efitCurrents(iPF1);
-	CoilWaveforms(3,5:6) = efitCurrents(iPF2);
-	CoilWaveforms(4,5:6) = efitCurrents(iDiv1);		%iDiv1 is implicitly in series with Sol here
-	CoilWaveforms(5,5:6) = efitCurrents(iDiv2);	
+	CoilWaveforms(2,5:6) = efitCurrents(iPF1);		%Assumes IPF1 is flat over equilibrium
+	CoilWaveforms(3,5:6) = efitCurrents(iPF2);		%Assumes IPF2 is flat over equilibrium
+%	CoilWaveforms(4,5:6) = efitCurrents(iDiv1);		%Need to auto-select which coils to update
+%	CoilWaveforms(5,5:6) = efitCurrents(iDiv2);		%Need to auto-select which coils to update
 
 %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
 
@@ -451,10 +452,10 @@ elseif strcmp(IEquilMethod, 'feedback');
 	%Extract the new coil currents from the feedback-equilibrium:
 	icoil_efit = get(equil,'icoil');
 	efitCurrents = get(icoil_efit,'currents');
-	CoilWaveforms(2,5:6) = efitCurrents(iPF1);
-	CoilWaveforms(3,5:6) = efitCurrents(iPF2);
-	CoilWaveforms(4,5:6) = efitCurrents(iDiv1);		%iDiv1 is implicitly in series with Sol here
-	CoilWaveforms(5,5:6) = efitCurrents(iDiv2);	
+	CoilWaveforms(2,5:6) = efitCurrents(iPF1);		%Assumes IPF1 is flat over equilibrium
+	CoilWaveforms(3,5:6) = efitCurrents(iPF2);		%Assumes IPF2 is flat over equilibrium
+%	CoilWaveforms(4,5:6) = efitCurrents(iDiv1);		%Need to auto-select which coils to update
+%	CoilWaveforms(5,5:6) = efitCurrents(iDiv2);		%Need to auto-select which coils to update
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
