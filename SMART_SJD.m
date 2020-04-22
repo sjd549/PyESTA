@@ -15,6 +15,7 @@ addpath(genpath(FIESTATrunk),genpath(FunctionsTrunk));
 NumThreads = 2;
 NumThreads = maxNumCompThreads(NumThreads);
 
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                        DEFINE REACTOR GEOMETRY                        %
@@ -94,30 +95,26 @@ Te = 250;			% Electron Temperature [eV]
 Ti = Te*0.1;		% Ion Temperature      [eV]
 BT = 0.1;			% Toroidal B-Field     [T] (Defined at Rgeo)
 Ip = 30e3;			% Plasma current       [A]
-TauR = 0.020;		% Ramp Timescale       [s] (Also determines tstep for Ip plot)
-TauP = 0.020;		% Pulse Timescale      [s]
 RGeo = 0.450;		% Geometrical Radius   [m]
 ZGeo = 0.000;		% Geometrical Axis     [m]
-RSep = 0.700;		% Separatrix Radius    [m]
+RSep = 0.700;		% Separatrix Radius    [m] (~0.70)
 rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.25)
 Aspect = RGeo/rGeo;	% Aspect ratio         [-] (~1.85)
-Kappa = 1.8;		% Elongation           [-] (~1.8)
+Kappa = 1.80;		% Elongation           [-] (~1.8)
 delta = 0.20;		% Triangularity        [-] (~0.2)
 li2 = 1;			% Inductance	       [-]
-%q_cyl = 2.821;		% Safety Factor?       [-]
-%betaN = 3.529;		% Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.44;					% Geometrical Radius	[m] (Default 0.44)
-ZGeo_efit = 0.0;					% Geometrical Axis		[m] (Default 0.00)
-Aspect_efit = 1.85;                 % Aspect Ratio			[-] (Default 1.85)
-rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius			[m] (Default 0.44/1.85)
-Kappa_efit = 1.8;					% Elongation			[-] (Default 1.8)
-delta_efit = 0.2;					% Triangularity			[-] (Default 0.2)
+RGeo_efit = 0.440;					% Geometrical Radius	[m] (Default 0.44)
+ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.00)
+rGeo_efit = 0.238;                  % Minor Radius	        [m] (Default 0.44/1.85)
+Aspect_efit = RGeo_efit/rGeo_efit;  % Aspect Ratio          [-] (Default 1.85)
+Kappa_efit = 1.80;					% Elongation			[-] (Default 1.80)
+delta_efit = 0.20;					% Triangularity			[-] (Default 0.20)
 efit_Geometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Compute Further Operating Conditions
-Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2*Kappa));  % Greenwald Limit          [m-3]
+Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2*Kappa));  % Greenwald Limit       [m-3]
 Gr_Frac = 0.15;                            % Greenwald Fraction       [-]
 ne = Gr_Limit*Gr_Frac;                     % Electron Density         [m-3]  ~3E19
 Irod = BT*2*pi*RGeo/mu0;                   % Central Rod Current      [A]
@@ -127,8 +124,8 @@ S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %delta = (deltaUp+deltaLo)/2.0;            % Triangularity            [-]
 %betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        % Normalised Beta          [%] 
 %betaT = (betaN/a*(Ip*1e-6))/BT;           % Beta toroidal            [%]
-betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; % Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    % Vertical field [T]
+betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; 	% Beta Poloidal  [%]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    		% Vertical field [T]
 
 %Coil density, temperature and resistivity
 coil_density = 1;                       % Relative Coil Density      [Arb]
@@ -149,29 +146,47 @@ a_eff=0.15;								% Null field region radius	 [m]
 %Negative coil currents attract the plasma, positive repel the plasma
 %Symmetric Solenoid PrePulse and Equil currents aid power supply stability
 
-%Solenoid coil currents [kA]		%Phase1		%Phase2
-I_Sol_Equil=-400;					%-0800;		%-2200
-I_Sol_MidRamp='Linear';				%Dynamic    %Dynamic
-I_Sol_PrePulse=-I_Sol_Equil;		%+0800;		%+2200
+%Solenoid coil currents [kA]		%Phase1		%Phase1-Old		%Phase2
+I_Sol_Null=+775;                    %+0775;		%+900;			%+2200
+I_Sol_MidRamp='Linear';             %Dynamic    %Dynamic		%Dynamic
+I_Sol_EndRamp=-I_Sol_Null;          %Dynamic    %Dynamic		%Dynamic
+I_Sol_Equil=-ISol_Null;				%Determines when equilibrium calculated
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-500;					%-500;		%-1100
-I_PF2_Equil=-500;					%-500;		%-1700
-I_Div1_Equil=I_Sol_Equil;			%+000;		%+0000
-I_Div2_Equil=+900;					%+900;		%+3300
+I_PF1_Equil=-500;					%-500;		%-390;			%-1100
+I_PF2_Equil=-500;					%-500;		%-385;			%-1700
+I_Div1_Equil=+000;					%+000;						%+0000
+I_Div2_Equil=+900;					%+900;						%+3300
 
 %Define number of time-steps (vertices) in the current waveforms
-nTime = 7;      %[Steps]
+nTime = 7;      	% Coil Waveform Timesteps	[-]
+TauB = 0.020;		% Buffer Timescale     		[s] Determines tstep for Ip plot
+TauR = 0.050;		% Ramp Timescale       		[s]
+TauP = 0.020;		% Pulse Timescale      		[s]
 %Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
-time =  [-4*TauR   -2*TauR   0.0           TauR/2.0     TauR         TauR+TauP    TauR+TauP+(2*TauR)];
+time =  [-4*TauB   -2*TauB   0.0           TauR/2.0     TauR         TauR+TauP    TauR+TauP+(2*TauB)];
+
+%Specify or extrapolate where the solenoid current is when PF/Div coils turn on:
+if strcmp(I_Sol_MidRamp, 'Linear');
+	%Maintain a linear solenoid ramp-down from time(4), through time(5) to time (6)
+	%Apply a linear fit to the solenoid ramp-down profile between PrePulse to Equil
+	[coef] = polyfit([time(3) time(5)], [I_Sol_Null I_Sol_EndRamp], 1);
+	%Extrapolate solenoid current when PF and Div coils reach equilibrium values, at time(4)
+	I_Sol_MidRamp = (coef(1)*time(4)) + coef(2);
+else;
+	%Employ user specified I_Sol_MidEquil value if requested
+	I_Sol_MidRamp = double(I_Sol_MidRamp)
+end
 
 %Construct Sol, PF/Div coil current waveforms vertices
-%Time   	      [1, 2,              3,              4,             5,            6,            7];
-ISol_Waveform =   [0, I_Sol_PrePulse, I_Sol_PrePulse, I_Sol_MidRamp, I_Sol_Equil,  I_Sol_Equil,  0];
-%IPF1_Waveform =  [0, 'Null-Field',   Null-Field',    I_PF1_Equil,   I_PF1_Equil,  I_PF1_Equil,  0];
-%IPF2_Waveform =  [0, 'Null-Field',   Null-Field',    I_PF2_Equil,   I_PF2_Equil,  I_PF2_Equil,  0];
-%IDiv1_Waveform = [0, 'Null-Field',   Null-Field',    I_Div1_Equil,  I_Div1_Equil, I_Div1_Equil, 0];
-%IDiv2_Waveform = [0, 'Null-Field',   Null-Field',    I_Div2_Equil,  I_Div2_Equil, I_Div2_Equil, 0];
+%Time   	     [1, 2,           3,          4,             5,             6,             7];
+ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_EndRamp, I_Sol_Equil,   0]
+IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,   0]
+IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,   0]
+IDiv1_Waveform = [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil,   I_Sol_Equil,   0]
+IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,  0]
+%%%%%
+CoilWaveforms = [ISol_Waveform; IPF1_Waveform; IPF2_Waveform; IDiv1_Waveform; IDiv2_Waveform]
 
 %%%%%%%%%%%%%%%%%%%  DEFINE DIAGNOSTIC PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%
 
@@ -189,12 +204,12 @@ deltadelta = 0.00;	% Small triangiularity perturbation [-]
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'SMARTxs-P1';			%Define global project name
-SeriesName = 'VaryTauP';		%Define parameter scan series name
+ProjectName = 'SMARTxs-P1';		%Define global project name
+SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
 ASCIIDir = 'RawData/'; mkdir(ASCIIDir);
-%FigDir = 'Figures/'; mkdir(FigDir);			%NOT CURRENTLY USED
+%FigDir = 'Figures/'; mkdir(FigDir);		%Not Currently Implimented
 
 %Create simulation name based upon relevant run parameters
 SimName = 'DefaultSimName';
@@ -229,7 +244,7 @@ disp([ 'Shaping Factor = ' num2str(S) ' [-]' ]);
 
 disp([ ' ' ]);
 disp([ '%===== Initial Coil Currents =====%' ]);
-disp([ 'I_Sol_PrePulse = ' num2str(I_Sol_PrePulse/1000) ' [kA]' ]);
+disp([ 'I_Sol_PrePulse = ' num2str(I_Sol_Null/1000) ' [kA]' ]);
 disp([ 'I_Sol_MidRamp = Dynamic [kA]' ]);
 disp([ 'I_Sol_Equil = ' num2str(I_Sol_Equil/1000) ' [kA]' ]);
 disp([ ' ' ]);
@@ -357,23 +372,14 @@ Sol_circuit = fiesta_circuit( 'Sol', [1], [Sol_Coil] );
 
 %Collate completed coilset and create FIESTA icoil object for equilibrium computation
 coilset = fiesta_coilset('STcoilset',[Sol_circuit,PF1,PF2,Div1,Div2],false,xaccum',yaccum');
-icoil=fiesta_icoil(coilset);
+icoil_init=fiesta_icoil(coilset);
 
-%Assign coil currents to icoil object [kA] (Ensure Equil Currents!)
-%icoil.Sol=ISol_Waveform(5)	%Solenoid Equilibrium Current at time(5,6)
-icoil.Sol=I_Sol_Equil;		%Solenoid Equilibrium Current at time(5,6)
-icoil.PF1=I_PF1_Equil;		%PF1 Equilibrium Current at time(4,5,6)
-icoil.PF2=I_PF2_Equil;		%PF2 Equilibrium Current at time(4,5,6)
-icoil.Div1=I_Div1_Equil;	%Div1 Equilibrium Current at time(4,5,6)
-icoil.Div2=I_Div2_Equil;	%Div2 Equilibrium Current at time(4,5,6)
-
-%Record initial equilibrium coil currents for later diagnostic use
-icoil_init = icoil;
-I_Sol_Init = I_Sol_Equil;
-I_PF1_Init = I_PF1_Equil; 
-I_PF2_Init = I_PF2_Equil;
-I_Div1_Init = I_Div1_Equil; 
-I_Div2_Init = I_Div2_Equil;
+%Assign equilibrium coil currents to icoil object [kA]
+icoil_init.Sol=I_Sol_Equil;         %Solenoid Equilibrium Current at time(5,6)
+icoil_init.PF1=CoilWaveforms(2,5);	%PF1 Equilibrium Current at time(5,6)
+icoil_init.PF2=CoilWaveforms(3,5);	%PF2 Equilibrium Current at time(5,6)
+icoil_init.Div1=CoilWaveforms(4,5);	%Div1 Equilibrium Current at time(5,6)
+icoil_init.Div2=CoilWaveforms(5,5);	%Div2 Equilibrium Current at time(5,6)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -399,7 +405,7 @@ IEquilMethod = 'efit';         %'standard','efit','feedback'
 if strcmp(IEquilMethod, 'standard');
 
 	%Forward equilibrium which computes the jprofile for the input Irod and icoil configuration
-	%icoil includes solenoid equilibrium current as default - allows for non-zero isol
+	%icoil_init includes solenoid equilibrium current as default - allows for non-zero isol
 	equil = fiesta_equilibrium('STV2C2', config, Irod, jprofile, control, [], icoil_init);
 	EquilParams = parameters(equil);
 
@@ -419,12 +425,12 @@ elseif strcmp(IEquilMethod, 'efit');
 	efit_Geometry_Equil = [EquilParams.r0_geom,EquilParams.z0_geom,(EquilParams.r0_geom/EquilParams.aspectratio),EquilParams.kappa,EquilParams.delta];
 
 	%Extract the new coil currents from the efit-equilibrium:
-	icoil = get(equil,'icoil');
-	efitCurrents = get(icoil,'currents');
-	I_PF1_Equil = efitCurrents(iPF1);
-	I_PF2_Equil = efitCurrents(iPF2);
-	I_Div1_Equil = efitCurrents(iDiv1);		%iDiv1 is implicitly in series with Sol here
-	I_Div2_Equil = efitCurrents(iDiv2);		 
+	icoil_efit = get(equil,'icoil');
+	efitCurrents = get(icoil_efit,'currents');
+	CoilWaveforms(2,5:6) = efitCurrents(iPF1);
+	CoilWaveforms(3,5:6) = efitCurrents(iPF2);
+	CoilWaveforms(4,5:6) = efitCurrents(iDiv1);		%iDiv1 is implicitly in series with Sol here
+	CoilWaveforms(5,5:6) = efitCurrents(iDiv2);	
 
 %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%           %%%%%%%%%%
 
@@ -443,12 +449,12 @@ elseif strcmp(IEquilMethod, 'feedback');
 	efit_Geometry_Equil = [EquilParams.r0_geom,EquilParams.z0_geom,(EquilParams.r0_geom/EquilParams.aspectratio),EquilParams.kappa,EquilParams.delta];
 
 	%Extract the new coil currents from the feedback-equilibrium:
-	icoil = get(equil,'icoil');
-	efitCurrents = get(icoil,'currents');
-	I_PF1_Equil = efitCurrents(iPF1);
-	I_PF2_Equil = efitCurrents(iPF2);
-	I_Div1_Equil = efitCurrents(iDiv1);		%iDiv1 is implicitly in series with Sol here
-	I_Div2_Equil = efitCurrents(iDiv2);
+	icoil_efit = get(equil,'icoil');
+	efitCurrents = get(icoil_efit,'currents');
+	CoilWaveforms(2,5:6) = efitCurrents(iPF1);
+	CoilWaveforms(3,5:6) = efitCurrents(iPF2);
+	CoilWaveforms(4,5:6) = efitCurrents(iDiv1);		%iDiv1 is implicitly in series with Sol here
+	CoilWaveforms(5,5:6) = efitCurrents(iDiv2);	
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
@@ -527,6 +533,7 @@ elseif strcmp(IEquilMethod, 'efit');
     Irod_Pert = BT*2*pi*RGeo_Pert/mu0;                                                  % [A]
 
 	%Compute perturbed equilibrium using the original jprofile and perturbed efit_Geometry
+    %PRETTY SURE THIS IS BACKWARDS, SHOULD USE PERTURBED JPROFILE WITH ORIGINAL efit_Geometry
 	[efit_config, signals, weights, index] = efit_shape_controller(config, {'PF1','PF2'}, efit_Geometry_Pert);
 	equil_pert = fiesta_equilibrium('ST', config, Irod, jprofile, control, efit_config, icoil_init, signals, weights);
 	EquilParams_Pert = parameters(equil_pert);
@@ -540,7 +547,6 @@ elseif strcmp(IEquilMethod, 'efit');
 	I_PF2_Pert = efitCurrents_Pert(iPF2);
 	I_Div1_Pert = efitCurrents_Pert(iDiv1);
 	I_Div2_Pert = efitCurrents_Pert(iDiv2);
-
 end
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT PERTURBED EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%
@@ -647,16 +653,23 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 C_temp = C(end-get(sensor_btheta,'n')+1:end,1:nPF);
 C1 = C_temp(:,1);
 D1 = C_temp(:,2:end);
+%Compute PF null coil currents (excluding Solenoid) 
+I_PF_null = -pinv(D1) * (C1*ISol_Waveform(2));	%(PF1,PF2,Div1,Div2)
 
-%Produces a pre-pulse current for PF/Div coils which creates the null poloidal field
-coil_currents_null = zeros(1,nPF);
-I_PF_null = -pinv(D1) * (C1*I_Sol_PrePulse);		%Scaling factors for null-field coil currents
-coil_currents_null(iSol) = I_Sol_PrePulse;			%Set I_Sol null-field current
-coil_currents_null(2:end) = I_PF_null';				%Scale PF, Div coils relative to I_Sol
-coil_currents_null(4) = I_Sol_PrePulse;				%!!!! IF Div1 in series with Sol !!!!
+%Update CoilWaveforms array with null-field values
+for i = 1:nPF;
+	for j = 1:nTime;
+		%Determine if coil 'i' at timestep 'j' requires null-field
+		if isnan(CoilWaveforms(i,j));
+			CoilWaveforms(i,j) = I_PF_null(i-1);	%i-1 skips Solenoid coil
+        end
+	end
+end
+%Set null-field coil currents for all coils at time(2,3)
+CoilCurrentsNull = transpose(CoilWaveforms(:,2)); 
+icoil_null = fiesta_icoil( coilset, CoilCurrentsNull );
 
-%Generate new icoil object with pre-pulse (null field) configuration
-icoil_null = fiesta_icoil( coilset, coil_currents_null );
+%Compute null-field equilibrium using null-field coil currents
 equil_optimised_null = fiesta_equilibrium( 'ST25D optimised null', config, Irod, icoil_null );
 EquilNullParams = parameters(equil_optimised_null);
 
@@ -748,31 +761,11 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %                     DEFINE LOOP VOLTAGE FOR STARTUP                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%Extracts coefficients required for null-field calculation from RZIP outputs
-C_temp = C(end-get(sensor_btheta,'n')+1:end,1:nPF); %Copied from ST25D Simulation
-C1 = C_temp(:,1);									%Copied from ST25D Simulation
-D1 = C_temp(:,2:end);								%Copied from ST25D Simulation
+%Initiate RZip PF Arrays used to calculate plasma and eddy currents
+I_PF_input = transpose(CoilWaveforms);  %Coil currents transposed from waveform array
+V_PF_input = NaN(nTime,nPF);            %Coil voltages are initiated to zero
 
-%Compute pre-pulse current for PF/Div coils which creates the null poloidal field
-%PF and Div coil pre-pulse currents are scaled relative to Sol pre-pulse current
-I_PF_null = -pinv(D1) * (C1*I_Sol_PrePulse);    	%Copied From ST25D Simulation
-
-%Specify or extrapolate where the solenoid current is when PF/Div coils turn on:
-if strcmp(I_Sol_MidRamp, 'Linear');
-	%Maintain a linear solenoid ramp-down from time(4), through time(5) to time (6)
-	%Apply a linear fit to the solenoid ramp-down profile between PrePulse to Equil
-	[coef] = polyfit([time(3) time(5)], [I_Sol_PrePulse I_Sol_Equil], 1);
-	%Extrapolate solenoid current when PF and Div coils reach equilibrium values, at time(4)
-	I_Sol_MidRamp = (coef(1)*time(4)) + coef(2);
-elseif isfloat(I_Sol_MidRamp);
-	%Employ user specified I_Sol_MidEquil value if requested
-	I_Sol_MidRamp = double(I_Sol_MidRamp)
-else;
-	%Default to zero amps if not otherwise specified
-	I_Sol_MidRamp = 0.0
-end
-
-%Definition of time intervals:
+%Definition of CoilWaveform time intervals:
 %time(1)--> All coils and Sol initiate at zero current          Init
 %time(2)--> All coils initiate null-field configuration         PrePulse
 %time(3)--> All coils maintain null-field configuration         InitRampDown
@@ -784,68 +777,6 @@ end
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-
-%Initiate PF_input arrays to zero for all times
-V_PF_input = NaN(nTime,nPF);
-I_PF_input = zeros(nTime,nPF);
-
-%Would be nice to impliment waveform current arrays
-%for i = 1:length(WaveformCurrentArrays)
-%	for j = 1:length(icoils)
-		%Determine if coil 'j' at timestep 'i' requires:
-%		if WaveformCurrentArrays(i,j) == 'Null'
-			%...the RZIP null-field current...
-%			CoilCurrent = I_PF_null(i)
-%		else
-			%...or the user defined current.
-%			CoilCurrent = WaveformCurrentArrays(i,j)
-%		end
-	%Update I_PF_input array for each coil 'j' at timestep 'i'
-%	I_PF_input(i,j) = CoilCurrent
-%	end
-%end
-
-%All coil currents initiate at zero			:: Init (Zero Current)
-I_PF_input(2,:) = 0;
-I_PF_input(3,:) = 0;
-
-%Define Solenoid current waveform vertices	:: Startup --> Pre-pulse
-I_PF_input(2,iSol) = I_Sol_PrePulse;         %Sets Sol to pre-pulse current
-I_PF_input(2,2:end) = I_PF_null;             %Sets all PF/Div coils to I_PF_null
-I_PF_input(2,iDiv1) = I_Sol_PrePulse;        %!!!! ENSURE Div1 in series with Sol !!!!
-
-%Define Solenoid current waveform vertices	:: Pre-pulse --> InitRampDown
-I_PF_input(3,iSol) = I_Sol_PrePulse;         %Sets Sol to pre-pulse current
-I_PF_input(3,2:end) = I_PF_null;             %Sets all PF/Div coils to I_PF_null
-I_PF_input(3,iDiv1) = I_Sol_PrePulse;        %!!!! ENSURE Div1 in series with Sol !!!!
-
-%Define coilset current waveforms vertices	:: InitRampDown --> MidRampDown (Equilibrium)
-I_PF_input(4,iSol) = I_Sol_MidRamp;			%As calculated by the ramp-timescale
-I_PF_input(4,iPF1) = I_PF1_Equil;			%
-I_PF_input(4,iPF2) = I_PF2_Equil;			%
-I_PF_input(4,iDiv1) = I_Div1_Equil;			%!!!! Div1 implicitly in series with Sol !!!!
-I_PF_input(4,iDiv2) = I_Div2_Equil;			%
-
-%Define coilset current waveforms vertices	:: MidRampDown --> EndRamp (Equilibrium)
-I_PF_input(5,iSol) = I_Sol_Equil;			%By Default: I_Sol_Equil = -I_Sol_PrePulse
-I_PF_input(5,iPF1) = I_PF1_Equil;			%
-I_PF_input(5,iPF2) = I_PF2_Equil;			%
-I_PF_input(5,iDiv1) = I_Div1_Equil;			%!!!! ENSURE Div1 in series with Sol !!!!
-I_PF_input(5,iDiv2) = I_Div2_Equil;			%
-
-%Define coilset current waveforms vertices	:: Equilibrium --> Termination (Equilibrium)
-I_PF_input(6,iSol) = I_Sol_Equil;			%By Default: I_Sol_Equil = -I_Sol_PrePulse
-I_PF_input(6,iPF1) = I_PF1_Equil;			%
-I_PF_input(6,iPF2) = I_PF2_Equil;			%
-I_PF_input(6,iDiv1) = I_Div1_Equil;			%!!!! Div1 implicitly in series with Sol !!!!
-I_PF_input(6,iDiv2) = I_Div2_Equil;			%
-
-%All coil currents end at zero				:: Termination (Zero Current)
-I_PF_input(7,iSol)=0;
-I_PF_input(7,iPF1)=0;
-I_PF_input(7,iPF2)=0;
-I_PF_input(7,iDiv1)=0;
-I_PF_input(7,iDiv2)=0;
 
 %%%%%%%%%%
 
@@ -920,7 +851,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %%%%%%%%%%%%%%%%%%%%%% PLOT TOTAL EDDY CURRENTS %%%%%%%%%%%%%%%%%%%%%%%% 
 
 %I_Passive contains the eddy current at each time for each filament,
-%We have to sum all filaments (row-wise) to get the true passive current
+%Sum all filaments (row-wise) to get total passive current
 I_Passive_sum=sum(I_Passive,2); 
 
 %Plot total eddy current over full timescale
@@ -929,7 +860,7 @@ plot(time_adaptive*1000, I_Passive_sum/1000)
 title(gca,'SMART Eddy Currents');
 legend(gca,'Eddy Current');
 xlabel(gca,'Time (ms)');
-ylabel(gca,'Plasma Current (kA)');
+ylabel(gca,'Vessel Current IPassive (kA)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 Filename = '_1DEddyCurrent';
@@ -1122,7 +1053,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %ylabel(gca,'Z (m)');
 %zlabel(gca, 'I (A)')
 %Filename = '_EddyForces';
-%saveas(gcf, strcat(ProjectName,Filename,FigExt));
+%saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1209,11 +1140,11 @@ icoilDir = strcat(ASCIIDir,'icoil_Data/'); mkdir(icoilDir);
 
 Filename = strcat(icoilDir,'Init_icoil.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[I_Sol_Init'; I_PF1_Init'; I_PF2_Init'; I_Div1_Init'; I_Div2_Init']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_init.Sol'; icoil_init.PF1'; icoil_init.PF2'; icoil_init.Div1'; icoil_init.Div2']);
 
 Filename = strcat(icoilDir,'efit_icoil.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[I_Sol_Equil'; I_PF1_Equil'; I_PF2_Equil'; I_Div1_Equil'; I_Div2_Equil']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_init.Sol'; icoil_efit.PF1'; icoil_efit.PF2'; icoil_efit.Div1'; icoil_efit.Div2']);
 
 Filename = strcat(icoilDir,'Perturbed_icoil.txt');
 fileID=fopen(Filename,'w');
@@ -1221,7 +1152,7 @@ fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[I_Sol_Pert'; I_PF1_Pert'; I_
 
 Filename = strcat(icoilDir,'Null_icoil.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[I_Sol_PrePulse'; I_PF_null(1)'; I_PF_null(2)'; I_PF_null(3)'; I_PF_null(4)']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[I_Sol_Null'; I_PF_null(1)'; I_PF_null(2)'; I_PF_null(3)'; I_PF_null(4)']);
 
 %Extract coil current time-traces (Multiplied by number of windings)
 rGeo=I_PF_output(:,1).*turns(iSol);   %Sol
