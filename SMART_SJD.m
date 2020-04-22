@@ -150,7 +150,7 @@ a_eff=0.15;								% Null field region radius	 [m]
 I_Sol_Null=+775;                    %+0775;		%+900;			%+2200
 I_Sol_MidRamp='Linear';             %Dynamic    %Dynamic		%Dynamic
 I_Sol_EndRamp=-I_Sol_Null;          %Dynamic    %Dynamic		%Dynamic
-I_Sol_Equil=-ISol_Null;				%Determines when equilibrium calculated
+I_Sol_Equil=-I_Sol_Null;			%Determines when equilibrium calculated
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-500;					%-500;		%-390;			%-1100
