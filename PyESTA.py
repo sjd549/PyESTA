@@ -370,7 +370,7 @@ SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = False			#Run requested simulation series
+IAutorun = True			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -379,8 +379,8 @@ IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'I_Sol_EndRamp'		#Define parameter to vary - Required for diagnostics
-ParameterRange = [-x for x in range(975,1001,25)]	#Define paramter range to vary over
+ParameterVaried = 'Gr_Frac'		#Define parameter to vary - Required for diagnostics
+ParameterRange = [x/100.0 for x in range(10,101,10)]	#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
