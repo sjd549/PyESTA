@@ -362,7 +362,7 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 ########################################
 
 #Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD_Phase1.m'			#Define name of FIESTA script
+FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
 ProjectName = 'S1-000003'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
@@ -370,7 +370,7 @@ SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = True			#Run requested simulation series
+IAutorun = False			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -1035,21 +1035,21 @@ if savefig_EfitEquilTrends == True:
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
 
 	#Quick and dirty removal of most useful trends
-	RGeo,ZGeo,Kappa,A,delta = list(),list(),list(),list(),list()	#efit params
+	RGeo,ZGeo,Kappa,AspectRatio,delta = list(),list(),list(),list(),list()	#efit params
 	for l in range(0,len(SimulationDirs)):
-		RGeo.append( ValueEquil[l][43] )		#Geomoetric Radial Length 	[m]
-#		ZGeo.append( ValueEquil[l][44] )		#Geometric Axial Length 	[m]
+		RGeo.append( ValueEquil[l][13] )		#Magnetic Radius		 	[m]
+		ZGeo.append( ValueEquil[l][14] )		#Magnetic Axis			 	[m]
 		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
-		A.append( ValueEquil[l][16] )			#Aspect Ratio 				[-]
+		AspectRatio.append( ValueEquil[l][16] )	#Aspect Ratio 				[-]
 		delta.append( ValueEquil[l][25] )		#Triangularity (average) 	[-]
+		#####
+		#!!!THESE NEED TO BE EXTRACTED FOR ELI - COMPARE SHIFTS TO EFIT INPUTS!!!#
+		rGeo = RGeo[-1]/AspectRatio[-1]			#Minor Radius				[m]
+		PlasVolume = ValueEquil[l][35]			#3D Plasma Volume			[m3]
+		SurfaceArea = ValueEquil[l][36]			#2D Plasma X-section area	[m2]
+		GradShift = RGeo[-1]-0.44				#Shafranov Shift			[m]
+		VertShift = ZGeo[-1]-0.00				#Vertical Shift				[m]
 	#endfor
-
-	#RGeo_efit = 0.44					# Geometrical Radius	[m] (0.44)
-	#ZGeo_efit = 0.0					# Geometrical Axis		[m] (0.00)
-	#A_efit = 1.85						# Aspect Ratio			[-] (1.85)
-	#a_efit = RGeo_efit/A_efit			# Minor Radius			[m] (0.44/1.85)
-	#Kappa_efit = 1.8					# Elongation			[-] (1.8)
-	#delta_efit = 0.2					# Triangularity			[-] (0.2)
 
 	#===================##===================#
 	#===================##===================#
@@ -1074,7 +1074,7 @@ if savefig_EfitEquilTrends == True:
 	ax[0,0].tick_params(axis='x', labelsize=20)
 	ax[0,0].tick_params(axis='y', labelsize=20)
 
-	ax[1,0].plot(TrendAxis,A,'bs-', ms=12, lw=2)
+	ax[1,0].plot(TrendAxis,AspectRatio,'bs-', ms=12, lw=2)
 #	ax[1,0].plot((min(TrendAxis),max(TrendAxis)),(A_efit,A_efit), 'b--', lw=1.5)
 	ax[1,0].set_ylabel('Aspect Ratio $A$ [-]', fontsize=25)
 	ax[1,0].set_xlabel('Varied Parameter: '+Parameter, fontsize=25)
@@ -1213,6 +1213,21 @@ if savefig_EquilStability == True:
 	IDiv1_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
 	IDiv2_Pert = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
 
+	#Remove any header string from the data
+	for i in range(0,len(ISol_efit)):
+		ISol_efit[i] = ISol_efit[i][1::]
+		IPF1_efit[i] = IPF1_efit[i][1::]
+		IPF2_efit[i] = IPF2_efit[i][1::]
+		IDiv1_efit[i] = IDiv1_efit[i][1::]
+		IDiv2_efit[i] = IDiv2_efit[i][1::]
+		###
+		ISol_Pert[i] = ISol_Pert[i][1::]
+		IPF1_Pert[i] = IPF1_Pert[i][1::]
+		IPF2_Pert[i] = IPF2_Pert[i][1::]
+		IDiv1_Pert[i] = IDiv1_Pert[i][1::]
+		IDiv2_Pert[i] = IDiv2_Pert[i][1::]
+	#endfor
+
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
 
@@ -1344,6 +1359,16 @@ if savefig_CoilCurrentTraces == True:
 	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
 	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
 	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
+
+	#Remove any header string from the data
+	for i in range(0,len(Time_Arrays)):
+		Time_Arrays[i] = Time_Arrays[i][1::]
+		ISol_Arrays[i] = ISol_Arrays[i][1::]
+		IPF1_Arrays[i] = IPF1_Arrays[i][1::]
+		IPF2_Arrays[i] = IPF2_Arrays[i][1::]
+		IDiv1_Arrays[i] = IDiv1_Arrays[i][1::]
+		IDiv2_Arrays[i] = IDiv2_Arrays[i][1::]
+	#endfor
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1482,6 +1507,15 @@ if savefig_CoilCurrentTrends == True:
 	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
 	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
 
+	#Remove any header string from the data
+	for i in range(0,len(Time_Arrays)):
+		Time_Arrays[i] = Time_Arrays[i][1::]
+		ISol_Arrays[i] = ISol_Arrays[i][1::]
+		IPF1_Arrays[i] = IPF1_Arrays[i][1::]
+		IPF2_Arrays[i] = IPF2_Arrays[i][1::]
+		IDiv1_Arrays[i] = IDiv1_Arrays[i][1::]
+		IDiv2_Arrays[i] = IDiv2_Arrays[i][1::]
+	#endfor
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1496,12 +1530,12 @@ if savefig_CoilCurrentTrends == True:
 	#Rescale data for plotting: [A] to [kA]
 	for i in range(0,len(ISol_Arrays)):
 		for j in range(0,len(ISol_Arrays[i])):
-		 	#Coil currents are saved scaled by the number of windings (For reasons...)
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*nSol)
-			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/(1000.0*24)
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
+		 	#Coil currents are no-longer saved scaled by the number of windings
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]#/(1000.0*nSol)
+			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]#/(1000.0*24)
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]#/(1000.0*24)
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]#/(1000.0*24)
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]#/(1000.0*24)
 		#endfor
 	#endfor
 
@@ -1713,10 +1747,15 @@ if savefig_ConnectionLength == True:
 
 	#Extract relevent data from series directories
 	Filename = 'LCon.txt'
-	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	Lc_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 	Filename = 'Eta.txt'
-	Eta_Perp_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-	Eta_Para_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	Eta_Perp_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	Eta_Para_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+
+	#Remove any header string from the data
+	for i in range(0,len(Time_Arrays)):
+		Lc_Arrays[i] = Lc_Arrays[i][1::]
+	#endfor
 
 	#Create trendaxis from folder names
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
@@ -1733,7 +1772,7 @@ if savefig_ConnectionLength == True:
 	fig,ax = plt.subplots(1, figsize=(12,10))
 
 	#Plot plasma current with respect to adaptive_time
-	ax.plot(TrendAxis,Lc_Array, 'ko-', ms=10, lw=2)
+	ax.plot(TrendAxis,Lc_Arrays, 'ko-', ms=10, lw=2)
 
 	ax.set_title('Connection Length for Varying '+Parameter, fontsize=20, y=1.03)
 	Legend = ['Lc']
@@ -1775,7 +1814,13 @@ if savefig_PaschenCurves == True:
 
 	#Extract relevent data from series directories
 	Filename = 'LCon.txt'
-	Lc_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	Lc_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+
+	#Remove any header string from the data - ???also removes lowest array???
+	for i in range(0,len(Time_Arrays)):
+		Lc_Arrays[i] = Lc_Arrays[i][1::][0]
+	#endfor
+
 
 	#Create arbitary pressure array over 1E-5 --> 1E-3 Torr
 	Limits,Resolution = [1E-5,1E-2],10000
@@ -1783,7 +1828,7 @@ if savefig_PaschenCurves == True:
 
 	#Initialise required arrays EMinArrays 
 	EMinArrays,MinEMinArray = list(),list()
-	for i in range(0,len(Lc_Array)): EMinArrays.append( list() )
+	for i in range(0,len(Lc_Arrays)): EMinArrays.append( list() )
 
 	#Construct EMinArrays for each Lcon by varying background pressure
 	#N.B. !!! Lcon will vary with background pressure so this is only approximate !!!
@@ -1791,7 +1836,7 @@ if savefig_PaschenCurves == True:
 		for j in range(0,len(PressureArray)):
 
 			#Compute minimum E-field for breakdown as cited from Song2017
-			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Array[i])
+			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Arrays[i])
 			if EMin < 0: EMin = np.nan
 
 			EMinArrays[i].append( EMin )
@@ -1808,7 +1853,7 @@ if savefig_PaschenCurves == True:
 	#endif
 
 	#Round connective length for plotting
-	for i in range(0,len(Lc_Array)): Lc_Array[i] = round(Lc_Array[i],1)
+	for i in range(0,len(Lc_Arrays)): Lc_Arrays[i] = round(Lc_Arrays[i],1)
 	#Scale pressure array for plotting
 	for i in range(0,len(PressureArray)): PressureArray[i] = PressureArray[i]*1000	#[mTorr]
 
@@ -1819,7 +1864,7 @@ if savefig_PaschenCurves == True:
 	fig,ax = plt.subplots(1, figsize=(12,10), sharex=True)
 
 	#Plot minimum electric field for breakdown for each connection length
-	for i in range(0,len(Lc_Array)):
+	for i in range(0,len(Lc_Arrays)):
 		ax.plot(PressureArray,EMinArrays[i], '--', lw=2, ms=12)
 	#####
 	Legend = [Parameter+'='+str(TrendAxis[i]) for i in range(0,len(TrendAxis))]

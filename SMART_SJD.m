@@ -1072,17 +1072,31 @@ EquilDir = strcat(ASCIIDir,'Equil_Data/'); mkdir(EquilDir);
 Filename = strcat(EquilDir,'Equil.txt');
 geqdsk_write_BUXTON(config, equil, Filename);
 %Write equilibrium parameters file
+EquilParam=parameters(equil);
+ParamVariables = fieldnames(EquilParam);
+ParamValues = struct2cell(EquilParam(:,1));
 Filename = strcat(EquilDir,'EquilParam.txt');
-if exist(Filename) ; delete(Filename); end
-diary(Filename); parameters(equil); diary off
+fileID=fopen(Filename,'w');
+for i = 1:length(ParamValues)
+    try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
+    catch fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); 'NaN']);
+    end
+end
 
 %Write qeqdsk perturbed equilibrium file
 Filename = strcat(EquilDir,'Equil_Pert.txt');
 geqdsk_write_BUXTON(config, equil_pert, Filename);
 %Write perturbed equilibrium parameters file
+EquilParam=parameters(equil_pert);
+ParamVariables = fieldnames(EquilParam);
+ParamValues = struct2cell(EquilParam(:,1));
 Filename = strcat(EquilDir,'EquilParam_Pert.txt');
-if exist(Filename) ; delete(Filename); end
-diary(Filename); parameters(equil); diary off
+fileID=fopen(Filename,'w');
+for i = 1:length(ParamValues)
+    try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
+    catch fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); 'NaN']);
+    end
+end
 
 %Write null-field equilibrium file
 filename = strcat(EquilDir,'Equil_Null.txt');
@@ -1096,9 +1110,16 @@ for i = 1:length(Psi_Null)
     fprintf(fileID,'\n');
 end
 %Write null-field equilibrium parameters file
-Filename = strcat(EquilDir,'EquilParam_Null.txt');
-if exist(Filename) ; delete(Filename); end
-diary(Filename); parameters(equil_optimised_null); diary off
+%EquilParam=parameters(equil_optimised_null);
+%ParamVariables = fieldnames(EquilParam);
+%ParamValues = struct2cell(EquilParam(:,1));
+%Filename = strcat(EquilDir,'EquilParam_Null.txt');
+%fileID=fopen(Filename,'w');
+%for i = 1:length(ParamValues)
+%    try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
+%    catch fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); 'NaN']);
+%    end
+%end
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
