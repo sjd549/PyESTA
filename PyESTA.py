@@ -362,8 +362,8 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 ########################################
 
 #Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'S1-000002'			#Define Global Project Name (Baseline Equilibrium)
+FIESTAName = 'SMART_SJD_Phase1.m'			#Define name of FIESTA script
+ProjectName = 'S1-000003'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
@@ -380,7 +380,7 @@ IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
 ParameterVaried = 'Gr_Frac'		#Define parameter to vary - Required for diagnostics
-ParameterRange = [x/100.0 for x in range(10,101,10)]	#Define paramter range to vary over
+ParameterRange = [0.15]#[x/100.0 for x in range(10,101,10)]	#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
