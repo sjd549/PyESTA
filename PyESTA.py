@@ -253,17 +253,17 @@ a_eff=0.10;								# Null field region radius	 [m]
 #Negative coil currents attract the plasma, positive repel the plasma
 #Symmetric Solenoid PrePulse and Equil currents aid power supply stability
 
-#Solenoid coil currents [kA]		#Phase1		#Phase1-Old		#Phase2
-I_Sol_Null=+775						#+0775;		#+900;			#+2200
+#Solenoid coil currents [kA]		#Phase1		#PhaseDiv1=ISol	#Phase2
+I_Sol_Null=+750						#+0750;		#+0775;			#+2200
 I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic		#Dynamic
-I_Sol_EndRamp=-I_Sol_Null			#Dynamic    #Dynamic		#Dynamic
-I_Sol_Equil=-900;					#Default -I_Sol_Null		#Efit_Equil
+I_Sol_Equil=-I_Sol_Null				#-750; 	    #-0950;			#-2900
+I_Sol_EndEquil=-I_Sol_Null			#-750;	    #-0775;			#-2900
 
 #PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-500;					#-500;		#-390;			#-1100
-I_PF2_Equil=-500;					#-500;		#-385;			#-1700
-I_Div1_Equil=+000;					#+000;						#+0000
-I_Div2_Equil=+900;					#+900;						#+3300
+I_PF1_Equil=-500;					#-500;		#-500;			#-1100
+I_PF2_Equil=-500;					#-500;		#-500;			#-1700
+I_Div1_Equil=+000;					#ISol;		#+000;			#+0000
+I_Div2_Equil=+500;					#+500;		#-900;			#+3300
 
 #Define number of time-steps (vertices) in the current waveforms
 nTime = 7			# Coil Waveform Timesteps	[-]
@@ -292,12 +292,14 @@ nTime = 7;      #[Steps]
 time =  [-4*TauR,  -2*TauR,  0.0,          TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauR)]
 
 #Construct Sol, PF/Div coil current waveforms vertices
-#Time   	     [1, 2,           3,          4,             5,             6,             7];
-ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_EndRamp, I_Sol_EndRamp, 0]
-IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,   0]
-IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,   0]
-IDiv1_Waveform = [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil,   I_Sol_Equil,   0]
-IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,  0]
+#											  #!Breakdown!	 #!Efit Icoil!
+#Time   	     [1, 2,           3,          4,             5,             6,              7];
+ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil, 	I_Sol_EndEquil, 0]
+IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,    0]
+IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,    0]
+IDiv1_Waveform = [0,  NaN,        NaN,        NaN,           I_Div1_Equil,  I_Div1_Equil,   0]
+#IDiv1_Waveform = [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil,   I_Sol_Equil,    0]
+IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,   0]
 #####
 CoilWaveforms = [ISol_Waveform, IPF1_Waveform, IPF2_Waveform, IDiv1_Waveform, IDiv2_Waveform]
 
@@ -337,8 +339,8 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #Common Coil Current Ranges
 #'I_Sol_Null' [x for x in range(500,1001,100)]
-#'I_Sol_EndRamp' [-x for x in range(700,1001,25)]
 #'I_Sol_Equil' [-x for x in range(200,851,50)]
+#'I_Sol_EndEquil' [-x for x in range(700,951,25)]
 #'I_PF1' [-x for x in range(450,651,25)]
 #'I_PF2' [-x for x in range(450,651,25)]
 #'I_Div1' [x for x in range(000,1501,100)]
@@ -363,14 +365,14 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #Define FIESTA namelist and project directory names
 FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'S1-000003'			#Define Global Project Name (Baseline Equilibrium)
+ProjectName = 'S1-000004'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = False			#Run requested simulation series
+IAutorun = False		#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -379,8 +381,8 @@ IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'Gr_Frac'		#Define parameter to vary - Required for diagnostics
-ParameterRange = [0.15]#[x/100.0 for x in range(10,101,10)]	#Define paramter range to vary over
+ParameterVaried = 'I_Sol_Null'		#Define parameter to vary - Required for diagnostics
+ParameterRange = [875]				#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
@@ -1383,12 +1385,12 @@ if savefig_CoilCurrentTraces == True:
 	#Rescale data for plotting: [A] to [kA]
 	for i in range(0,len(ISol_Arrays)):
 		for j in range(0,len(ISol_Arrays[i])):
-		 	#Coil currents are saved scaled by the number of windings (For reasons...)
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]/(1000.0*nSol)
-			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/(1000.0*24)
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/(1000.0*24)
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/(1000.0*24)
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/(1000.0*24)
+		 	#Coil currents are no-longer saved scaled by the number of windings
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0#/(1000.0*nSol)
+			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/1000.0#/(1000.0*24)
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0#/(1000.0*24)
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0#/(1000.0*24)
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0#/(1000.0*24)
 		#endfor
 	#endfor
 
@@ -1531,11 +1533,11 @@ if savefig_CoilCurrentTrends == True:
 	for i in range(0,len(ISol_Arrays)):
 		for j in range(0,len(ISol_Arrays[i])):
 		 	#Coil currents are no-longer saved scaled by the number of windings
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]#/(1000.0*nSol)
-			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]#/(1000.0*24)
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]#/(1000.0*24)
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]#/(1000.0*24)
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]#/(1000.0*24)
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0#/(1000.0*nSol)
+			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/1000.0#/(1000.0*24)
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0#/(1000.0*24)
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0#/(1000.0*24)
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0#/(1000.0*24)
 		#endfor
 	#endfor
 
@@ -1823,7 +1825,7 @@ if savefig_PaschenCurves == True:
 
 
 	#Create arbitary pressure array over 1E-5 --> 1E-3 Torr
-	Limits,Resolution = [1E-5,1E-2],10000
+	Limits,Resolution = [1E-6,1E-2],25000
 	PressureArray = np.linspace(Limits[0],Limits[1],Resolution).tolist()
 
 	#Initialise required arrays EMinArrays 
@@ -1876,8 +1878,8 @@ if savefig_PaschenCurves == True:
 	ax.tick_params(axis='y', labelsize=20)
 	ax.set_xscale("log")
 	ax.set_yscale("log")
-	ax.set_xlim(1e-2,10)		#Pressure [mTorr]
-	ax.set_ylim(0.25,25)		#E-Field [Vm-1]
+	ax.set_xlim(5e-3,5)			#Pressure [mTorr]
+	ax.set_ylim(0.05,25)		#E-Field [Vm-1]
 
 	#Plot trend in minimum breakdown E-field with respect to varied parameter
 	from mpl_toolkits.axes_grid.inset_locator import inset_axes
@@ -1888,6 +1890,7 @@ if savefig_PaschenCurves == True:
 	ax2.plot(TrendAxis[MinEMinArray.index(min(MinEMinArray))],min(MinEMinArray),'ko', ms=10)
 	ax2.set_ylabel('Minimum $\\bf{E}$ [V m$^{-1}$]', labelpad=0, fontsize=14.5)
 	ax2.set_xlabel('Varying: '+Parameter, fontsize=15)
+	ax2.ticklabel_format(axis="x", style="sci", scilimits=(-2,3))
 	ax2.tick_params(axis='x', labelsize=14)
 	ax2.tick_params(axis='y', labelsize=14)
 #	ax2.set_xlim(0,1)
@@ -2120,9 +2123,9 @@ if savefig_EddyCurrent == True:
 #	plt.show()
 	plt.close('all')
 
-	print'-------------------------'
-	print'# Ip Diagnostics Complete'
-	print'-------------------------'
+	print'-----------------------------------'
+	print'# Eddy Current Diagnostics Complete'
+	print'-----------------------------------'
 #endif
 
 #=====================================================================#
