@@ -203,17 +203,17 @@ a_eff=0.15;								% Null field region radius	 [m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
 
-%Solenoid coil currents [kA]		%Phase1		%Phase1NoDiv1
-I_Sol_Null=+800;					%+0800;		%+0875;
+%Solenoid coil currents [kA]		%Phase1		%Phase1HomoWalls
+I_Sol_Null=+750;					%+0750;		%+0850;
 I_Sol_MidRamp='Linear';				%Dynamic    %Dynamic
-I_Sol_Equil=-I_Sol_Null;			%-0775;     %-0950
-I_Sol_EndEquil=-775; %-I_Sol_Null;  %-0775;     %-0775
+I_Sol_Equil=-I_Sol_Null;			%-0750;     %-0850
+I_Sol_EndEquil=-725; %-I_Sol_Null;  %-0725;     %-0775
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-500;					%-500;		%-500;
 I_PF2_Equil=-500;					%-500;		%-500;
 I_Div1_Equil=+000;					%+000;		%+ISol;
-I_Div2_Equil=+900;					%+500;      %+900;
+I_Div2_Equil=+900;					%+900;      %+900;
 
 %Define number of time-steps (vertices) in the current waveforms
 TauB = 0.020;			% Buffer Timescale     		[s] Determines tstep for Ip plot
@@ -314,19 +314,16 @@ Vertice4=[RMinCentre ZMinCentre];	%Bottom Left
 WallCorners=[[Vertice1]; [Vertice2]; [Vertice3]; [Vertice4]];
 WallThickness=[[VWall_Upper]; [VWall_Outboard]; [VWall_Lower]; [VWall_Inboard]];
 
-%NEED TO ENSURE THAT ALL FILAMENTS HAVE THE SAME AREA
-%OTHERWISE - SMALLER AREA MEANS SMALLER EDDY CURRENT IN EACH FILAMENT
-%VARYING FILAMENT RESOLUTION IS STILL GOING TO BE AN ISSUE WITH THE RZIP INDUCTANCE MATRIX
-
-%Define constant vessel cell surface area (required for RZIp stability)
-BaselineArea = 1.0e-5; %max(WallThickness)^2;     %[m^2]
+%Define constant vessel cell surface area (required for RZIp inductance matrix stability)
+%NEED TO DETERMINE A BASELINE AREA WHICH GIVES GOOD RESOLUTION ON ALL WALLS (5.0e-5?)
+BaselineArea = max(WallThickness)^2;     %[m^2] 
 %Define normalisation factors for each wall to achieve baseline area
 WallNormFactor1 = BaselineArea/(WallThickness(1)^2);
 WallNormFactor2 = BaselineArea/(WallThickness(2)^2);
 WallNormFactor3 = BaselineArea/(WallThickness(3)^2);
 WallNormFactor4 = BaselineArea/(WallThickness(4)^2);
 WallNormFactors = [[WallNormFactor1]; [WallNormFactor2]; [WallNormFactor3]; [WallNormFactor4]];
-%WallNormFactors = [[1]; [1]; [1]; [1]];      % FUDGE TO AVOID AREA SCALING
+%WallNormFactors = [[1]; [1]; [1]; [1]];      % !!!FUDGE TO AVOID AREA SCALING!!!
 
 %Construct filament arrays for each section of vessel wall:
 %Radial Top Wall, Z=Zmax :: Top Left to Top Right (Vertice1 to Vertice2)
@@ -385,11 +382,9 @@ Z_Lin_Array = Z_Lin_Array(dup);         %length 173     %696 - NoNorm
 RVWall_Array = RVWall_Array(dup);       %length 173     %696 - NoNorm
 ZVWall_Array = ZVWall_Array(dup);       %length 173     %696 - NoNorm
 
-%Differential vessel wall thickness causes some overlap, the pad removes it
-Pad = 0;
 %Construct vessel wall FIESTA filaments using position arrays
 %Inputs(R,Z,r_thick,z_thick,1,0,0) where {R=MajorRadius, Z=Height, r=MinorRadius, z=MinorHeight}
-for i=1:length(R_Lin_Array)-Pad
+for i=1:length(R_Lin_Array)
     vessel_filament(i) = fiesta_filament(R_Lin_Array(i),Z_Lin_Array(i),RVWall_Array(i),ZVWall_Array(i),1,0,0);
 end
 %Enable induced currents in vessel wall filaments - used only to calculate eddy currents
@@ -539,7 +534,7 @@ VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeInd
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
 
 %Plot target equilibrium following convergence
-Title = {'SMART Target Equilibrium \Psi(R,Z)',' '};
+Title = {'SMART Target Equilibrium iter(0)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_TargetEquilibrium';
 SaveString = strcat(ProjectName,Filename,FigExt);
@@ -556,7 +551,7 @@ PlotEquilibrium({Equil,sensor_btheta},{rGrid,zGrid},Title,CbarLabel,SaveString);
 %%%%%%%%%%%%%%%%%%%%  PLOT NULL-FIELD PHI SURFACES  %%%%%%%%%%%%%%%%%%%%%
 
 %Plot the optimised null-field phi
-Title = {'SMART Null-field Equilibrium \Psi(R,Z)',' '};
+Title = {'SMART Null-field Equilibrium iter(0)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi';
 SaveString = strcat(ProjectName,Filename,FigExt);
@@ -568,7 +563,7 @@ PlotEquilibrium({equil_null},{rGrid,zGrid},Title,CbarLabel,SaveString);
 logBpolData_Null = log(BpolData_Null);
 logBtorData_Null = log(BtorData_Null);
 %Plot the optimised null-field phi
-Title = {'SMART Null-field B_{\theta}',' '};
+Title = {'SMART Null-field iter(0)',' '};
 CbarLabel = 'Null-field B_{\theta} ln([T])';
 Filename = '__NullBpol';
 SaveString = strcat(ProjectName,Filename,FigExt);
@@ -594,7 +589,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 %Plot plasma current over full timescale
 close all
 plot(time_adaptive*1000, Ip_output/1000)
-title(gca,'SMART Plasma Current');
+title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'Plasma Current'); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Plasma Current (kA)');
@@ -610,7 +605,7 @@ Net_IPassive = sum(I_Passive,2);
 %Plot net passive current density over full timescale
 close all
 plot(time_adaptive*1000, Net_IPassive/1000)
-title(gca,'Net SMART Eddy Current');
+title(gca,'Net SMART Eddy Current iter(0)');
 legend(gca,'Net Eddy Current'); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Net Vessel Current I_{Eddy} [kA]');
@@ -632,7 +627,7 @@ close all
 figure; hold on; axis equal;
 plot(coilset);
 scatter3(RR,ZZ,VesselEddyCurrents/1000,100,VesselEddyCurrents/1000,'filled');
-title('SMART Vessel Eddy-Currents');
+title('SMART Vessel Eddy Currents iter(0)');
 view(2) %2D view
 colormap(plasma);
 cbar = colorbar;
@@ -1074,7 +1069,7 @@ close all       %Ensure all open figures are closed
 %Extract previously calculated efit coil currents without eddies
 CoilCurrents = transpose(CoilWaveforms(:,TimeIndex_Discharge)); %n=5, coil filaments 
 %NEED A CATCH-RETRY SECTION FOR UPDATING THE GUESSES (General rule - Slightly increase IDiv2 and retry)
-CoilCurrents(iDiv2) = 950;
+CoilCurrents(iDiv2) = I_Div2_Equil;     %900;
 %Combine efit coil currents and vessel eddy currents into new array
 CoilAndVesselCurrents = [CoilCurrents, VesselEddyCurrents];     %n=313, coil + vessel filaments
 
@@ -1179,7 +1174,7 @@ Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
 
 %Plot target equilibrium following convergence
-Title = {'SMART Target Equilibrium 1st Order Eddy \Psi(R,Z)',' '};
+Title = {'SMART Target Equilibrium iter(1)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_TargetEquilibrium_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
@@ -1191,7 +1186,7 @@ CoilCurrentsEfit_Passive(1:nPF)
 %%%%%%%%%%%%%%%%%%%%  PLOT NULL-FIELD PHI SURFACES  %%%%%%%%%%%%%%%%%%%%%
 
 %Plot the optimised null-field phi
-Title = {'SMART Null-field Equilibrium 1st Order Eddy \Psi(R,Z)',' '};
+Title = {'SMART Null-field Equilibrium iter(1)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
@@ -1206,7 +1201,7 @@ CoilCurrentsNull_Passive(1:nPF)
 logBpolData_Null_Passive = log(BpolData_Null_Passive);
 logBtorData_Null_Passive = log(BtorData_Null_Passive);
 %Plot the optimised null-field phi
-Title = {'SMART Null-field 1st Order Eddy B_{\theta}',' '};
+Title = {'SMART Null-field iter(1)',' '};
 CbarLabel = 'Null-field B_{\theta} ln([T])';
 Filename = '__NullBpol_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
