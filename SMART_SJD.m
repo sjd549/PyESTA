@@ -64,7 +64,7 @@ RMaxCentre=VesselRMaxInner+(VWall_Outboard/2);	% Outboard wall 'grows outwards (
 
 %Define Solenoid Geometry and Parameters
 nSol=210;					 		% Number of Solenoid Windings
-RSolInner=0.115; RSolOuter=0.145;   % Inner and Outer solenoid radii    [m] 
+RSolInner=0.115; RSolOuter=0.145;   % Inner and Outer solenoid radii    [m]
 RSol=(RSolInner+RSolOuter)/2;       % Central radius of solenoid (0.13) [m]
 ZMinSol=ZMinCentre-(VWall_Upper/2); % Solenoid Min Z position           [m]
 ZMaxSol=ZMaxCentre+(VWall_Lower/2); % Solenoid Max Z position           [m]
@@ -84,18 +84,6 @@ nPF2=nZPF2*nRPF2;
 %Define coil turn dimensions to enable cross-section calculation
 width_PF=0.042;  % Width of a turn (m)
 height_PF=0.035; % Height of a turn (m)
-
-%{
-%Define central location of coil sets
-R_PF1=(0.90)+ww_R/2;  %R position of PF1 (m)		%0.90m
-Z_PF1=(0.30)+ww_Z/2;  %Z Position of PF1 (m)		%0.30m
-R_PF2=(0.90)+ww_R/2;  %R Position of PF2 (m)		%0.90m
-Z_PF2=(0.60)+ww_Z/2;  %Z Position of PF2 (m)		%0.60m
-R_Div1=(0.15)+ww_R/2; %R Position of Div1 (m)		%0.15m	(Originally 0.25m)
-Z_Div1=(0.85)+ww_Z/2; %Z Position of Div1 (m)		%0.85m
-R_Div2=(0.45)+ww_R/2; %R Position of Div2 (m)		%0.45m	(Originally 0.55m)
-Z_Div2=(0.85)+ww_Z/2; %Z Position of Div2 (m)		%0.85m
-%}
 
 %Define central location of coil sets
 R_PF1=0.90;  %R position of PF1 (m)		%0.90m
@@ -239,6 +227,7 @@ CoilWaveforms = [ISol_Waveform; IPF1_Waveform; IPF2_Waveform; IDiv1_Waveform; ID
 
 %Define dynamic coils (i.e. which coil currents are fit by efit)
 global efitCoils; efitCoils = {'PF1','PF2'};
+global feedbackCoils; feedbackCoils = {'PF1','PF2'};
 
 
 %%%%%%%%%%%%%%%%%%  DISPLAY VARIABLE OUTPUT TO USER  %%%%%%%%%%%%%%%%%%%%%%
@@ -287,106 +276,35 @@ disp([ ' ' ]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define FIESTA simulation grid limits and resolution
-GridSize_R = [0.03, 1.0];	%[m]
-GridSize_Z = [-1.3, 1.3];	%[m]
-GridCells_R = 200;          %[Cells]
-GridCells_Z = 251;          %[Cells]
-GridRes_R = max(GridSize_R)/GridCells_R;	%[m/Cell] GridRes_R = 0.00500
-GridRes_Z = max(GridSize_Z)/GridCells_Z;	%[m/Cell] GridRes_Z = 0.00518
+GridSize_R = [0.01, 1.0];	%[m]        (0.03, 1.0)
+GridSize_Z = [-1.3, 1.3];	%[m]        (-1.3, 1.3)
+GridCells_R = 250;          %[Cells]    (250)   (>250 would be good, RAM issues)
+GridCells_Z = 251;          %[Cells]    (251)   (~251 seems good, higher becomes unstable)
+global GridRes_R; global GridRes_Z;
+GridRes_R = max(GridSize_R)/GridCells_R;	%[m/Cell] GridRes_R = 0.00396  (GridRes_R = 0.00333)
+GridRes_Z = max(GridSize_Z)/GridCells_Z;	%[m/Cell] GridRes_Z = 0.01036
 
 %Generate fiesta_grid object over which equilibrum simulation will be performed
 global Grid;
 Grid = fiesta_grid(GridSize_R(1),GridSize_R(2),GridCells_R, GridSize_Z(1),GridSize_Z(2),GridCells_Z);
 
 %Extract vectors of R and Z grid points for use in further diagnostics
-rGrid=get(Grid,'r'); %1*200
+rGrid=get(Grid,'r'); %1*250
 zGrid=get(Grid,'z'); %1*251
 
 
 %%%%%%%%%%%%%%%%%%  INITIATE VACUUM VESSEL FILAMENTS  %%%%%%%%%%%%%%%%%%%
 
-%Define four vertices defined as the centre of each vessel corner
-Vertice1=[RMinCentre ZMaxCentre];	%Top Left
-Vertice2=[RMaxCentre ZMaxCentre];	%Top Right
-Vertice3=[RMaxCentre ZMinCentre];	%Bottom Right
-Vertice4=[RMinCentre ZMinCentre];	%Bottom Left
-%Define wall corners going clockwise from top left (R,Z)
-WallCorners=[[Vertice1]; [Vertice2]; [Vertice3]; [Vertice4]];
-WallThickness=[[VWall_Upper]; [VWall_Outboard]; [VWall_Lower]; [VWall_Inboard]];
+%Define vessel corners, thickness and filament cross-sectional area 
+VesselDimensions = [RMinCentre, RMaxCentre, ZMinCentre, ZMaxCentre];       %[m]
+WallThickness = [VWall_Upper, VWall_Outboard, VWall_Lower, VWall_Inboard]; %[m]
+%Lower filament areas give higher passive current resolution
+FilamentArea = 1.5e-4; %(>= 1.3e-4 or RZIp inductance matrix fails)        %[m^2]  
 
-%Define constant vessel cell surface area (required for RZIp inductance matrix stability)
-%NEED TO DETERMINE A BASELINE AREA WHICH GIVES GOOD RESOLUTION ON ALL WALLS (5.0e-5?)
-BaselineArea = max(WallThickness)^2;     %[m^2] 
-%Define normalisation factors for each wall to achieve baseline area
-WallNormFactor1 = BaselineArea/(WallThickness(1)^2);
-WallNormFactor2 = BaselineArea/(WallThickness(2)^2);
-WallNormFactor3 = BaselineArea/(WallThickness(3)^2);
-WallNormFactor4 = BaselineArea/(WallThickness(4)^2);
-WallNormFactors = [[WallNormFactor1]; [WallNormFactor2]; [WallNormFactor3]; [WallNormFactor4]];
-%WallNormFactors = [[1]; [1]; [1]; [1]];      % !!!FUDGE TO AVOID AREA SCALING!!!
+%Construct SMART vessel wall filaments (filament areas scaled relative to FilamentArea)
+[vessel_filament,R_Fil_Array,Z_Fil_Array] = ... 
+    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea);
 
-%Construct filament arrays for each section of vessel wall:
-%Radial Top Wall, Z=Zmax :: Top Left to Top Right (Vertice1 to Vertice2)
-n_fil1_2 = (RMaxCentre-RMinCentre+2*WallThickness(1))/WallThickness(1);   %Set number of filaments within vessel wall
-n_fil1_2 = round( n_fil1_2/WallNormFactors(1) );                          %Scale number of filaments if required
-R_lin1_2 = linspace(RMinCentre,RMaxCentre,n_fil1_2);            %Create evenly spaced array of R and Z coordinates
-Z_lin1_2 = ZMaxCentre*ones(1,n_fil1_2);                         %Create evenly spaced array of R and Z coordinates
-Length = WallThickness(1)*WallNormFactors(1);                   %Define thickness parallel to wall direction
-Width = WallThickness(1);                                       %Define thickness perpendicular to wall direction
-R_VWall1_2 = linspace(Length,Length,n_fil1_2);                  %Create Radial wall thickness array of size n_fil
-Z_VWall1_2 = linspace(Width,Width,n_fil1_2);                    %Create Axial wall thickness array of size n_fil
-
-%Axial Outboard Wall, R=Rmax :: Top Right to Bottom Right (Vertice2 to Vertice3)
-n_fil2_3 = (ZMaxCentre-ZMinCentre+2*WallThickness(2))/WallThickness(2);   %Set number of filaments within vessel wall
-n_fil2_3 = round( n_fil2_3/WallNormFactors(2) );                          %Scale number of filaments if required
-R_lin2_3 = RMaxCentre*ones(1,n_fil2_3);
-Z_lin2_3 = linspace(ZMaxCentre,ZMinCentre,n_fil2_3);
-R_VWall2_3 = linspace(VWall_Outboard,VWall_Outboard,n_fil2_3);
-Z_VWall2_3 = linspace(VWall_Outboard,VWall_Outboard,n_fil2_3);
-Length = WallThickness(2)*WallNormFactors(2);                   %Define thickness parallel to wall direction
-Width = WallThickness(2);                                       %Define thickness perpendicular to wall direction
-R_VWall2_3 = linspace(Width,Width,n_fil2_3);                    %Create Radial wall thickness array of size n_fil
-Z_VWall2_3 = linspace(Length,Length,n_fil2_3);                  %Create Axial wall thickness array of size n_fil
-
-%Radial Bottom Wall, Z=Zmin :: Bottom Right to Bottom Left (Vertice3 to Vertice4)
-n_fil3_4 = (RMaxCentre-RMinCentre+2*WallThickness(3))/WallThickness(3);   %Set number of filaments within vessel wall
-n_fil3_4 = round( n_fil3_4/WallNormFactors(3) );                          %Scale number of filaments if requiredr
-Z_lin3_4 = ZMinCentre*ones(1,n_fil3_4);
-R_lin3_4 = linspace(RMaxCentre,RMinCentre,n_fil3_4);
-Length = WallThickness(3)*WallNormFactors(3);                    %Define thickness parallel to wall direction
-Width = WallThickness(3);                                        %Define thickness perpendicular to wall direction
-R_VWall3_4 = linspace(Length,Length,n_fil3_4);                   %Create Radial wall thickness array of size n_fil
-Z_VWall3_4 = linspace(Width,Width,n_fil3_4);                     %Create Axial wall thickness array of size n_fil
-
-%Axial Inboard Wall, R=Rmin :: Bottom Left to Top Left (Vertice4 to Vertice1)
-n_fil4_1 = (ZMaxCentre-ZMinCentre+2*WallThickness(4))/WallThickness(4);   %Set number of filaments within vessel wall
-n_fil4_1 = round( n_fil4_1/WallNormFactors(4) );                          %Scale number of filaments if required
-R_lin4_1 = RMinCentre*ones(1,n_fil4_1);
-Z_lin4_1 = linspace(ZMinCentre,ZMaxCentre,n_fil4_1);    
-Length = WallThickness(4)*WallNormFactors(4);                    %Define thickness parallel to wall direction
-Width = WallThickness(4);                                        %Define thickness perpendicular to wall direction
-R_VWall4_1 = linspace(Width,Width,n_fil4_1);                     %Create Radial wall thickness array of size n_fil
-Z_VWall4_1 = linspace(Length,Length,n_fil4_1);                   %Create Axial wall thickness array of size n_fil
-
-%Assemble the vessel wall filament position arrays
-R_Lin_Array=[R_lin1_2 R_lin2_3 R_lin3_4 R_lin4_1]';
-Z_Lin_Array=[Z_lin1_2 Z_lin2_3 Z_lin3_4 Z_lin4_1]';
-RVWall_Array=[R_VWall1_2 R_VWall2_3 R_VWall3_4 R_VWall4_1]';
-ZVWall_Array=[Z_VWall1_2 Z_VWall2_3 Z_VWall3_4 Z_VWall4_1]';
-
-%Remove duplicate cells at wall corners
-%This method should ensure that each wall owns it's starting vertex
-dup = (abs(diff(R_Lin_Array))+abs(diff(Z_Lin_Array))) > 0;
-R_Lin_Array = R_Lin_Array(dup);         %length 173     %696 - NoNorm
-Z_Lin_Array = Z_Lin_Array(dup);         %length 173     %696 - NoNorm
-RVWall_Array = RVWall_Array(dup);       %length 173     %696 - NoNorm
-ZVWall_Array = ZVWall_Array(dup);       %length 173     %696 - NoNorm
-
-%Construct vessel wall FIESTA filaments using position arrays
-%Inputs(R,Z,r_thick,z_thick,1,0,0) where {R=MajorRadius, Z=Height, r=MinorRadius, z=MinorHeight}
-for i=1:length(R_Lin_Array)
-    vessel_filament(i) = fiesta_filament(R_Lin_Array(i),Z_Lin_Array(i),RVWall_Array(i),ZVWall_Array(i),1,0,0);
-end
 %Enable induced currents in vessel wall filaments - used only to calculate eddy currents
 %The vessel density and resistivity are set within fiesta_passive.m, may be settable here!
 global passive; passive = fiesta_passive('STVesselPas',vessel_filament,'g');
@@ -403,19 +321,17 @@ global iDiv2; iDiv2 = 5;     %Outboard Divertor Coil
 
 %Create array containing number of coil windings - Used to generate coil objects
 global coilturns; coilturns=[];
+coilturns(iPF1) = nPF1; coilturns(iPF2) = nPF2;
+coilturns(iDiv1) = nDiv1; coilturns(iDiv2) = nDiv2;
 coilturns(iSol) = nSol; 
-coilturns(iDiv1) = nDiv1;
-coilturns(iDiv2) = nDiv2;
-coilturns(iPF1) = nPF1;
-coilturns(iPF2) = nPF2;
-nPF = 5; 				%Total number of coils including solenoid
+nPF = 5;
 
 %Create coil set from parameters defined above. (Function made by Carlos Soria)
 %Function createVESTPFCircuit creates two PF coils. One in (R, Z) and another in (R, -Z)
-PF1  = createVestPFCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,coilturns(iPF1),nZPF1,nRPF1,true, coil_temp, resistivity, coil_density);
-PF2  = createVestPFCircuit('PF2',R_PF2,Z_PF2,width_PF,height_PF,coilturns(iPF2),nZPF2,nRPF2,true, coil_temp, resistivity, coil_density);
-Div1 = createVestPFCircuit('Div1',R_Div1,Z_Div1,width_PF,height_PF,coilturns(iDiv1),nZDiv1,nRDiv1,true, coil_temp, resistivity, coil_density); 
-Div2 = createVestPFCircuit('Div2',R_Div2,Z_Div2,width_PF,height_PF,coilturns(iDiv2),nZDiv2,nRDiv2,true, coil_temp, resistivity, coil_density);
+PF1  = createVestPFCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,coilturns(iPF1),nZPF1,nRPF1,true,coil_temp,resistivity,coil_density);
+PF2  = createVestPFCircuit('PF2',R_PF2,Z_PF2,width_PF,height_PF,coilturns(iPF2),nZPF2,nRPF2,true,coil_temp,resistivity,coil_density);
+Div1 = createVestPFCircuit('Div1',R_Div1,Z_Div1,width_PF,height_PF,coilturns(iDiv1),nZDiv1,nRDiv1,true,coil_temp,resistivity,coil_density); 
+Div2 = createVestPFCircuit('Div2',R_Div2,Z_Div2,width_PF,height_PF,coilturns(iDiv2),nZDiv2,nRDiv2,true,coil_temp,resistivity,coil_density);
 
 
 %%%%%%%%%%%%%%%%%%%%%%  INITIATE CENTRAL SOLENOID  %%%%%%%%%%%%%%%%%%%%%%
@@ -427,14 +343,15 @@ clear('coil_filaments');
 Z_filament = linspace(ZMinSol,ZMaxSol,nfil_ind_coil);
 %Construct central solenoid filaments - solenoid is treated as 'vessel wall' with nonzero current
 for iFilament=1:nfil_ind_coil
-	Constant=sqrt(70e-6);
-    coil_filaments(iFilament) = fiesta_filament( RSol, Z_filament(iFilament), Constant, Constant ); 
+	InfinitesimalWidth=sqrt(70e-6);
+    coil_filaments(iFilament) = fiesta_filament( RSol, Z_filament(iFilament), InfinitesimalWidth, InfinitesimalWidth ); 
 end
 Sol_Coil = fiesta_coil( 'psh_coil', coil_filaments, 'Blue', resistivity, coil_density );
 Sol_circuit = fiesta_circuit( 'Sol', [1], [Sol_Coil] );
 
 %Collate completed coilset and create FIESTA icoil object for equilibrium computation
-global coilset; coilset = fiesta_coilset('SMARTcoilset',[Sol_circuit,PF1,PF2,Div1,Div2],false,R_Lin_Array',Z_Lin_Array');
+R_Fil_Array = transpose(R_Fil_Array); Z_Fil_Array = transpose(Z_Fil_Array);     %fiesta_coilset requires a row array
+global coilset; coilset = fiesta_coilset('SMARTcoilset',[Sol_circuit,PF1,PF2,Div1,Div2],false,R_Fil_Array',Z_Fil_Array');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%  END SIMULATION INITIAL SET-UP  %%%%%%%%%%%%%%%%%%%%%
@@ -488,12 +405,9 @@ sensor_btheta = InitiateBSensors(EquilParams,a_eff);
 %Output C is used to compute the null-field PF coil currents 
 %Outputs curlyM and curlyR are used to compute the plasma and eddy currents
 rzip_config = fiesta_rzip_configuration( 'RZIP', config, vessel, {sensor_btheta} );
-[A, B, C, D, curlyM, curlyR, gamma, plasma_parameters, index, label_index, state] = ...
+[A, B, C, D, curlyM, curlyR, gamma, plasma_parameters, index, label_index, state, condRZIp] = ...
     response(rzip_config, Equil, 'rp', PlasmaResistPerp);
-%Homogenious Vessel Walls
-%Lp0prime = 1.1841e-06      %Condition number of curlyM: 497781.0 
-%Differential Vessel Walls
-%Lp0prime = 1.1923e-06      %Condition number of curlyM: 30321857.9 
+% NOTE :: condRZIp needs saved (1-norm condition number estimate)
 
 %%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
 
@@ -518,7 +432,8 @@ EquilParams_Null = parameters(equil_null);
 [BpolAvg_Null,BtorAvg_Null] = ExtractNullBMin(EquilParams,BpolData_Null,BtorData_Null,a_eff);
 
 %Compute the average connection length within the null-field sensor region
-%Lc = ConnectionLength(EquilParams,VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner);
+%InnerVesselDimensions=[VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner]
+%Lc = ConnectionLength(EquilParams,InnerVesselDimensions);
 Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
@@ -708,7 +623,7 @@ close all
 figure; hold on; axis equal;
 plot(coilset);
 %plot(vessel);
-quiver(R_Lin_Array,Z_Lin_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','off');
+quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','off');
 title('SMART Vessel Eddy-Stresses');
 view(2) %2D view
 legend(gca,'hide');
@@ -719,6 +634,7 @@ xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 Filename = '_EddyStresses';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
+close('all')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -771,6 +687,7 @@ CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_PerturbedEquilibrium';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({equil_pert},{rGrid,zGrid},Title,CbarLabel,SaveString);
+close('all')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1071,13 +988,22 @@ CoilCurrents = transpose(CoilWaveforms(:,TimeIndex_Discharge)); %n=5, coil filam
 %NEED A CATCH-RETRY SECTION FOR UPDATING THE GUESSES (General rule - Slightly increase IDiv2 and retry)
 CoilCurrents(iDiv2) = I_Div2_Equil;     %900;
 %Combine efit coil currents and vessel eddy currents into new array
-CoilAndVesselCurrents = [CoilCurrents, VesselEddyCurrents];     %n=313, coil + vessel filaments
+CoilAndVesselCurrents = [CoilCurrents, VesselEddyCurrents];     %n=5+n_fil; coil + vessel filaments
+
+%{
+%ANOTHER WAY TO CONSTRUCT THE vesselcoilset WITHOUT USING LOADASSEMBLY
+%Convert the vessel filament set into a vessel coil set and linear circuit
+Vessel_Coil = fiesta_coil( 'Vessel_Coil', vessel_filament, 'Green', resistivity, coil_density );
+Vessel_circuit = fiesta_circuit( 'Vessel_Circuit', [1], [Vessel_Coil] );
+%Collate completed coilset and create FIESTA icoil object for equilibrium computation
+Vesselcoilset = fiesta_coilset('SMARTVesslcoilset',[Sol_circuit,PF1,PF2,Div1,Div2,Vessel_circuit],false,R_Lin_Array',Z_Lin_Array');
+%}
 
 %Create new fiesta coilset and configuration to re-perform efit
-global coilvesselset
-coilvesselset = fiesta_loadassembly(coilset, vessel);                          %Creates object of size coil and vessel currents ????    
-config_passive = fiesta_configuration('Config_Passive', Grid, coilvesselset);  %Creates config including coil and vessel filaments
-icoil_passive = fiesta_icoil( coilvesselset, CoilAndVesselCurrents );          %Creates icoil object with coil and vessel currents
+global vesselcoilset
+vesselcoilset = fiesta_loadassembly(coilset, vessel);                          %Creates object of size coil and vessel currents ????    
+config_passive = fiesta_configuration('Config_Passive', Grid, vesselcoilset);  %Creates config including coil and vessel filaments
+icoil_passive = fiesta_icoil( vesselcoilset, CoilAndVesselCurrents );          %Creates icoil object with coil and vessel currents
 
 %Compute equilibrium (Psi(R,Z)) from the supplied jprofile, icoil and geometry
 %Returns target equilibrium and CoilWaveforms for PF1 and PF2 at requested time_Index
@@ -1085,10 +1011,11 @@ icoil_passive = fiesta_icoil( coilvesselset, CoilAndVesselCurrents );          %
 %    efitInverse(jprofile,Irod,CoilWaveforms,efitGeometry_Init,TimeIndex_Discharge);
 %NEED TO EITHER SUPPLY THE COILSET TO THE EFIT FUNCTION OR COMPUTE IT OUTSIDE OF THE FUNCTION FOR ALL CASES
 %FIRST JOB IS TO GET THE EFIT FUNCTION CAPABLE OF WORKING WITH DIFFERENT CONFIGS, COILSETS AND VESSEL FILAMENTS
+%TRY TO CONVERT THE VESSEL FILAMENTS INTO COILS USING THE FIESTA_CIRCUIT FUNCTION?
 
 %Recompute efit including eddy currents using efit_config_passive and icoil_passive (maintain original efit_Geometry_Init)
 control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-5, 'boundary_method',2);
-[efit_config_passive, signals_passive, weights_passive, index_passive] = efit_shape_controller(config_passive, {'PF1','PF2'}, efitGeometry_Init);
+[efit_config_passive, signals_passive, weights_passive, index_passive] = efit_shape_controller(config_passive, efitCoils, efitGeometry_Init);
 Equil_Passive = fiesta_equilibrium('SMART_Passive', config_passive, Irod, jprofile, control, efit_config_passive, icoil_passive, signals_passive, weights_passive);
 EquilParams_Passive = parameters(Equil_Passive);
 
@@ -1100,25 +1027,29 @@ CoilCurrentsEfit_Passive = get(icoil_efit_passive,'currents');
 %Initiate virtual B-field sensors centered on Rgeo
 sensor_btheta_passive = InitiateBSensors(EquilParams_Passive,a_eff);
 
+%{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % POSSIBLE FIX FOR THE RZIP ISSUE??
-%
-%CoilCurrents = CoilCurrentsEfit_Passive(1:nPF)
-%VesselCurrents = CoilCurrentsEfit_Passive(nPF:313)
-%
+CoilCurrents = CoilCurrentsEfit_Passive(1:nPF)
+VesselCurrents = CoilCurrentsEfit_Passive(nPF:313)
+
 %MAKE ALL VESSEL FILAMENTS INTO COILS WITH THEIR RESPECTIVE CURRENTS
-%icoil_Vessel =  fiesta_icoil( nPF + length(vessel)) %313 'coils'
-%for i=1:313
-%   icoil_vessel(i) = CoilCurrentsEfit_Passive(i)
-%end
+icoil_Vessel =  fiesta_icoil( nPF + length(vessel)) %313 'coils'
+for i=1:313
+   icoil_vessel(i) = CoilCurrentsEfit_Passive(i)
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}
 
-%NEED TO RE-CALCULATE PLASMA AND EDDY WITH NEW EFIT EQUILIBRIUM
-%ADDING EDDY CURRENTS VARIES THE PLASMA CURRENT - 
-%rzip_config = fiesta_rzip_configuration( 'RZIP',config_passive,vessel,{sensor_btheta_passive} );   %CONFIG ACCOUNTS FOR VESSEL FILAMENTS
-%A_Passive,B_Passive,C_Passive,D_Passive,curlyM_Passive,curlyR_Passive,gamma_Passive,plasma_parameters_Passive,index_Passive,label_index_Passive,state_Passive] = ...
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%NEED TO RE-CALCULATE PLASMA AND EDDY WITH NEW EFIT EQUILIBRIUM - ADDING EDDY CURRENTS VARIES THE PLASMA CURRENT 
+%rzip_config = fiesta_rzip_configuration( 'RZIP', config_passive, vessel, {sensor_btheta_passive} );   %CONFIG ACCOUNTS FOR VESSEL FILAMENTS
+%[A_Passive,B_Passive,C_Passive,D_Passive,curlyM_Passive,curlyR_Passive,gamma_Passive,plasma_parameters_Passive,index_Passive,label_index_Passive,state_Passive,condRZIp_Passive] = ...
 %    response(rzip_config, Equil_Passive, 'rp', PlasmaResistPerp);
-
+%ISSUE :: CV = greens(coilset, vessel) returns NaNs, likely because the vessel filaments are overlapping the vessel 'coils' in Equil_Passive
+%      :: Equil_Passive contains vessel filament 'coils', while RZIP is being fed 'vessel' filaments, both of which have the same coordinates
+%%
 %%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
 
 %Update CoilWaveforms array with null-field values (Using NaN Mask)
@@ -1128,13 +1059,12 @@ sensor_btheta_passive = InitiateBSensors(EquilParams_Passive,a_eff);
 
 %Extract previously calculated efit coil currents without eddys
 CoilCurrentsNull = transpose(CoilWaveforms(:,TimeIndex_NullField)); %Null-field coil currents without eddys
-CoilAndVesselCurrents = [CoilCurrentsNull, VesselEddyCurrents];     %n=313, coil + vessel filaments
-icoil_null_passive = fiesta_icoil(coilvesselset, CoilAndVesselCurrents);
+CoilAndVesselCurrents = [CoilCurrentsNull, VesselEddyCurrents];     %n=5+n_fil; coil + vessel filaments
+icoil_null_passive = fiesta_icoil(vesselcoilset, CoilAndVesselCurrents);
 
 %Compute null-field equilibrium using null-field coil and vessel eddy currents
 equil_null_passive = fiesta_equilibrium('SMART-Null', config_passive, Irod, icoil_null_passive);
 EquilParams_Null_Passive = parameters(equil_null_passive);
-%ISSUE? :: THIS GIVES VERY UNUSUAL COIL CURRENTS REQUIRED FOR NULL-FIELD
 
 %Extract the new coil currents from the null-field equilibrium:
 icoil_null_passive = get(equil_null_passive,'icoil'); 
@@ -1152,7 +1082,8 @@ CoilCurrentsNull_Passive = get(icoil_null_passive,'currents');
     %NOTE - USES EQUILPARAMS_PASSIVE ONLY TO EXTRACT RGeo and ZGeo (Would be less confusing to use EQUILPARAMS_NULL)
 
 %Compute the average connection length within the null-field sensor region
-%Lc_Passive = ConnectionLength(EquilParams,VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner);
+%InnerVesselDimensions=[VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner]
+%Lc = ConnectionLength(EquilParams,InnerVesselDimensions);
 Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
@@ -1232,8 +1163,6 @@ PlotEquilibrium({logBpolData_Null_Passive},{rGrid,zGrid},Title,CbarLabel,SaveStr
 
 
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CORE FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [Equilibrium,EquilParams,OutputCoilWaveforms,efitGeometry,config]= ...
@@ -1277,6 +1206,9 @@ function [Equilibrium,EquilParams,OutputCoilWaveforms,efitGeometry,config]= ...
 	OutputCoilWaveforms(3,5:6) = CoilCurrents_efit(iPF2);    %Assumes IPF2 is flat over equilibrium
 %	OutputCoilWaveforms(4,5:6) = CoilCurrents_efit(iDiv1);   %Need to auto-select which coils to update
 	OutputCoilWaveforms(5,5:6) = CoilCurrents_efit(iDiv2);   %Assumes IDiv2 is flat over equilibrium
+    
+    %Clean up before returning to main code
+    close all
 end
 
 
@@ -1325,8 +1257,8 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     %Compute dynamic coil currents employing Current Criven Ip
 	%CurlyM and CurlyR are large inductance and resistance matrices.
     [V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, Time_Adaptive ] = ...
-        state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true );
-
+        state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names',coil_names, 'show_plot',false, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
+    
     %Set breakdown time and prepare Ip_long and Vp_long for voltage driven Ip
     %!!! NEED Time_Breakdown TO INCLUDE BREAKDOWN AND BURNTHROUGH TIME !!!
     Time_Breakdown = 0;                                          %Set time for plasma breakdown (default 0)
@@ -1337,7 +1269,9 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
 
     %Compute dynamic coil currents employing Voltage Criven Ip
     [ V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, Time_Adaptive ] = ...
-        state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names', coil_names, 'show_plot',true, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
+        state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names',coil_names, 'show_plot',false, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
+    
+    %Clean up before returning to main code
     close all
 end
 
@@ -1501,9 +1435,103 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% UTILITY FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+function [vessel_filaments,R_Fil_Array,Z_Fil_Array]=...
+    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea)
+    
+    %Initiate any required data or control arrays
+    VesselFaces = ["Horizontal", "Vertical", "Horizontal", "Vertical"];
+    R_Fil_Array = [];  Z_Fil_Array = [];
+    dR_Fil_Array = []; dZ_Fil_Array = [];
+	
+    %Unpack wall corners into single parameters
+    RMinCentre = VesselDimensions(1); RMaxCentre = VesselDimensions(2); %[m]
+    ZMinCentre = VesselDimensions(3); ZMaxCentre = VesselDimensions(4); %[m]
+ 	
+    %Determine constant filament area if not otherwise specified
+    %IDEALLY USE (min(WallThickness)^2+max(WallThickness)^2)/2; %[m^2]
+    if FilamentArea == 0.0  
+        FilamentArea = max(WallThickness)^2;    %[m^2]
+    end
+	
+    %Define four vessel vertices going clockwise from inboard upper (V1)
+    Vertice1 = [RMinCentre ZMaxCentre];	%Top Left
+    Vertice2 = [RMaxCentre ZMaxCentre];	%Top Right
+    Vertice3 = [RMaxCentre ZMinCentre];	%Bottom Right
+    Vertice4 = [RMinCentre ZMinCentre];	%Bottom Left
+    WallCorners = [[Vertice1]; [Vertice2]; [Vertice3]; [Vertice4]];
+ 	
+    %Define four wall edges going clockwise from inboard upper (V1)
+    WallEdge1 = [RMinCentre, RMaxCentre];  %Upper Wall
+    WallEdge2 = [ZMaxCentre, ZMinCentre];  %Outboard Wall
+    WallEdge3 = [RMaxCentre, RMinCentre];  %Lower Wall
+    WallEdge4 = [ZMinCentre, ZMaxCentre];  %Inboard Wall
+    WallEdges = [[WallEdge1]; [WallEdge2]; [WallEdge3]; [WallEdge4]];
+    
+    %Define normalisation factors for each wall to achieve filament area
+    WallNormFactor1 = FilamentArea/(WallThickness(1)^2);
+    WallNormFactor2 = FilamentArea/(WallThickness(2)^2);
+    WallNormFactor3 = FilamentArea/(WallThickness(3)^2);
+    WallNormFactor4 = FilamentArea/(WallThickness(4)^2);
+    WallNormFactors = [WallNormFactor1, WallNormFactor2, WallNormFactor3, WallNormFactor4];
+    
+    %If requested, set a homogenious filament area (not recommended)
+    if string(FilamentArea) == "Static"
+        WallNormFactors = [1, 1, 1, 1];
+    end
+    
+    %For each wall, create a linspace of filament coordinates in (R,Z)
+    %and a corresponding linspace of scaled width and height values.
+    for i=1:length(VesselFaces)
+        
+        %If vessel face is horizontal, scale width of filament to maintain area
+        if VesselFaces(i) == "Horizontal"
+            Height = WallThickness(i);                               %Define thickness parallel to wall direction
+            Width = WallThickness(i)*WallNormFactors(i);             %Define thickness perpendicular to wall direction
+            NumFil = (RMaxCentre-RMinCentre+2*WallThickness(i))/WallThickness(i);
+            NumFil = floor( NumFil/WallNormFactors(i) );             %Scale number of filaments to maintain total width
+
+            R_fil = linspace(WallEdges(i,1),WallEdges(i,2),NumFil);  %Create evenly spaced array of wall R coordinates
+            Z_fil = WallCorners(i,2)*ones(1,NumFil);                 %Create evenly spaced array of wall Z coordinates
+            dR_Wall = linspace(Height,Height,NumFil);                %Create Axial wall thickness array of size NumFil
+            dZ_Wall = linspace(Width,Width,NumFil);                  %Create Radial wall thickness array of size NumFil
+
+            R_Fil_Array = [R_Fil_Array, R_fil];                      %Append filament R coordinates to array
+            Z_Fil_Array = [Z_Fil_Array, Z_fil];                      %Append filament Z coordinates to array
+            dR_Fil_Array = [dR_Fil_Array, dR_Wall];                  %Append filament radial widths to array
+            dZ_Fil_Array = [dZ_Fil_Array, dZ_Wall];                  %Append filament axial heights to array
+
+        %If vessel face is vertical, scale height of filament to maintain area
+        elseif VesselFaces(i) == "Vertical"
+            Height = WallThickness(i)*WallNormFactors(i);            %Define thickness parallel to wall direction
+            Width = WallThickness(i);                                %Define thickness perpendicular to wall direction
+            NumFil = (ZMaxCentre-ZMinCentre+2*WallThickness(i))/WallThickness(i);
+            NumFil = floor( NumFil/WallNormFactors(i) );             %Scale number of filaments to maintain total height
+
+            Z_fil = linspace(WallEdges(i,1),WallEdges(i,2),NumFil);  %Create evenly spaced array of wall Z coordinates
+            R_fil = WallCorners(i,1)*ones(1,NumFil);                 %Create evenly spaced array of wall R coordinates
+            dR_Wall = linspace(Width,Width,NumFil);                  %Create Axial wall thickness array of size NumFil
+            dZ_Wall = linspace(Height,Height,NumFil);                %Create Radial wall thickness array of size NumFil
+
+            R_Fil_Array = [R_Fil_Array, R_fil(2:end-1)];             %Append filament R coordinates to array (removing corners)
+            Z_Fil_Array = [Z_Fil_Array, Z_fil(2:end-1)];             %Append filament Z coordinates to array (removing corners)
+            dR_Fil_Array = [dR_Fil_Array, dR_Wall(2:end-1)];         %Append filament radial widths to array (removing corners)
+            dZ_Fil_Array = [dZ_Fil_Array, dZ_Wall(2:end-1)];         %Append filament axial heights to array (removing corners)
+        end 
+    end
+
+    %Construct vessel wall employing passive FIESTA filaments using position arrays
+    for i=1:length(R_Fil_Array)
+        vessel_filaments(i) = fiesta_filament(R_Fil_Array(i),Z_Fil_Array(i),dR_Fil_Array(i),dZ_Fil_Array(i),1,0,0);
+    end
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,a_eff)
 
     %Obtain required global variables
+    global GridRes_R; global GridRes_Z;
     global Grid;
 
     %Null-field region centre is at (RGeo, ZGeo) to align with sensor_btheta
@@ -1515,9 +1543,10 @@ function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,a_eff)
     IndexZGeo = find(ZGeo < ZAxis); IndexZGeo = IndexZGeo(1);
 
     %Determine null-field index range; radius of a_eff around (R, Z)
-    CellRange = ceil(a_eff/0.0055)/2.0;     %Null-field region radius in cells
-    CellRangeR = [IndexRGeo-CellRange, IndexRGeo+CellRange];
-    CellRangeZ = [IndexZGeo-CellRange, IndexZGeo+CellRange];
+    RCells = ceil(a_eff/GridRes_R)/2.0;     %Null-field region radius in cells
+    ZCells = ceil(a_eff/GridRes_Z)/2.0;     %Null-field region height in cells
+    CellRangeR = [IndexRGeo-RCells, IndexRGeo+RCells];
+    CellRangeZ = [IndexZGeo-ZCells, IndexZGeo+ZCells];
     
     %Resize Bpol and Btor arrays to null-region
     BpolData_NullRegion = BpolData(CellRangeZ(1):CellRangeZ(2), CellRangeR(1):CellRangeR(2));
@@ -1567,8 +1596,12 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % !!! NEEDS TESTING !!!
-function Lc=ConnectionLength(EquilParams,VesselRMax,VesselRMin,VesselZMax,VesselZMin)
+function Lc=ConnectionLength(EquilParams,InnerVesselDimensions)
 
+    %Extract inner vessel dimensions for further processing
+    VesselRMax=InnerVesselDimensions(1); VesselRMin=InnerVesselDimensions(2);
+    VesselZMax=InnerVesselDimensions(3); VesselZMin=InnerVesselDimensions(4);
+    
     %Define Location of Inner Vessel Walls (four corners)
     RadialCorners = [VesselRMin, VesselRMax, VesselRMax, VesselRMin];
     AxialCorners = [VesselZMin, VesselZMin, VesselZMax, VesselZMax];
@@ -1615,6 +1648,85 @@ function CoilRampCurrent=FitSolenoidRamp(CoilRampCurrents,TimeVertices)
         CoilRampCurrent = double(CoilRampCurrent);
     end
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Write 2D, 1D and 0D equilibria out to files
+function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,VacuumField)
+
+    %If Equil contains plasma then use in-built geqdsk function
+    if VacuumField == false
+        %Write 2D qeqdsk equilibrium file
+        Filename = strcat(EquilDir,'Equil.txt');
+        geqdsk_write_BUXTON(config, Equilibrium, Filename);
+
+        %Write 1D equilibrium qprofile parameters file
+        qProfile = qprofile(Equilibrium);
+        qProfileVariables = fieldnames(qProfile);
+        qProfileParams = struct2cell(qProfile(:,1));
+        Filename = strcat(EquilDir,'EquilProfiles.txt');
+        fileID=fopen(Filename,'w');
+        for i = 1:length(qProfileVariables)
+            fprintf(fileID,'%s\r\n', string(qProfileVariables(i)));
+            for j = 1:length(qProfileParams{i})
+                try fprintf(fileID,'%1.13f\r\n', qProfileParams{i}(j));
+                catch fprintf(fileID,'%1.13f\r\n', 'NaN');
+                end 
+            end
+            fprintf(fileID,'%s\r\n', '*');
+        end
+
+        %Write 0D equilibrium parameters file
+        EquilParams = parameters(Equilibrium);
+        ParamVariables = fieldnames(EquilParams);
+        ParamValues = struct2cell(EquilParams(:,1));
+        Filename = strcat(EquilDir,'EquilParam.txt');
+        fileID=fopen(Filename,'w');
+        for i = 1:length(ParamValues)
+            try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
+            catch fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); 'NaN']);
+            end
+        end
+    
+        
+    %If vacuum field equilibrium is supplied, cannot use geqdsk function
+    elseif VacuumField == true 
+        %Write 2D vacuum equilibrium file
+        Filename = strcat(EquilDir,'Null_Equil.txt');
+        fileID = fopen(Filename,'w');
+        
+        %Vacuum equilibria can't use geqdsk format - save as 2D array
+        Psi_RZ = struct2cell(get(Equilibrium,'Psi_vac')); 
+        Psi_RZ = Psi_RZ(3); Psi_RZ = Psi_RZ{1,1};                   %len(50200) = len(R)*len(Z)
+        Psi_RZ = reshape(Psi_RZ,[length(zGrid),length(rGrid)]);     %[rGrid,zGrid] = [len(R),len(Z)]
+        fprintf(fileID,'%s %s %s \n', '     Psi_Null', string(length(rGrid)), string(length(zGrid)));
+        for i = 1:size(Psi_RZ,1)
+            fprintf(fileID,'%g\t',Psi_RZ(i,:));
+            fprintf(fileID,'\n');
+        end
+        
+        %Write Null Bpol as 2D array
+        Filename = strcat(EquilDir,'Null_Bpol.txt');
+        fileID=fopen(Filename,'w');
+        fprintf(fileID,'%s %s %s \n', '     Bpol_Null', string(length(rGrid)), string(length(zGrid)));
+        for i = 1:size(BpolData_Null,1)
+            fprintf(fileID,'%g\t',BpolData_Null(i,:));
+            fprintf(fileID,'\n');
+        end
+        
+        %Write Null Btor as 2D array
+        Filename = strcat(EquilDir,'Null_Bpol.txt');
+        fileID=fopen(Filename,'w');
+        fprintf(fileID,'%s %s %s \n', '     Btor_Null', string(length(rGrid)), string(length(zGrid)));
+        for i = 1:size(BtorData_Null,1)
+            fprintf(fileID,'%g\t',BtorData_Null(i,:));
+            fprintf(fileID,'\n');
+        end
+    end
+    
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

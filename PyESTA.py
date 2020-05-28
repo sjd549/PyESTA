@@ -253,17 +253,17 @@ a_eff=0.10;								# Null field region radius	 [m]
 #Negative coil currents attract the plasma, positive repel the plasma
 #Symmetric Solenoid PrePulse and Equil currents aid power supply stability
 
-#Solenoid coil currents [kA]		#Phase1		#PhaseDiv1=ISol	#Phase2
-I_Sol_Null=+750						#+0750;		#+0775;			#+2200
-I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic		#Dynamic
-I_Sol_Equil=-I_Sol_Null				#-750; 	    #-0950;			#-2900
-I_Sol_EndEquil=-I_Sol_Null			#-750;	    #-0775;			#-2900
+#Solenoid coil currents [kA]		#Phase1		#Phase2
+I_Sol_Null=+750						#+0750;		#+2200
+I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic
+I_Sol_Equil=-I_Sol_Null				#-750; 	    #-2900
+I_Sol_EndEquil=-725					#-725;	    #-2900
 
 #PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-500;					#-500;		#-500;			#-1100
-I_PF2_Equil=-500;					#-500;		#-500;			#-1700
-I_Div1_Equil=+000;					#ISol;		#+000;			#+0000
-I_Div2_Equil=+500;					#+500;		#-900;			#+3300
+I_PF1_Equil=-500;					#-500;		#-1100
+I_PF2_Equil=-500;					#-500;		#-1700
+I_Div1_Equil=+000;					#ISol;		#+0000
+I_Div2_Equil=+900;					#+900;		#+3300
 
 #Define number of time-steps (vertices) in the current waveforms
 nTime = 7			# Coil Waveform Timesteps	[-]
@@ -365,41 +365,40 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #Define FIESTA namelist and project directory names
 FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'S1-000004'			#Define Global Project Name (Baseline Equilibrium)
+ProjectName = 'S1-000008'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = False		#Run requested simulation series
+IAutorun = False			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
 #Define equilibrium calculation method
-IEquilMethod = 'efit'					#Define equil method: 'standard','efit','feedback'
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'I_Sol_Null'		#Define parameter to vary - Required for diagnostics
-ParameterRange = [875]				#Define paramter range to vary over
+ParameterVaried = 'FilamentArea'		#Define parameter to vary - Required for diagnostics
+ParameterRange = [1.4e-4,1.6e-4,1.8e-4,2.0e-4,2.2e-4,2.4e-4,2.6e-4,2.8e-4,3.0e-4]			#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
-savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
-savefig_EfitEquilTrends = True		#Plots efit equilibrium geometry trends from Param(equil)
+savefig_EquilStability = False		#Plots current trends in response to perturbed equilibria
+savefig_EfitEquilTrends = False		#Plots efit equilibrium geometry trends from Param(equil)
 savefig_UserEquilTrends = False		#Plots user defined equilibrium trends from Param(equil)
 #savefig_EquilSeperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 #savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 #savefig_EquilXpoint = False		#Plots X-point location (R,Z) trends
 
 savefig_CoilCurrentTraces = True	#Plots PF coil current timetraces for each simulation
-savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
+savefig_CoilCurrentTrends = False#True	#Plots trends in PF coil currents over all simulations
 
-savefig_ConnectionLength = True		#Plots trends in average connection length over all simulations
-savefig_PaschenCurves = True		#Plots Paschen curves for each simulation using Lc
+savefig_ConnectionLength = False		#Plots trends in average connection length over all simulations
+savefig_PaschenCurves = False		#Plots Paschen curves for each simulation using Lc
 
-savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
-savefig_EddyCurrent = True			#Plots total vessel eddy current trends over all simulations
+savefig_PlasmaCurrent = False		#Plots plasma current trends over all simulations
+savefig_EddyCurrent = False			#Plots total vessel eddy current trends over all simulations
 
 
 #Image overrides and tweaks
@@ -587,15 +586,26 @@ def FindNamelistVariable(Namelist_Dir,ParameterVaried):
 #Returns modified namelist entry for sanity checking purposes
 #WARNING -- DOESN'T APPEAR TO WORK FOR STATEMENTS INSIDE INDENTED LOOPS!!!
 #Example: Init,Entry = AlterNamelistVariable(FIESTAName,ParameterVaried,VariableValue)
-def AlterNamelistVariable(Namelist_Dir,ParameterVaried,VariableValue):
+def AlterNamelistVariable(Namelist_Dir,ParameterVaried,VariableValue,Header=False):
 
 	#Open namelist file and identify the requested variable name, line index and init value
 	Namelist = open(Namelist_Dir).readlines()
-	NamelistEntry = filter(lambda x:ParameterVaried in x, Namelist)[0]
+
+	#Set header index if it is to be accounted for, else set header index to zero.
+	if Header == True:
+		HeaderString = 'DEFINE REACTOR GEOMETRY'
+		HeaderLine = filter(lambda x:HeaderString in x, Namelist)[0]
+		HeaderIndex = Namelist.index(HeaderLine)
+	else:
+		HeaderIndex = 0
+	#endif
+
+	#Find requested variable in namelist, extract index and value
+	NamelistEntry = filter(lambda x:ParameterVaried in x, Namelist[HeaderIndex::])[0]
 	NamelistIndex = Namelist.index(NamelistEntry)
 	try: NamelistValue = float(NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,='))
 	except: NamelistValue = NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,=')
-	
+
 	#Seperate variable string into 5 sub-strings of order: 'Variable,Sep2,Value,Sep,Comment'
 	#Assumes single value input terminated by a semi-colon - allows for and retains comments
 	Input, Sep, Comment = NamelistEntry.partition(';')
@@ -949,16 +959,14 @@ if IAutorun == True:
 		#Update new FIESTA.m with fixed namelist parameters
 		MatlabProjectString = '\''+ProjectName+'\''
 		MatlabSimulationString = '\''+SimulationString+'\''
-		MatlabIEquilMethod = '\''+IEquilMethod+'\''
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'ProjectName',MatlabProjectString)
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'SimName',MatlabSimulationString)
-		AlteredEntry = AlterNamelistVariable(FIESTAName,'IEquilMethod',MatlabIEquilMethod)
 		AlteredEntry = AlterNamelistVariable(FIESTAName,'NumThreads',NumThreads)
 
 		#####
 
 		#Update new FIESTA.m with variable namelist parameters for Parameter[i]
-		AlteredEntry = AlterNamelistVariable(FIESTAName,ParameterVaried,ParameterRange[i])
+		AlteredEntry = AlterNamelistVariable(FIESTAName,ParameterVaried,ParameterRange[i],Header=True)
 
 		#Run modified FIESTA - Verbosity determines terminal output.
 		#TO IMPLIMENT::: MAXIMUM CONCURRENT RUNS = MaxNumThreads/NumThreads
@@ -1939,7 +1947,7 @@ if savefig_PlasmaCurrent == True:
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract plasma current data from series directories
-	Filename = 'Ip.txt'
+	Filename = 'RZIP_Data/Ip.txt'
 	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
@@ -2044,7 +2052,7 @@ if savefig_EddyCurrent == True:
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract plasma current data from series directories
-	Filename = 'IPass.txt'
+	Filename = 'RZIP_Data/IPass.txt'
 	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 	IPass_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
