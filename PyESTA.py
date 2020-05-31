@@ -365,14 +365,14 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #Define FIESTA namelist and project directory names
 FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'S1-000008'			#Define Global Project Name (Baseline Equilibrium)
+ProjectName = 'S1-000009'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
 SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
 
 #Define if simulations are to be run
-IAutorun = False			#Run requested simulation series
+IAutorun = True			#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
@@ -380,25 +380,25 @@ IVerbose = True			#Verbose terminal output - not compatable with IParallel
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'FilamentArea'		#Define parameter to vary - Required for diagnostics
-ParameterRange = [1.4e-4,1.6e-4,1.8e-4,2.0e-4,2.2e-4,2.4e-4,2.6e-4,2.8e-4,3.0e-4]			#Define paramter range to vary over
+ParameterVaried = 'VWall_Outboard'	#Define parameter to vary - Required for diagnostics
+ParameterRange = [0.004,0.006,0.008,0.010,0.012,0.014]			#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
-savefig_EquilStability = False		#Plots current trends in response to perturbed equilibria
-savefig_EfitEquilTrends = False		#Plots efit equilibrium geometry trends from Param(equil)
-savefig_UserEquilTrends = False		#Plots user defined equilibrium trends from Param(equil)
+savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
+savefig_EfitEquilTrends = True		#Plots efit equilibrium geometry trends from Param(equil)
+savefig_UserEquilTrends = False		#Plots user defined equilibrium trends from Param(equil)	#UserEquilParameter
 #savefig_EquilSeperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 #savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 #savefig_EquilXpoint = False		#Plots X-point location (R,Z) trends
 
 savefig_CoilCurrentTraces = True	#Plots PF coil current timetraces for each simulation
-savefig_CoilCurrentTrends = False#True	#Plots trends in PF coil currents over all simulations
+savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
 
-savefig_ConnectionLength = False		#Plots trends in average connection length over all simulations
-savefig_PaschenCurves = False		#Plots Paschen curves for each simulation using Lc
+savefig_ConnectionLength = True		#Plots trends in average connection length over all simulations
+savefig_PaschenCurves = True		#Plots Paschen curves for each simulation using Lc
 
-savefig_PlasmaCurrent = False		#Plots plasma current trends over all simulations
-savefig_EddyCurrent = False			#Plots total vessel eddy current trends over all simulations
+savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
+savefig_EddyCurrent = True			#Plots total vessel eddy current trends over all simulations
 
 
 #Image overrides and tweaks
@@ -1825,14 +1825,16 @@ if savefig_PaschenCurves == True:
 	#Extract relevent data from series directories
 	Filename = 'LCon.txt'
 	Lc_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+#	Filename = 'VLoop.txt'
+#	VLoop_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 
 	#Remove any header string from the data - ???also removes lowest array???
-	for i in range(0,len(Time_Arrays)):
+	for i in range(0,len(Lc_Arrays)):
 		Lc_Arrays[i] = Lc_Arrays[i][1::][0]
+#		VLoop_Arrays[i] = VLoop_Arrays[i][1::][0]
 	#endfor
 
-
-	#Create arbitary pressure array over 1E-5 --> 1E-3 Torr
+	#Create arbitary pressure array over 1E-6 --> 1E-2 Torr
 	Limits,Resolution = [1E-6,1E-2],25000
 	PressureArray = np.linspace(Limits[0],Limits[1],Resolution).tolist()
 
@@ -2107,7 +2109,7 @@ if savefig_EddyCurrent == True:
 #	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
 	ax.tick_params(axis='x', labelsize=20)
 	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim( min(Time_Arrays[0])*1.20,max(Time_Arrays[0])*1.50 )		
+	ax.set_xlim( min(Time_Arrays[0])*1.50,max(Time_Arrays[0])*1.30 )		
 #	ax.set_ylim(2,32)
 
 	#Plot trend in plasma current with respect to varied parameter
@@ -2123,7 +2125,7 @@ if savefig_EddyCurrent == True:
 #	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
 	ax2.tick_params(axis='x', labelsize=14)
 	ax2.tick_params(axis='y', labelsize=14)
-#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
+#	ax2.set_xlim( min(TrendAxis),max(TrendAxis) )
 #	ax2.set_ylim(0.79,1.01)
 
 	plt.tight_layout(pad=3.0,h_pad=1.0)

@@ -22,7 +22,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S1-000009';		%Define global project name
+ProjectName = 'S2-000008';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -63,11 +63,11 @@ RMaxCentre=VesselRMaxInner+(VWall_Outboard/2);	% Outboard wall 'grows outwards (
 %%%%%%%%%%%%%%%%%%%%%%%  DEFINE COIL GEOMETRY  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define Solenoid Geometry and Parameters
-nSol=210;					 		% Number of Solenoid Windings
-RSolInner=0.115; RSolOuter=0.145;   % Inner and Outer solenoid radii    [m]
-RSol=(RSolInner+RSolOuter)/2;       % Central radius of solenoid (0.13) [m]
-ZMinSol=ZMinCentre-(VWall_Upper/2); % Solenoid Min Z position           [m]
-ZMaxSol=ZMaxCentre+(VWall_Lower/2); % Solenoid Max Z position           [m]
+nSol = 210;					 		  % Number of Solenoid Windings
+RSolInner = 0.115; RSolOuter=0.145;   % Inner and Outer solenoid radii    [m]
+RSolCentre = (RSolInner+RSolOuter)/2; % Central radius of solenoid (0.13) [m]
+ZMinSol = ZMinCentre-(VWall_Upper/2); % Solenoid Min Z position           [m]
+ZMaxSol = ZMaxCentre+(VWall_Lower/2); % Solenoid Max Z position           [m]
 
 %Number of Radial (R) and axial (Z) PF coil windings
 nZDiv1=6; nRDiv1=4;
@@ -191,17 +191,17 @@ a_eff=0.15;								% Null field region radius	 [m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
 
-%Solenoid coil currents [kA]		%Phase2{PF1}    %Phase2{PF1,PF2}
-I_Sol_Null=+3000;					%+3000;         %+3200
-I_Sol_MidRamp='Linear';				%Dynamic        %Dynamic
-I_Sol_Equil=-I_Sol_Null;			%-3000;         %-3200
-I_Sol_EndEquil=-3200;           	%-3200;         %-3300
+%Solenoid coil currents [kA]		%Phase2{PF1,PF2}    %Phase2{PF1}    
+I_Sol_Null=+2750;					%+2750;             %+2600
+I_Sol_MidRamp='Linear';				%Dynamic            %Dynamic
+I_Sol_Equil=-I_Sol_Null;			%-2750;             %-2600
+I_Sol_EndEquil=-2900;           	%-2900;             %-2800
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-1100;					%-1100;         %-1100
-I_PF2_Equil=-1100;					%-1100;         %-1100
-I_Div1_Equil=+0000;					%+0000;         %+0000
-I_Div2_Equil=+3300;                 %+3100;         %+5000
+I_PF1_Equil=-1100;					%-1100;             %-1100
+I_PF2_Equil=-1100;					%-1100;             %-1100
+I_Div1_Equil=+0000;					%+ISol;             %+ISol
+I_Div2_Equil=+3200;                 %+3200              %+3000
 
 %Define number of time-steps (vertices) in the current waveforms
 TauB = 0.050;			% Buffer Timescale     		[s] Determines tstep for Ip plot
@@ -303,7 +303,7 @@ FilamentArea = 1.5e-4; %(>= 1.3e-4 or RZIp inductance matrix fails)        %[m^2
 
 %Construct SMART vessel wall filaments (filament areas scaled relative to FilamentArea)
 [vessel_filament,R_Fil_Array,Z_Fil_Array] = ... 
-    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea);
+    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea,'Diff');
 
 %Enable induced currents in vessel wall filaments - used only to calculate eddy currents
 %The vessel density and resistivity are set within fiesta_passive.m, may be settable here!
@@ -339,12 +339,13 @@ Div2 = createVestPFCircuit('Div2',R_Div2,Z_Div2,width_PF,height_PF,coilturns(iDi
 %Number of filaments of the inductor (coil = number of turns)
 nfil_ind_coil = coilturns(iSol); 
 
-clear('coil_filaments');
-Z_filament = linspace(ZMinSol,ZMaxSol,nfil_ind_coil);
+%Initiate Z-coordinates for solenoid filaments and calculate width/height
+Z_filament = linspace(ZMinSol,ZMaxSol,nfil_ind_coil); clear('coil_filaments');
+SolWidth = RSolOuter-RSolInner;                 %[m] - Previously sqrt(70e-6)
+SolHeight = (2*ZMaxSol)/(length(Z_filament));   %[m] - Previously sqrt(70e-6)
 %Construct central solenoid filaments - solenoid is treated as 'vessel wall' with nonzero current
 for iFilament=1:nfil_ind_coil
-	InfinitesimalWidth=sqrt(70e-6);
-    coil_filaments(iFilament) = fiesta_filament( RSol, Z_filament(iFilament), InfinitesimalWidth, InfinitesimalWidth ); 
+    coil_filaments(iFilament) = fiesta_filament( RSolCentre, Z_filament(iFilament), SolWidth, SolHeight ); 
 end
 Sol_Coil = fiesta_coil( 'psh_coil', coil_filaments, 'Blue', resistivity, coil_density );
 Sol_circuit = fiesta_circuit( 'Sol', [1], [Sol_Coil] );
@@ -448,6 +449,44 @@ Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 %Extract Vessel Eddy Currents during discharge (time='false' for absolute max)
 VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_Discharge));
 
+
+%%%%%%%%%%%%%%% PLOT VESSEL AND COIL FILAMENT OVERVIEW %%%%%%%%%%%%%%%%%% 
+
+figure; axes;
+set(gca, 'DataAspectRatio', [1,1,1], 'NextPlot', 'add')
+coil = plot(coilset);
+fil = plot(vessel);
+set(fil, 'EdgeColor', 'k')
+set(coil, 'EdgeColor', 'k')
+tau=get(vessel, 'tau');
+r=get(vessel, 'r'); z=get(vessel, 'z');
+%set(line(r(i), z(i)), 'LineStyle', 'none', 'marker' , '*', 'markersize', 10);
+%set(line(r(j), z(j)), 'LineStyle', 'none', 'marker' , 'o', 'markersize', 10);
+set(gca,'XLim',[0.00 1.1]);
+set(gca,'YLim',[-1.1 1.1]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+xlabel(gca,'R (m)');
+ylabel(gca,'Z (m)');
+Filename = '_VesselFilaments';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+
+figure; axes;
+set(gca, 'DataAspectRatio', [1,1,1], 'NextPlot', 'add')
+coil = plot(coilset);
+fil = plot(vessel);
+set(fil, 'EdgeColor', 'k')
+set(coil, 'EdgeColor', 'k')
+tau=get(vessel, 'tau');
+r=get(vessel, 'r'); z=get(vessel, 'z');
+%set(line(r(i), z(i)), 'LineStyle', 'none', 'marker' , '*', 'markersize', 10);
+%set(line(r(j), z(j)), 'LineStyle', 'none', 'marker' , 'o', 'markersize', 10);
+set(gca,'XLim',[0.05 0.45]);
+set(gca,'YLim',[0.45 1.00]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+xlabel(gca,'R (m)');
+ylabel(gca,'Z (m)');
+Filename = '_VesselFilaments_Closeup';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -912,7 +951,7 @@ icoilDir = strcat(ASCIIDir,'icoil_Data/'); mkdir(icoilDir);
 Filename = strcat(icoilDir,'icoil_position.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s %s\r\n', 'Coil','R [m]  ','Z [m]');
-fprintf(fileID,'%s %0.5f %0.5f\r\n', 'Sol ',RSol,ZMaxSol);
+fprintf(fileID,'%s %0.5f %0.5f\r\n', 'Sol ',RSolCentre,ZMaxSol);
 fprintf(fileID,'%s %0.5f %0.5f\r\n', 'PF1 ',R_PF1,Z_PF1);
 fprintf(fileID,'%s %0.5f %0.5f\r\n', 'PF2 ',R_PF2,Z_PF2);
 fprintf(fileID,'%s %0.5f %0.5f\r\n', 'Div1',R_Div1,Z_Div1);
@@ -1357,8 +1396,11 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% UTILITY FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Constructs a set of rectilinear vessel wall filaments of variable thickness
+%Set FilamentArea to 0.0 to autocompute filament area
+%Set WallNorm to 'Static' to enable variable filament area - not recommended
 function [vessel_filaments,R_Fil_Array,Z_Fil_Array]=...
-    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea)
+    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea,WallNorm)
     
     %Initiate any required data or control arrays
     VesselFaces = ["Horizontal", "Vertical", "Horizontal", "Vertical"];
@@ -1370,7 +1412,6 @@ function [vessel_filaments,R_Fil_Array,Z_Fil_Array]=...
     ZMinCentre = VesselDimensions(3); ZMaxCentre = VesselDimensions(4); %[m]
  	
     %Determine constant filament area if not otherwise specified
-    %IDEALLY USE (min(WallThickness)^2+max(WallThickness)^2)/2; %[m^2]
     if FilamentArea == 0.0  
         FilamentArea = max(WallThickness)^2;    %[m^2]
     end
@@ -1395,9 +1436,9 @@ function [vessel_filaments,R_Fil_Array,Z_Fil_Array]=...
     WallNormFactor3 = FilamentArea/(WallThickness(3)^2);
     WallNormFactor4 = FilamentArea/(WallThickness(4)^2);
     WallNormFactors = [WallNormFactor1, WallNormFactor2, WallNormFactor3, WallNormFactor4];
-    
+
     %If requested, set a homogenious filament area (not recommended)
-    if string(FilamentArea) == "Static"
+    if WallNorm == "Static"
         WallNormFactors = [1, 1, 1, 1];
     end
     
