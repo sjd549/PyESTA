@@ -1,4 +1,16 @@
-%% SMall Aspect Ratio Tokamak (SMART), V3p1 init.nam
+%% SMall Aspect Ratio Tokamak (SMART)
+%#################################
+%#		Point of Contact		 #
+%#								 #
+%#	   Dr. Scott J. Doyle		 #
+%#	  Scott.Doyle@Physics.org	 #
+%#	  University of Seville		 #
+%#  Plasma Tech & Fusion Science #
+%#  National Acceleration Centre #
+%#	     Seville, Spain		     #
+%#								 #
+%#################################
+%%
 
 clear 
 clc
@@ -328,10 +340,10 @@ nPF = 5;
 
 %Create coil set from parameters defined above. (Function made by Carlos Soria)
 %Function createVESTPFCircuit creates two PF coils. One in (R, Z) and another in (R, -Z)
-PF1  = createVestPFCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,coilturns(iPF1),nZPF1,nRPF1,true,coil_temp,resistivity,coil_density);
-PF2  = createVestPFCircuit('PF2',R_PF2,Z_PF2,width_PF,height_PF,coilturns(iPF2),nZPF2,nRPF2,true,coil_temp,resistivity,coil_density);
-Div1 = createVestPFCircuit('Div1',R_Div1,Z_Div1,width_PF,height_PF,coilturns(iDiv1),nZDiv1,nRDiv1,true,coil_temp,resistivity,coil_density); 
-Div2 = createVestPFCircuit('Div2',R_Div2,Z_Div2,width_PF,height_PF,coilturns(iDiv2),nZDiv2,nRDiv2,true,coil_temp,resistivity,coil_density);
+PF1  = CreateSMARTCoilCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,coilturns(iPF1),nZPF1,nRPF1,true,coil_temp,resistivity,coil_density);
+PF2  = CreateSMARTCoilCircuit('PF2',R_PF2,Z_PF2,width_PF,height_PF,coilturns(iPF2),nZPF2,nRPF2,true,coil_temp,resistivity,coil_density);
+Div1 = CreateSMARTCoilCircuit('Div1',R_Div1,Z_Div1,width_PF,height_PF,coilturns(iDiv1),nZDiv1,nRDiv1,true,coil_temp,resistivity,coil_density); 
+Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_PF,height_PF,coilturns(iDiv2),nZDiv2,nRDiv2,true,coil_temp,resistivity,coil_density);
 
 
 %%%%%%%%%%%%%%%%%%%%%%  INITIATE CENTRAL SOLENOID  %%%%%%%%%%%%%%%%%%%%%%
@@ -446,9 +458,9 @@ Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 [time_linear,time_adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,I_Passive] = ...
     DynamicCurrents(CoilWaveforms, time, curlyM, curlyR);
 
-%Extract Vessel Eddy Currents during discharge (time='false' for absolute max)
+%Extract Vessel Eddy Currents during discharge and null-field (time='false' for absolute max)
 VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_Discharge));
-
+VesselEddyCurrentsNull = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_NullField));
 
 %%%%%%%%%%%%%%% PLOT VESSEL AND COIL FILAMENT OVERVIEW %%%%%%%%%%%%%%%%%% 
 
@@ -753,7 +765,7 @@ close all       %Ensure all open figures are closed
 %Extract previously calculated efit coil currents without eddies
 CoilCurrents = transpose(CoilWaveforms(:,TimeIndex_Discharge)); %n=5, coil filaments 
 %NEED A CATCH-RETRY SECTION FOR UPDATING THE GUESSES (General rule - Slightly increase IDiv2 and retry)
-CoilCurrents(iDiv2) = I_Div2_Equil;     %950;
+CoilCurrents(iDiv2) = 3400; %I_Div2_Equil;
 %Combine efit coil currents and vessel eddy currents into new array
 CoilAndVesselCurrents = [CoilCurrents, VesselEddyCurrents];     %n=5+n_fil; coil + vessel filaments
 
@@ -829,7 +841,7 @@ end
 
 %Extract previously calculated efit coil currents without eddys
 CoilCurrentsNull = transpose(CoilWaveforms(:,TimeIndex_NullField)); %Null-field coil currents without eddys
-CoilAndVesselCurrents = [CoilCurrentsNull, VesselEddyCurrents];     %n=5+n_fil; coil + vessel filaments
+CoilAndVesselCurrents = [CoilCurrentsNull, VesselEddyCurrentsNull]; %n=5+n_fil; coil + vessel filaments
 icoil_null_passive = fiesta_icoil(vesselcoilset, CoilAndVesselCurrents);
 
 %Compute null-field equilibrium using null-field coil and vessel eddy currents
