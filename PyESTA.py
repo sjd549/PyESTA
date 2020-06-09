@@ -213,13 +213,20 @@ li2 = 1          # Standard Value?      [-]
 #betaN = 3.529   # Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
 
 #Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.440					# Geometrical Radius	[m] (Default 0.44)
-ZGeo_efit = 0.000					# Geometrical Axis		[m] (Default 0.00)
-rGeo_efit = 0.238					# Minor Radius	        [m] (Default 0.44/1.85)
-Aspect_efit = RGeo_efit/rGeo_efit;  # Aspect Ratio          [-] (Default 1.85)
-Kappa_efit = 1.80					# Elongation			[-] (Default 1.80)
-delta_efit = 0.20					# Triangularity			[-] (Default 0.20)
-efit_Geometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit]
+RGeo_efit = 0.440					# Geometrical Radius	[m] (Default 0.440) ::
+ZGeo_efit = 0.000					# Geometrical Axis		[m] (Default 0.000) ::
+Aspect_efit = 1.85					# Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
+rGeo_efit = RGeo_efit/Aspect_efit  	# Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
+Kappa_efit = 1.80					# Elongation			[-] (Default 1.800) ::
+delta_efit = 0.20					# Triangularity			[-] (-2.00-> +0.20) ::
+efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit]
+
+#Define feedback stability perturbations
+deltaRGeo = 0.01;	# Small radial perturbation         [m]
+deltaZGeo = 0.00;	# Small axial perturbation          [m]
+deltaAspect = 0.00;	# Small aspect ratio perturbation   [-]
+deltaKappa = 0.00;	# Small elongation perturbation     [-]
+deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #Compute Further Operating Conditions
 Gr_Limit = 1e20*(Ip*1e-6/(pi*a**2*Kappa))  # Greenwald Limit          [m-3]
@@ -239,9 +246,9 @@ BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*A)+betaP+0.5*li2-3/2)      		 # Vertical field [
 coil_density = 1						# Relative Coil Density      [Arb]
 coil_temp = 293.0						# Initial Coil Temperature   [K]
 
-#Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV)
-#https://www.webelements.com/argon/atoms.html
-Z_eff=1.0								# Effective Nuclear Charge   [e-]
+#Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV) https://www.webelements.com/argon/atoms.html
+#H discharge, Z_eff increased to 2 to allow for impurities in the plasma (Carbon wall tiles)
+Z_eff=2.0								# Effective Nuclear Charge   [e-]
 
 #Null field region radius, specifies Sensor_btheta radius
 a_eff=0.10;								# Null field region radius	 [m]
@@ -254,42 +261,24 @@ a_eff=0.10;								# Null field region radius	 [m]
 #Symmetric Solenoid PrePulse and Equil currents aid power supply stability
 
 #Solenoid coil currents [kA]		#Phase1		#Phase2
-I_Sol_Null=+750						#+0750;		#+2200
+I_Sol_Null=+2650					#+0750;		#+2200
 I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic
 I_Sol_Equil=-I_Sol_Null				#-750; 	    #-2900
-I_Sol_EndEquil=-725					#-725;	    #-2900
+I_Sol_EndEquil=-3000				#-725;	    #-2900
 
 #PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-500;					#-500;		#-1100
-I_PF2_Equil=-500;					#-500;		#-1700
+I_PF1_Equil=-1100;					#-500;		#-1100
+I_PF2_Equil=-1100;					#-500;		#-1700
 I_Div1_Equil=+000;					#ISol;		#+0000
-I_Div2_Equil=+900;					#+900;		#+3300
+I_Div2_Equil=+2800;					#+900;		#+3300
 
 #Define number of time-steps (vertices) in the current waveforms
 nTime = 7			# Coil Waveform Timesteps	[-]
-TauB = 0.020		# Buffer Timescale     		[s] Determines tstep for Ip plot
+TauB = 0.015		# Buffer Timescale     		[s] Determines tstep for Ip plot
 TauR = 0.050		# Ramp Timescale       		[s]
-TauP = 0.020		# Pulse Timescale      		[s]
+TauP = 0.100		# Pulse Timescale      		[s]
 #Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ]
 time =  [-4*TauB,  -2*TauB,  0.0,          TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauB)]
-
-#Definition of time intervals:
-#time(1)--> All coils and Sol initiate at zero current          Init
-#time(2)--> All coils initiate null-field configuration         PrePulse
-#time(3)--> All coils maintain null-field configuration         InitRampDown
-#time(4)--> Sol ramps down, PF/Div coils init equilibrium       MidRampDown - InitEquil
-#time(5)--> Sol completes ramp down, maintain PF/Div coils      EndRampDown - MidEquil
-#time(6)--> All coils maintain equilibrium configuration        EndEquil
-#time(7)--> All coils and Sol terminate at zero current         Terminate
-#######
-#time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
-#time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
-#######
-
-#Define number of time-steps (vertices) in the current waveforms
-nTime = 7;      #[Steps]
-#Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ]
-time =  [-4*TauR,  -2*TauR,  0.0,          TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauR)]
 
 #Construct Sol, PF/Div coil current waveforms vertices
 #											  #!Breakdown!	 #!Efit Icoil!
@@ -297,21 +286,10 @@ time =  [-4*TauR,  -2*TauR,  0.0,          TauR/2.0,    TauR,        TauR+TauP, 
 ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil, 	I_Sol_EndEquil, 0]
 IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,    0]
 IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,    0]
-IDiv1_Waveform = [0,  NaN,        NaN,        NaN,           I_Div1_Equil,  I_Div1_Equil,   0]
-#IDiv1_Waveform = [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil,   I_Sol_Equil,    0]
+IDiv1_Waveform = ISol_Waveform; 	#IDiv1 in Series with Solenoid
 IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,   0]
 #####
 CoilWaveforms = [ISol_Waveform, IPF1_Waveform, IPF2_Waveform, IDiv1_Waveform, IDiv2_Waveform]
-
-
-####################  DEFINE DIAGNOSTIC PARAMETERS  #######################
-
-#Stability diagnostic perturbations (must be smaller than initial variable!)
-deltaRGeo = 0.00;	# Small radial perturbation         [m]
-deltaZGeo = 0.00;	# Small axial perturbation          [m]
-deltaAspect = 0.00;	# Small aspect ratio perturbation   [-]
-deltaKappa = 0.00;	# Small elongation perturbation     [-]
-deltadelta = 0.00;	# Small triangiularity perturbation [-]
 
 #====================================================================#
 #====================================================================#
@@ -364,8 +342,8 @@ deltadelta = 0.00;	# Small triangiularity perturbation [-]
 ########################################
 
 #Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'S1-000009'			#Define Global Project Name (Baseline Equilibrium)
+FIESTAName = 'SMART_SJD_Phase2.m'			#Define name of FIESTA script
+ProjectName = 'S2-000010'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
@@ -380,8 +358,24 @@ IVerbose = True			#Verbose terminal output - not compatable with IParallel
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'VWall_Outboard'	#Define parameter to vary - Required for diagnostics
-ParameterRange = [0.004,0.006,0.008,0.010,0.012,0.014]			#Define paramter range to vary over
+ParameterVaried = 'TauR'	#Define parameter to vary - Required for diagnostics
+ParameterRange = [0.050,0.040,0.030,0.020,0.010]			#Define paramter range to vary over
+
+#'TauB' [0.012,0.015,0.018,0.021,0.024]
+#'TauR' [0.050,0.040,0.030,0.020,0.010]
+
+#TauB	- Run TauB variation for phase 1 and 2 to observe effect on null-field Bpol and 1D eddy currents
+#		- NOTE: Eddy currents induced in null-field are in opposite direction to those in discharge
+#		- therefore value of eddy currents during discarge affected by TauB due to lower starting eddy
+#
+#TauR	- Run TauR variation for phase 1 and 2 to observe effect on Vloop, Eloop
+#		- NOTE: Will probably need to change both timescale and solenoid current range to preserve Ip
+
+#'R_Div1' [0.20,0.21,0.22,0.23,0.24,0.25]
+#'R_Div2' [0.45,0.47,0.49,0.51,0.53,0.55]
+
+
+
 
 #Define which diagnostics are to be performed
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
@@ -601,8 +595,16 @@ def AlterNamelistVariable(Namelist_Dir,ParameterVaried,VariableValue,Header=Fals
 	#endif
 
 	#Find requested variable in namelist, extract index and value
-	NamelistEntry = filter(lambda x:ParameterVaried in x, Namelist[HeaderIndex::])[0]
+	NamelistMatches = filter(lambda x:ParameterVaried in x, Namelist[HeaderIndex::])
+	for i in range(0,len(NamelistMatches)):
+		if '%' not in NamelistMatches[i][0:3]:			
+			#Take first entry that isn't a comment - Little dodgy... but can't think of better way.
+			NamelistEntry = filter(lambda x:ParameterVaried in x, Namelist[HeaderIndex::])[i]
+			break
+		#endif
+	#endfor
 	NamelistIndex = Namelist.index(NamelistEntry)
+	#Convert value into float if possible, otherwise keep as string
 	try: NamelistValue = float(NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,='))
 	except: NamelistValue = NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,=')
 
@@ -941,7 +943,7 @@ if IAutorun == True:
 
 	#Create simulation series folder and obtain folder directories
 	HomeDir = os.getcwd()
-	SeriesDirString = '/'+SeriesName+' '+ProjectName+'/'
+	SeriesDirString = '/'+ProjectName+' '+SeriesName+'/'
 	SeriesDir = CreateNewFolder(HomeDir,SeriesDirString)
 
 	#For all requested input parameters
