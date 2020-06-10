@@ -203,7 +203,7 @@ R_null=0.15;							% Null field region radius	 [m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
 
-%Solenoid coil currents [kA]		%Phase2     %Phase2NegTri   %Phase2PosTri    
+%Solenoid coil currents [kA]		%Phase2     %Phase2NegTri   %Phase2PosTri [TBC]
 I_Sol_Null=+2650;					%+2650;     %+3200          %+2300
 I_Sol_MidRamp='Linear';				%Dynamic    %Dynamic        %Dynamic
 I_Sol_Equil=-I_Sol_Null;			%-2650;     %-2750          %-2300
@@ -311,7 +311,8 @@ zGrid=get(Grid,'z'); %1*251
 VesselDimensions = [RMinCentre, RMaxCentre, ZMinCentre, ZMaxCentre];       %[m]
 WallThickness = [VWall_Upper, VWall_Outboard, VWall_Lower, VWall_Inboard]; %[m]
 %Lower filament areas give higher passive current resolution
-FilamentArea = 2.5e-4; %(>= 1.5e-4 or RZIp inductance matrix fails)        %[m^2]  
+FilamentArea = 2.00e-4; %(2.5e-4 > A > 1.5e-4 or RZIp M,R matrices fail)   %[m^2]
+% ISSUE :: FILAMENT AREA MUST BE CHOSEN VERY CAREFULLY TO ACHIEVE CONVERGENCE - NUMERICAL STABILITY...
 
 %Construct SMART vessel wall filaments ("Static"=fixed fil area, "Diff"=scaled fil area)
 [vessel_filament,R_Fil_Array,Z_Fil_Array] = ... 
@@ -369,6 +370,12 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 %%%   GET NEGATIVE AND POSITIVE TRIANGULARITY CASES SORTED FOR PHASE 1 AND 2  --- DONE (NEED POSITIVE TRIANGULARITY)
 %%%   GET ALL VESSEL, COIL AND CURRENT WAVEFORM DATA UPDATED ON SMART REPO
 %%%   SEND ANY REQUIRED DATA TO MANU AND ALESSIO                              --- DONE
+
+%%%   RERUN ALL S1-000012 CASES WITH THE UPDATED COIL CURRENT AND VOLTAGE FIGURES
+%%%   GET NEGATIVE TRIANGULARITY CASES WORKING FOR S1 AND S2 WITH EDDYS
+%%%   ARCHIVE ANYTHING PRIOR TO S2-000011 and S1-0000012
+%%%   RERUN ANY REQUIRED TAU-R OR TAU-B SIMULATION SERIES
+%%%   ARCHIVE ALL NEW BIBLO AND ADD TO MENDELEY ASAP
 
 %%%   GET ALL FIGURES INTO FUNCTIONS - MAKE VESSEL/COIL SUB-FUNCTION
 %%%   GET I/O ALL INTO FUNCTIONS AND GET NEW SAVING ROUTINES SORTED OUT
@@ -469,7 +476,9 @@ Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
 [Vloop,Eloop] = LoopVoltage(CoilWaveforms,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams.r0);
-Vloop_Lc = Eloop*Lc;     %[V]       %Rough estimate of full Paschen voltage over Lc path length
+Vloop_Lc = Eloop*Lc;                               %[V]     %Rough estimate of voltage over connection lengthscale  (Chang2013)
+Eloop_Lc = abs(Eloop)*(BtorAvg_Null/BpolAvg_Null); %[V/m]   %Rough estimate of startup conditionwith pre-ionisation (An2015)
+%Generally Eloop_Lc_Passive > 100 [V/m] for startup
 
 %MAYBE?? Also Calculate Paschen Curve and Determine Breakdown HERE??
 
@@ -480,15 +489,20 @@ Vloop_Lc = Eloop*Lc;     %[V]       %Rough estimate of full Paschen voltage over
 [time_linear,time_adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,I_Passive] = ...
     DynamicCurrents(CoilWaveforms, time, curlyM, curlyR);
 
-%Compute maximum change in each coil current - Diagnostic
-Delta_IPFoutput = diff(I_PF_output); 
-Delta_VPFoutput = diff(V_PF_output); 
-MinDelta_IPFoutput = min(Delta_IPFoutput); MaxDelta_VPFoutput = max(Delta_VPFoutput);
-MinDelta_VPFoutput = min(Delta_VPFoutput); MaxDelta_IPFoutput = max(Delta_IPFoutput);
+%Compute maximum change in each coil current - !!! MAKE THIS INTO A FUNCTION !!!
+for j=1:length(I_PF_output(1,:))
+    for i=2:length(time_adaptive)-1
+        Delta_IPFoutput(i,j) = ( (I_PF_output(i,j)-I_PF_output(i-1,j))/(time_adaptive(i)-time_adaptive(i-1)) )/1000;  %[A/ms]
+        Delta_VPFoutput(i,j) = ( (V_PF_output(i,j)-V_PF_output(i-1,j))/(time_adaptive(i)-time_adaptive(i-1)) )/1000;  %[V/ms]
+    end
+end
+MinDelta_IPFoutput = min(Delta_IPFoutput); MaxDelta_VPFoutput = max(Delta_VPFoutput);  %[A/ms]
+MinDelta_VPFoutput = min(Delta_VPFoutput); MaxDelta_IPFoutput = max(Delta_IPFoutput);  %[V/ms]
 
 %Extract Vessel Eddy Currents during discharge and null-field (time='false' for absolute max)
 VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_Discharge));
 VesselEddyCurrentsNull = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_NullField));
+% ISSUE :: TAKE EDDY CURRENTS NULL FROM JUST AFTER RAMP-DOWN - NEED AVALANCHE TIMESCALE
 
 
 %%%%%%%%%%%%%%% PLOT VESSEL AND COIL FILAMENT OVERVIEW %%%%%%%%%%%%%%%%%% 
@@ -577,7 +591,7 @@ title(gca,'SMART Coil Current Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
 legend(gca,LegendString); legend boxoff;
 xlabel(gca,'Time (ms)');
-ylabel(gca,'Coil Current I (kA)');
+ylabel(gca,'Coil Current I [kA]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 %%%%%
@@ -592,6 +606,33 @@ set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 %%%%%
 Filename = '_CurrentWaveforms';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+
+%%%%%%%%%%%%%%%%%%%%%% PLOT COIL VOLTAGE WAVEFORMS %%%%%%%%%%%%%%%%%%%%%%%% 
+
+%Plot figure showing dynamic coil currents
+figure('units','inch','position',[10 10 12 12]);
+subplot(2,1,1)
+plot(time_adaptive*1000, V_PF_output/1000, 'LineWidth',2);
+title(gca,'SMART Coil Voltage Waveforms');
+LegendString = {'Sol','PF1','PF2','Div1','Div2'};
+legend(gca,LegendString); legend boxoff;
+xlabel(gca,'Time (ms)');
+ylabel(gca,'Coil Voltage V [kV]');
+set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+%%%%%
+subplot(2,1,2)
+plot(time_adaptive(1:end-1)*1000,Delta_VPFoutput/1000, 'LineWidth',2)
+title(gca,'SMART Delta Coil Voltage Waveforms');
+LegendString = {'Sol','PF1','PF2','Div1','Div2'};
+legend(gca,LegendString); legend boxoff;
+xlabel(gca,'Time (ms)');
+ylabel(gca,'Delta Coil Voltage \Delta V (kV ms^{-1})');
+set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+%%%%%
+Filename = '_VoltageWaveforms';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%% PLOT PLASMA CURRENT %%%%%%%%%%%%%%%%%%%%%%%%%%%            
@@ -944,10 +985,6 @@ CoilCurrentsNull_Passive = get(icoil_null_passive,'currents');
 
 %%%%%%%%%%%%%%%%%%  COMPUTE BREAKDOWN FOR NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%
 
-%Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop_Passive,Eloop_Passive] = LoopVoltage(CoilWaveforms_Passive,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams_Passive.r0);
-%Vloop_Passive_Lc = Eloop_Passive*Lc;     %[V]       %Rough estimate of full Paschen voltage over Lc path length
-
 %Extract the null poloidal and toroidal B-field vector arrays
 [BrData_Null_Passive,BzData_Null_Passive,BPhiData_Null_Passive,BpolData_Null_Passive,BtorData_Null_Passive] = ...
     ExtractBField(equil_null_passive);
@@ -963,6 +1000,13 @@ CoilCurrentsNull_Passive = get(icoil_null_passive,'currents');
 a_eff = min([abs(EquilParams_Passive.r0-VesselRMinInner),abs(EquilParams_Passive.r0-VesselRMaxInner)]);
 Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 
+%Compute maximum loop voltage and E-field during solenoid ramp-down
+[Vloop_Passive,Eloop_Passive] = LoopVoltage(CoilWaveforms_Passive,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams_Passive.r0);
+Vloop_Lc_Passive = Eloop_Passive*Lc;                                               %[V]     %Rough estimate of voltage over connection lengthscale  (Chang2013)
+Eloop_Lc_Passive = abs(Eloop_Passive)*(BtorAvg_Null_Passive/BpolAvg_Null_Passive); %[V/m]   %Rough estimate of startup conditionwith pre-ionisation (An2015)
+%Generally Eloop_Lc_Passive > 100 [V/m] for startup
+
+
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
 
 %Recompute dynamic plasma and vessel eddy currents with new coil waveforms
@@ -971,6 +1015,17 @@ Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 %Update dynamic plasma and vessel eddy currents
 %[time_linear_passive,time_adaptive_passive,I_PF_output_Passive,V_PF_output_Passive,Ip_output_Passive,Vp_output_Passive,I_Passive_Passive] = ...
 %    DynamicCurrents(CoilWaveforms_Passive, time, curlyM_Passive, curlyR_Passive);
+
+%Compute maximum change in each coil current --- !!! MAKE THIS INTO A FUNCTION !!!
+% !!! ONCE MADE INTO A FUNCTIONm ENSURE OUTPUT PASSIVE VARIABLES AT THIS POINT !!!
+%for j=1:length(I_PF_output(1,:))
+%    for i=2:length(time_adaptive)-1
+%        Delta_IPFoutput(i,j) = ( (I_PF_output(i,j)-I_PF_output(i-1,j))/(time_adaptive(i)-time_adaptive(i-1)) )/1000;  %[A/ms]
+%        Delta_VPFoutput(i,j) = ( (V_PF_output(i,j)-V_PF_output(i-1,j))/(time_adaptive(i)-time_adaptive(i-1)) )/1000;  %[V/ms]
+%    end
+%end
+%MinDelta_IPFoutput = min(Delta_IPFoutput); MaxDelta_VPFoutput = max(Delta_VPFoutput);  %[A/ms]
+%MinDelta_VPFoutput = min(Delta_VPFoutput); MaxDelta_IPFoutput = max(Delta_IPFoutput);  %[V/ms]
 
 %Extract Vessel Eddy Currents during discharge (time='false' for absolute max)
 %VesselEddyCurrents_Passive = ...
@@ -1048,7 +1103,7 @@ set(gca, 'YScale', 'log')
 set(gca,'XLim',[2.5e-6 1e-3]);
 set(gca,'YLim',[0.1 100]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
-Filename = '_PaschenBreakdown_Passive';
+Filename = '_PaschenBreakdown';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
