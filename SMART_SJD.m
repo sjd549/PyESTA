@@ -34,7 +34,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S1-000010';		%Define global project name
+ProjectName = 'S1-000012';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -94,18 +94,18 @@ nPF1=nZPF1*nRPF1;
 nPF2=nZPF2*nRPF2;
 
 %Define coil total cross-sectional dimensions
-width_PF = 0.111;  % Width of the PF coil (m)     (Previously 0.042m)
-height_PF = 0.074; % Height of a the PF coil (m)  (Previously 0.035m)
+width_PF = 0.075;  % Width of the PF coil (m)     (Previously 0.111m) 
+height_PF = 0.050; % Height of a the PF coil (m)  (Previously 0.074m)  
 
 %Define central location of coil sets
-R_PF1 = 0.960;  %R position of PF1 (m)	%0.960m  (Previously 0.90m)
-Z_PF1 = 0.300;  %Z Position of PF1 (m)	%0.300m
-R_PF2 = 0.960;  %R Position of PF2 (m)	%0.960m  (Previously 0.90m)
-Z_PF2 = 0.600;  %Z Position of PF2 (m)	%0.600m
-R_Div1 = 0.255; %R Position of Div1 (m)	%0.255m  (Previously 0.20m)
-Z_Div1 = 0.900; %Z Position of Div1 (m)	%0.900m
-R_Div2 = 0.450; %R Position of Div2 (m)	%0.450m
-Z_Div2 = 0.900; %Z Position of Div2 (m)	%0.900m
+R_PF1 = 0.938;  %R position of PF1 (m)	%0.940m     (MINIMUM OF 938mm)
+Z_PF1 = 0.300;  %Z Position of PF1 (m)	%0.300m     (MINIMUM OF 308mm)
+R_PF2 = 0.938;  %R Position of PF2 (m)	%0.940m     (MINIMUM OF 938mm)
+Z_PF2 = 0.600;  %Z Position of PF2 (m)	%0.600m     (MINIMUM OF 608mm)
+R_Div1 = 0.250; %R Position of Div1 (m)	%0.250m     (MINIMUM OF 236mm)
+Z_Div1 = 0.900; %Z Position of Div1 (m)	%0.900m     (MINIMUM OF 890mm)
+R_Div2 = 0.500; %R Position of Div2 (m)	%0.500m     (MINIMUM OF 458mm)
+Z_Div2 = 0.900; %Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -150,12 +150,12 @@ betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; 	% Beta Poloi
 BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    		% Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.440;					% Geometrical Radius	[m] (Default 0.44)
-ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.00)
-rGeo_efit = 0.238;                  % Minor Radius	        [m] (Default 0.44/1.85)
-Aspect_efit = RGeo_efit/rGeo_efit;  % Aspect Ratio          [-] (Default 1.85)
-Kappa_efit = 1.80;					% Elongation			[-] (Default 1.80)
-delta_efit = 0.20;					% Triangularity			[-] (Default 0.20)
+RGeo_efit = 0.440;					% Geometrical Radius	[m] (Default 0.440) ::
+ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
+Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
+rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
+Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
+delta_efit = +0.20;					% Triangularity			[-] (-2.00-> +0.20) ::
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -172,15 +172,15 @@ coil_temp = 293.0;                      % Initial Coil Temperature   [K]
 resistivity = copper_resistivity_at_temperature(coil_temp);
 
 %Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV) https://www.webelements.com/argon/atoms.html
-%H discharge, Z_eff increased to 2 to allow for impurities in the plasma
+%H discharge, Z_eff increased to 2 to allow for impurities in the plasma (Carbon wall tiles)
 Z_eff=2.0;                              % Effective Nuclear Charge   [e-]
 %Calculate perpendicular and parallel plasma resistivity using Spitzer model
 Lambda=(12*pi*((8.854E-12*1.6E-19*Te)^3/(ne*(1.6E-19)^6))^(1/2));
 PlasmaResistPerp=(0.74*1.65E-9*Z_eff*log(Lambda))/((Te*1E-3)^(3/2));
 PlasmaResistPara=PlasmaResistPerp/1.96;
 
-%Define null field region radius (also specifies sensor_btheta radius)
-a_eff=0.15;								% Null field region radius	 [m]
+%Define null field region (sensor_btheta) radius
+R_null=0.15;							% Null field region radius	 [m]
 
 
 %%%%%%%%%%%%%%%%%%%  DEFINE SOL RAMP & COIL CURRENTS  %%%%%%%%%%%%%%%%%%%%%
@@ -203,21 +203,21 @@ a_eff=0.15;								% Null field region radius	 [m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
 
-%Solenoid coil currents [kA]		%Phase1		%Phase1ChonkCoil
-I_Sol_Null=+675;					%+0725;		%+0675;
-I_Sol_MidRamp='Linear';				%Dynamic    %Dynamic
-I_Sol_Equil=-I_Sol_Null;			%-0725;     %-0675
-I_Sol_EndEquil=-675;                %-0700;     %-0675
+%Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri
+I_Sol_Null=+675;					%+675;          %+800;
+I_Sol_MidRamp='Linear';				%Dynamic        %Dynamic
+I_Sol_Equil=-I_Sol_Null;			%-675;          %-675
+I_Sol_EndEquil=-625;                %-625;          %-700
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-500;					%-500;		%-500;
-I_PF2_Equil=-500;					%-500;		%-500;
-I_Div1_Equil=+000;					%+ISol;		%+ISol;
-I_Div2_Equil=+1000;					%+950;      %+1000;
+I_PF1_Equil=-500;					%-500;          %-500;
+I_PF2_Equil=-500;					%-500;          %-500;
+I_Div1_Equil=+000;					%+ISol;         %+ISol;
+I_Div2_Equil=+850;					%+850;          %+300;   (HIGH FOR +delta, LOW FOR -delta)
 
 %Define number of time-steps (vertices) in the current waveforms
-TauB = 0.010;			% Buffer Timescale     		[s] Determines tstep for Ip plot
-TauR = 0.050;			% Ramp Timescale       		[s]
+TauB = 0.005;			% Buffer Timescale     		[s] Determines tstep for Ip plot
+TauR = 0.010;			% Ramp Timescale       		[s]
 TauP = 0.020;			% Pulse Timescale      		[s]
 %Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
 time =  [-4*TauB   -2*TauB   0.0           TauR/2.0     TauR         TauR+TauP    TauR+TauP+(2*TauB)];
@@ -288,7 +288,7 @@ disp([ ' ' ]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define FIESTA simulation grid limits and resolution
-GridSize_R = [0.01, 1.0];	%[m]        (0.03, 1.0)
+GridSize_R = [0.01, 1.1];	%[m]        (0.03, 1.0)
 GridSize_Z = [-1.3, 1.3];	%[m]        (-1.3, 1.3)
 GridCells_R = 275;          %[Cells]    (275)   (>275 would be good, causes RAM issues)
 GridCells_Z = 251;          %[Cells]    (251)   (~251 seems good, higher becomes unstable)
@@ -311,11 +311,11 @@ zGrid=get(Grid,'z'); %1*251
 VesselDimensions = [RMinCentre, RMaxCentre, ZMinCentre, ZMaxCentre];       %[m]
 WallThickness = [VWall_Upper, VWall_Outboard, VWall_Lower, VWall_Inboard]; %[m]
 %Lower filament areas give higher passive current resolution
-FilamentArea = 1.5e-4; %(>= 1.3e-4 or RZIp inductance matrix fails)        %[m^2]  
+FilamentArea = 2.5e-4; %(>= 1.5e-4 or RZIp inductance matrix fails)        %[m^2]  
 
-%Construct SMART vessel wall filaments (filament areas scaled relative to FilamentArea)
+%Construct SMART vessel wall filaments ("Static"=fixed fil area, "Diff"=scaled fil area)
 [vessel_filament,R_Fil_Array,Z_Fil_Array] = ... 
-    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea,'Diff');
+    CreateRectilinearVessel(VesselDimensions,WallThickness,FilamentArea,"Diff");
 
 %Construct passive vessel components and arrange into a vessel object
 %Resistivity and density are set for stainless steel
@@ -353,18 +353,22 @@ global coilset; coilset = fiesta_coilset('SMARTcoilset',[Sol,PF1,PF2,Div1,Div2],
 
 %Reduce solenoid current by number of windings
 CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
+% ISSUE :: Need to reduce solenoid current by number of radial filaments
 % ISSUE :: This doesn't appear to be required for the PF coils!?
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%  END SIMULATION INITIAL SET-UP  %%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% MOST RECENT SIMULATION S1_000009 NOW HAS STEEL RESISTIVITY SHOULD
-%%% PROBABLY BE SAVED AS S1_000010 BUT I WANT TO ADD SOMETHING ELSE FIRST
-
-
 
 %%% TO DO %%%
+
+%%%   UPDATE COIL DIMENSIONS                                                  --- DONE
+%%%   UPDATE COIL LOCATIONS                                                   --- DONE
+%%%   GET BASELINE CASE CURRENT WAVEFORMS SORTED FOR PHASE 1 AND 2            --- DONE
+%%%   GET NEGATIVE AND POSITIVE TRIANGULARITY CASES SORTED FOR PHASE 1 AND 2  --- DONE (NEED POSITIVE TRIANGULARITY)
+%%%   GET ALL VESSEL, COIL AND CURRENT WAVEFORM DATA UPDATED ON SMART REPO
+%%%   SEND ANY REQUIRED DATA TO MANU AND ALESSIO                              --- DONE
 
 %%%   GET ALL FIGURES INTO FUNCTIONS - MAKE VESSEL/COIL SUB-FUNCTION
 %%%   GET I/O ALL INTO FUNCTIONS AND GET NEW SAVING ROUTINES SORTED OUT
@@ -372,18 +376,19 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 %%%   FINISH COMMENTS ON THE NEW CreateSMARTSolenoidCircuit FUNCTION
 %%%   FINISH COMMENTS ON ALL NEW FUNCTIONS
 
-%%%   GET RZIP ABLE TO TAKE BOTH COIL AND VESSEL FILAMENTS !!!!
-
 %%%   GET THE FEEDBACK SYSTEM WORKING FOR VERTICAL AND HORIZONTAL STABILITY
 
 %%%   FIX THE CORNER OF THE DIFF VESSEL WALLS (LAST FILAMENT IS LARGER - ROUNDING ISSUE)
 
 %%%   ENABLE EASILY TOGGLEABLE SINGLE NULL CONFIGURATION (extensive re-write)
 
+%%%   GET RZIP ABLE TO TAKE BOTH COIL AND VESSEL FILAMENTS !!!!
 
 
+%%% NOTES %%%
 
-
+%Lloyd1991, section 9.1, page 2046 has good citations for Paschen/Townsend Coefficients
+%Lloyd1991, section 9.4, has equations for burnthrough time calculation
 
 
 
@@ -422,14 +427,15 @@ CoilCurrentsEfit = transpose(CoilWaveforms(:,TimeIndex_Discharge));
 icoil_efit = fiesta_icoil(coilset, CoilCurrentsEfit);
 
 %Initiate virtual B-field sensors centered on Rgeo
-sensor_btheta = InitiateBSensors(EquilParams,a_eff);
+sensor_btheta = InitiateBSensors(EquilParams,R_null);
 
 %RZIP computes coefficients [A B C D] using the null field sensors
 %Output C is used to compute the null-field PF coil currents 
 %Outputs curlyM and curlyR are used to compute the plasma and eddy currents
 rzip_config = fiesta_rzip_configuration( 'RZIP', config, vessel, {sensor_btheta} );
 [A, B, C, D, curlyM, curlyR, gamma, plasma_parameters, index, label_index, state, condRZIp] = ...
-    response(rzip_config, Equil, 'rp', PlasmaResistPerp);            % NOTE :: condRZIp needs saved to a file (1-norm condition number estimate)
+    response(rzip_config, Equil, 'rp', PlasmaResistPerp);            
+% ISSUE :: condRZIp should probably be removed at some point for compatability
 
 
 %%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
@@ -449,19 +455,23 @@ EquilParams_Null = parameters(equil_null);
 
 %%%%%%%%%%%%%%%%%%  COMPUTE BREAKDOWN FOR NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%
 
-%Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop,Eloop] = LoopVoltage(CoilWaveforms,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams.r0);
-
 %Extract the null poloidal and toroidal B-field vector arrays
 [BrData_Null,BzData_Null,BPhiData_Null,BpolData_Null,BtorData_Null] = ExtractBField(equil_null);
 
-%Average null poloidal and toroidal fields over region of area a_eff^2
-[BpolAvg_Null,BtorAvg_Null] = ExtractNullBMin(EquilParams,BpolData_Null,BtorData_Null,a_eff);
+%Average null poloidal and toroidal fields over region of area R_null^2
+[BpolAvg_Null,BtorAvg_Null] = ExtractNullBMin(EquilParams,BpolData_Null,BtorData_Null,R_null);
 
 %Compute the average connection length within the null-field sensor region
 %InnerVesselDimensions=[VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner]
 %Lc = ConnectionLength(EquilParams,InnerVesselDimensions);             % NOTE :: Issue with inbuilt connection length functions
+a_eff = min([abs(EquilParams.r0-VesselRMinInner),abs(EquilParams.r0-VesselRMaxInner)]);
 Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
+
+%Compute maximum loop voltage and E-field during solenoid ramp-down
+[Vloop,Eloop] = LoopVoltage(CoilWaveforms,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams.r0);
+Vloop_Lc = Eloop*Lc;     %[V]       %Rough estimate of full Paschen voltage over Lc path length
+
+%MAYBE?? Also Calculate Paschen Curve and Determine Breakdown HERE??
 
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
@@ -470,9 +480,16 @@ Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 [time_linear,time_adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,I_Passive] = ...
     DynamicCurrents(CoilWaveforms, time, curlyM, curlyR);
 
+%Compute maximum change in each coil current - Diagnostic
+Delta_IPFoutput = diff(I_PF_output); 
+Delta_VPFoutput = diff(V_PF_output); 
+MinDelta_IPFoutput = min(Delta_IPFoutput); MaxDelta_VPFoutput = max(Delta_VPFoutput);
+MinDelta_VPFoutput = min(Delta_VPFoutput); MaxDelta_IPFoutput = max(Delta_IPFoutput);
+
 %Extract Vessel Eddy Currents during discharge and null-field (time='false' for absolute max)
 VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_Discharge));
 VesselEddyCurrentsNull = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_NullField));
+
 
 %%%%%%%%%%%%%%% PLOT VESSEL AND COIL FILAMENT OVERVIEW %%%%%%%%%%%%%%%%%% 
 
@@ -553,15 +570,27 @@ PlotEquilibrium({logBpolData_Null},{rGrid,zGrid},Title,CbarLabel,SaveString);
 %%%%%%%%%%%%%%%%%%%%%% PLOT COIL CURRENT WAVEFORMS %%%%%%%%%%%%%%%%%%%%%%%% 
 
 %Plot figure showing dynamic coil currents
-figure;
-plot(time_adaptive*1000, I_PF_output/1000);
-title(gca,'SMART Initial Coil Current Waveforms');
+figure('units','inch','position',[10 10 12 12]);
+subplot(2,1,1)
+plot(time_adaptive*1000, I_PF_output/1000, 'LineWidth',2);
+title(gca,'SMART Coil Current Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
 legend(gca,LegendString); legend boxoff;
 xlabel(gca,'Time (ms)');
-ylabel(gca,'Coil Current (kA)');
+ylabel(gca,'Coil Current I (kA)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+%%%%%
+subplot(2,1,2)
+plot(time_adaptive(1:end-1)*1000,Delta_IPFoutput/1000, 'LineWidth',2)
+title(gca,'SMART Delta Coil Current Waveforms');
+LegendString = {'Sol','PF1','PF2','Div1','Div2'};
+legend(gca,LegendString); legend boxoff;
+xlabel(gca,'Time (ms)');
+ylabel(gca,'Delta Coil Current \Delta I (kA ms^{-1})');
+set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+%%%%%
 Filename = '_CurrentWaveforms';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
@@ -596,7 +625,7 @@ set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 Filename = '_1DEddyCurrent';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
-%%%%%%%%%%%%%%% PLOT SPATIALLY RESOLVED EDDY CURRENTS %%%%%%%%%%%%%%%%%%   
+%%%%%%%%%%%%%%%%%% PLOT 2D RESOLVED EDDY CURRENTS %%%%%%%%%%%%%%%%%%%%%%   
 
 %Obtain the filament variables r and z
 ptmp = get(vessel,'passives');
@@ -619,6 +648,66 @@ set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 Filename = '_EddyCurrent';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));   
+
+%%%   %%%   %%%   %%%   %%%   %%%   %%%   %%%   %%%   %%%   %%%   %%%   
+
+%Obtain the filament variables r and z
+ptmp = get(vessel,'passives');
+ftmp = get(ptmp,'filaments');
+RR = get(ftmp(:),'r'); %dim 1*number of filaments
+ZZ = get(ftmp(:),'z'); %dim 1*number of filaments
+%Plot eddy currents within a cross-section of the vessel
+close all
+figure; hold on; axis equal;
+plot(coilset);
+scatter3(RR,ZZ,VesselEddyCurrentsNull/1000,100,VesselEddyCurrentsNull/1000,'filled');
+title('SMART Vessel Null Eddy Currents iter(0)');
+view(2) %2D view
+colormap(plasma);
+cbar = colorbar;
+cbar.Label.String = 'Eddy-Current I_{eddy} [kA]';
+set(gca,'XLim',[0 1.1]);
+set(gca,'YLim',[-1.1 1.1]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+xlabel(gca,'R (m)');
+ylabel(gca,'Z (m)');
+Filename = '_EddyCurrentNull';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+
+
+%%%%%%%%%%%%%%%%%%%%%%  PLOT PASCHEN CURVES  %%%%%%%%%%%%%%%%%%%%%
+
+%Calculate Paschen Curve and determine breakdown
+PressureLimits = [1e-6, 1e-3]; Resolution = 25000;
+PressureArray = linspace(PressureLimits(1),PressureLimits(2),Resolution);
+
+for i=1:length(PressureArray)
+    PaschenCurve(i) = (PressureArray(i)*1.25e4)/(log(510.0*PressureArray(i)*Lc));
+    if PaschenCurve(i) < 0
+        PaschenCurve(i) = nan;
+    end
+end
+
+for i=1:length(PressureArray)
+    EloopArray(i) = abs(Eloop);
+end
+
+close all
+figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+title(gca,'SMART Paschen Breakdown');
+LegendString = {'Paschen Curve','Max E_{loop}'};
+plot(PressureArray,PaschenCurve, 'k', 'LineWidth',2)
+plot(PressureArray,EloopArray, 'r', 'LineWidth',2)
+legend(gca,LegendString); legend boxoff;
+xlabel(gca,'Pressure P (Torr)');
+ylabel(gca,'E_{min} for Breakdown (V/m)');
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+set(gca,'XLim',[2.5e-6 1e-3]);
+set(gca,'YLim',[0.1 100]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+Filename = '_PaschenBreakdown';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -763,6 +852,16 @@ close('all')
 
 
 
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% COMMENTED OUT FOR Vloop TESTING %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% ADDING EDDIES TO DISCHARGE EQUIL %%%%%%%%%%%%%%%%%%%%%
@@ -811,7 +910,7 @@ CoilWaveforms_Passive(3,5:6) = CoilCurrentsEfit_Passive(iPF2);    %Assumes IPF2 
 CoilWaveforms_Passive(5,5:6) = CoilCurrentsEfit_Passive(iDiv2);   %Assumes IDiv2 is flat over equilibrium
 
 %Initiate virtual B-field sensors centered on Rgeo
-sensor_btheta_passive = InitiateBSensors(EquilParams_Passive,a_eff);
+sensor_btheta_passive = InitiateBSensors(EquilParams_Passive,R_null);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
@@ -827,7 +926,8 @@ sensor_btheta_passive = InitiateBSensors(EquilParams_Passive,a_eff);
 %Update CoilWaveforms array with null-field values (Using NaN Mask)
 %   RZIP_C = C;
 %   CoilWaveforms = NullFieldWaveforms(CoilWaveforms, RZIP_C, sensor_btheta_passive, TimeIndex_NullField);
-%ISSUE :: RZIP_C is computed from RZIP - Need recomputed RZIP with eddy currents
+%ISSUE  :: RZIP_C is computed from RZIP - Need recomputed RZIP with eddy currents
+%REMIND :: REMEMBER THAT NULLFIELDWAVEFORMS EXPECTS NaN VALUES FOR COILS TO BE UPDATED
 
 %Extract previously calculated efit coil currents without eddys
 CoilCurrentsNull = transpose(CoilWaveforms(:,TimeIndex_NullField));     %Null-field coil currents without eddys
@@ -846,19 +946,21 @@ CoilCurrentsNull_Passive = get(icoil_null_passive,'currents');
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
 [Vloop_Passive,Eloop_Passive] = LoopVoltage(CoilWaveforms_Passive,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams_Passive.r0);
+%Vloop_Passive_Lc = Eloop_Passive*Lc;     %[V]       %Rough estimate of full Paschen voltage over Lc path length
 
 %Extract the null poloidal and toroidal B-field vector arrays
 [BrData_Null_Passive,BzData_Null_Passive,BPhiData_Null_Passive,BpolData_Null_Passive,BtorData_Null_Passive] = ...
     ExtractBField(equil_null_passive);
 
-%Minimum null poloidal and toroidal fields, averaged over region of area a_eff^2
+%Minimum null poloidal and toroidal fields, averaged over region of area R_null^2
 [BpolAvg_Null_Passive,BtorAvg_Null_Passive] = ...
-    ExtractNullBMin(EquilParams_Passive,BpolData_Null_Passive,BtorData_Null_Passive,a_eff);
+    ExtractNullBMin(EquilParams_Passive,BpolData_Null_Passive,BtorData_Null_Passive,R_null);
     %NOTE - USES EQUILPARAMS_PASSIVE ONLY TO EXTRACT RGeo and ZGeo (Would be less confusing to use EQUILPARAMS_NULL)
 
 %Compute the average connection length within the null-field sensor region
 %InnerVesselDimensions=[VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner]
 %Lc = ConnectionLength(EquilParams,InnerVesselDimensions);
+a_eff = min([abs(EquilParams_Passive.r0-VesselRMinInner),abs(EquilParams_Passive.r0-VesselRMaxInner)]);
 Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
@@ -915,11 +1017,50 @@ Filename = '__NullBpol_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({logBpolData_Null_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
 
+%%%%%%%%%%%%%%%%%%%%%%  PLOT PASCHEN CURVES  %%%%%%%%%%%%%%%%%%%%%
+
+%Calculate Paschen Curve and determine breakdown
+PressureLimits = [1e-6, 1e-3]; Resolution = 25000;
+PressureArray = linspace(PressureLimits(1),PressureLimits(2),Resolution);
+
+for i=1:length(PressureArray)
+    PaschenCurve_Passive(i) = (PressureArray(i)*1.25e4)/(log(510.0*PressureArray(i)*Lc_Passive));
+    if PaschenCurve_Passive(i) < 0
+        PaschenCurve_Passive(i) = nan;
+    end
+end
+
+for i=1:length(PressureArray)
+    EloopArray_Passive(i) = abs(Eloop_Passive);
+end
+
+close all
+figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+title(gca,'SMART Paschen Breakdown');
+LegendString = {'Paschen Curve','Max E_{loop}'};
+plot(PressureArray,PaschenCurve_Passive, 'k', 'LineWidth',2)
+plot(PressureArray,EloopArray_Passive, 'r', 'LineWidth',2)
+legend(gca,LegendString); legend boxoff;
+xlabel(gca,'Pressure P (Torr)');
+ylabel(gca,'E_{min} for Breakdown (V/m)');
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+set(gca,'XLim',[2.5e-6 1e-3]);
+set(gca,'YLim',[0.1 100]);
+set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+Filename = '_PaschenBreakdown_Passive';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %%
 
-
-
+%{
+%Stuff required for saving if eddy currents are not computed
+Lc_Passive = Lc;
+Eloop_Passive = Eloop;
+Vloop_Passive = Vloop;
+%}
 
 
 
@@ -992,8 +1133,19 @@ IDiv1=I_PF_output(:,4);  %IDiv1
 IDiv2=I_PF_output(:,5);  %IDiv2
 Filename = strcat(icoilDir,'CoilCurrents.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive','I_Sol','I_PF1','I_PF2','I_Div1','I_Div2');
+fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','I_Sol [A]','I_PF1 [A]','I_PF2 [A]','I_Div1 [A]','I_Div2 [A]');
 fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive'; ISol'; IPF1'; IPF2'; IDiv1'; IDiv2']);
+
+%Extract delta coil current time-traces
+dISol=Delta_IPFoutput(:,1);   %ISol
+dIPF1=Delta_IPFoutput(:,2);   %IPF1
+dIPF2=Delta_IPFoutput(:,3);   %IPF2
+dIDiv1=Delta_IPFoutput(:,4);  %IDiv1
+dIDiv2=Delta_IPFoutput(:,5);  %IDiv2
+Filename = strcat(icoilDir,'DeltaCoilCurrents.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','Del_I_Sol [A/ms]','Del_I_PF1 [A/ms]','Del_I_PF2 [A/ms]','Del_I_Div1 [A/ms]','Del_I_Div2 [A/ms]');
+fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive(1:end-1)'; dISol'; dIPF1'; dIPF2'; dIDiv1'; dIDiv2']);
 
 %Extract coil voltage time-traces
 VSol=V_PF_output(:,1);     %VSol
@@ -1003,8 +1155,33 @@ VDiv1=V_PF_output(:,4);     %VDiv1
 VDiv2=V_PF_output(:,5);     %VDiv2
 Filename = strcat(icoilDir,'CoilVoltages.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive','V_Sol','V_PF1','V_PF2','V_Div1','V_Div2');
+fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','V_Sol [V]','V_PF1 [V]','V_PF2 [V]','V_Div1 [V]','V_Div2 [V]');
 fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive'; VSol'; VPF1'; VPF2'; VDiv1'; VDiv2']);
+
+%Extract delta coil voltage time-traces
+dVSol=Delta_VPFoutput(:,1);   %ISol
+dVPF1=Delta_VPFoutput(:,2);   %IPF1
+dVPF2=Delta_VPFoutput(:,3);   %IPF2
+dVDiv1=Delta_VPFoutput(:,4);  %IDiv1
+dVDiv2=Delta_VPFoutput(:,5);  %IDiv2
+Filename = strcat(icoilDir,'DeltaCoilVoltages.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','Del_V_Sol [V/ms]','Del_V_PF1 [V/ms]','Del_V_PF2 [V/ms]','Del_V_Div1 [V/ms]','Del_V_Div2 [V/ms]');
+fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive(1:end-1)'; dVSol'; dVPF1'; dVPF2'; dVDiv1'; dVDiv2']);
+
+%Extract max/min delta coil currents
+Filename = strcat(icoilDir,'Delta_IPF.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s %s %s %s %s\r\n', 'I_Sol [A/ms]','I_PF1 [A/ms]','I_PF2 [A/ms]','I_Div1 [A/ms]','I_Div2 [A/ms]');
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MaxDelta_IPFoutput(1)'; MaxDelta_IPFoutput(2)'; MaxDelta_IPFoutput(3)'; MaxDelta_IPFoutput(4)'; MaxDelta_IPFoutput(5)']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MinDelta_IPFoutput(1)'; MinDelta_IPFoutput(2)'; MinDelta_IPFoutput(3)'; MinDelta_IPFoutput(4)'; MinDelta_IPFoutput(5)']);
+
+%Extract max/min delta coil voltages
+Filename = strcat(icoilDir,'Delta_VPF.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s %s %s %s %s\r\n', 'V_Sol [V/ms]','V_PF1 [V/ms]','V_PF2 [V/ms]','V_Div1 [V/ms]','V_Div2 [V/ms]');
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MaxDelta_VPFoutput(1)'; MaxDelta_VPFoutput(2)'; MaxDelta_VPFoutput(3)'; MaxDelta_VPFoutput(4)'; MaxDelta_VPFoutput(5)']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MinDelta_VPFoutput(1)'; MinDelta_VPFoutput(2)'; MinDelta_VPFoutput(3)'; MinDelta_VPFoutput(4)'; MinDelta_VPFoutput(5)']);
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
@@ -1013,17 +1190,17 @@ RZIPDir = strcat(ASCIIDir,'RZIP_Data/'); mkdir(RZIPDir);
 
 Filename = strcat(RZIPDir,'time.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s\r\n','time_adaptive');
+fprintf(fileID,'%s\r\n','time_adaptive [ms]');
 fprintf(fileID,'%1.12f\r\n',time_adaptive);
 
 Filename = strcat(RZIPDir,'Ip.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'time_adaptive','Ip_output');
+fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Ip_output [A]');
 fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Ip_output']);
 
 Filename = strcat(RZIPDir,'IPass.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'time_adaptive','Net_I_Passive');
+fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Net_I_Passive [A]');
 fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Net_IPassive']);
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
@@ -1032,32 +1209,32 @@ fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'; Net_IPassive']);
 
 Filename = strcat(ASCIIDir,'Eta.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'Eta_Perp', 'Eta_Para');
+fprintf(fileID,'%s %s\r\n', 'Eta_Perp [%]', 'Eta_Para [%]');
 fprintf(fileID,'%1.12f %1.12f\r\n', PlasmaResistPerp', PlasmaResistPara');
 
 Filename = strcat(ASCIIDir,'Bpol.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'Null_Bpol', 'Null_Btor');
+fprintf(fileID,'%s %s\r\n', 'Null_Bpol [T]', 'Null_Btor [T]');
 fprintf(fileID,'%1.12f %1.12f\r\n', BpolAvg_Null', BtorAvg_Null');
 
 Filename = strcat(ASCIIDir,'IRod.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s\r\n', 'IRod');
+fprintf(fileID,'%s\r\n', 'IRod [A]');
 fprintf(fileID,'%1.12f\r\n', EquilParams.irod');
 
 Filename = strcat(ASCIIDir,'betaP.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'betaP', 'betaP_Pert');
+fprintf(fileID,'%s %s\r\n', 'betaP [%]', 'betaP_Pert [%]');
 fprintf(fileID,'%1.12f %1.12f\r\n', EquilParams.betap', EquilParams_Pert.betap');
 
 Filename = strcat(ASCIIDir,'Lc.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s \r\n', 'Lc');
+fprintf(fileID,'%s \r\n', 'Lc [m]');
 fprintf(fileID,'%1.12f\r\n', Lc_Passive');
 
 Filename = strcat(ASCIIDir,'VLoop.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'Vloop', 'Eloop');
+fprintf(fileID,'%s %s\r\n', 'Vloop [V]', 'Eloop [V/m]');
 fprintf(fileID,'%1.12f %1.12f\r\n', Vloop_Passive', Eloop_Passive');
 
 Filename = strcat(ASCIIDir,'MaxStress.txt');
@@ -1269,16 +1446,15 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Initiate virtual sensors within null-field region
-function SensorBTheta=InitiateBSensors(EquilParams,a_eff)
+function SensorBTheta=InitiateBSensors(EquilParams,R_null)
 
     %Determine number of sensors (constant for now)
     NumSensors = 10;
 
-    %Define null field region as defined by the equilibrium RGeo and ZGeo
-    %Null-field region radius taken as effective minor radius (a_eff)
+    %Define null field region, of size R_null^2, centred on equilibrium RGeo, ZGeo
     RGeo = EquilParams.r0_geom; ZGeo=EquilParams.z0_geom;
-    BP_virt_R = linspace(RGeo-a_eff,RGeo+a_eff,NumSensors);
-    BP_virt_Z = linspace(ZGeo-a_eff,ZGeo+a_eff,NumSensors);
+    BP_virt_R = linspace(RGeo-R_null,RGeo+R_null,NumSensors);
+    BP_virt_Z = linspace(ZGeo-R_null,ZGeo+R_null,NumSensors);
 
     %Create null field region grid
     [BP_virt_R,BP_virt_Z] = meshgrid(BP_virt_R,BP_virt_Z);
@@ -1413,7 +1589,7 @@ function [vessel_filaments,R_Fil_Array,Z_Fil_Array]=...
     WallNormFactor4 = FilamentArea/(WallThickness(4)^2);
     WallNormFactors = [WallNormFactor1, WallNormFactor2, WallNormFactor3, WallNormFactor4];
 
-    %If requested, set a homogenious filament area (not recommended)
+    %If requested, set variable filament area (not recommended)
     if WallNorm == "Static"
         WallNormFactors = [1, 1, 1, 1];
     end
@@ -1500,11 +1676,12 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,a_eff)
+function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,R_null)
 
     %Obtain required global variables
     global GridRes_R; global GridRes_Z;
     global Grid;
+    global BEarth;
 
     %Null-field region centre is at (RGeo, ZGeo) to align with sensor_btheta
     RGeo = EquilParams.r0_geom; ZGeo=EquilParams.z0_geom;
@@ -1514,9 +1691,9 @@ function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,a_eff)
     IndexRGeo = find(RGeo < RAxis); IndexRGeo = IndexRGeo(1);
     IndexZGeo = find(ZGeo < ZAxis); IndexZGeo = IndexZGeo(1);
 
-    %Determine null-field index range; radius of a_eff around (R, Z)
-    RCells = ceil(a_eff/GridRes_R)/2.0;     %Null-field region radius in cells
-    ZCells = ceil(a_eff/GridRes_Z)/2.0;     %Null-field region height in cells
+    %Determine null-field index range; radius of R_null around (R, Z)
+    RCells = ceil(R_null/GridRes_R)/2.0;     %Null-field region radius in cells
+    ZCells = ceil(R_null/GridRes_Z)/2.0;     %Null-field region height in cells
     CellRangeR = [IndexRGeo-RCells, IndexRGeo+RCells];
     CellRangeZ = [IndexZGeo-ZCells, IndexZGeo+ZCells];
     
@@ -1529,18 +1706,17 @@ function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,a_eff)
     BtorMin = min(BtorData_NullRegion,[],'all'); BtorMax = max(BtorData_NullRegion,[],'all');
     BpolAvg = mean(BpolData_NullRegion,'all');  %[T]
     BtorAvg = mean(BtorData_NullRegion,'all');  %[T]
-    
-    %LEGACY CODE - MAINTAINED WITH A VERY SMALL BMin
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    BMin = 1.0E-10; %[T]
+
     %Enforce lower limit for BpolMin (default to Earth's B-field (5.0E-5 [T])
-    %Song2017 suggests Bpolmin as 0.2mT -> 1mT (2e-4 -- 1e-3)
+    BMin = 2*BEarth; %[T]  (BEarth*2 = 1E-4T = 1G)
     if BpolAvg < BMin;
         BpolAvg = BpolAvg+BMin;	
     elseif BtorAvg < BMin;
         BtorAvg = BtorAvg+BMin;
     end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %Lloyd1991 suggests DIII-D Tokamak Bpolmin as 0.2 -> 1.2mT (2 -> 12G)
+    %Song2017 suggests HL-2A Tokamak Bpolmin as 0.2 -> 1mT (2 -> 10G)
+    %Chung2013a suggests VEST Tokamak Bpolmin as ???? 
 end
 
 
@@ -1634,22 +1810,21 @@ function [Vloop,Eloop]=LoopVoltage(CoilWaveforms,time,RSol,ZMaxSol,ZMinSol,RGeo)
     global mu0;
     
     %Solenoid Ramp-down indices
-    PreRamp = 3; PostRamp = 5;      %Hard coded for now
+    PreRampIndex = 3; PostRampIndex = 5;      %Hard coded for now
 
     %Compute the average change in current during the solenoid ramp-down
-    dI = CoilWaveforms(1,PostRamp)-CoilWaveforms(1,PreRamp);
-    dt = time(PostRamp)-time(PreRamp);
-    dIdt = dI/dt;                   %Sol current ramp [A t^-1]
+    dI = CoilWaveforms(iSol,PostRampIndex)-CoilWaveforms(iSol,PreRampIndex);
+    dt = time(PostRampIndex)-time(PreRampIndex);
+    dIdt = dI/dt;                   %Sol current ramp [A/t]
     
     %Compute current surface area and voltage loop path length 
-    IAreaLoop = pi*RSol^2;          %Current surface area set by sol radius
+    IAreaLoop = pi*RSol^2;          %Current surface area set by outer sol radius
     VLengthLoop = 2*pi*RGeo;        %Voltage loop path length set by RGeo
     SolLength = ZMaxSol-ZMinSol;    %Solenoid length
     
     %Compute induced voltage during solenoid ramp-down and associated E-field at RGeo
     Vloop = IAreaLoop*((mu0*dIdt*coilturns(iSol))/SolLength);  %Loop voltage from solenoid [V] 
-    Eloop = Vloop/VLengthLoop;                                 %E-field at plasma centre [V/m] 
-
+    Eloop = Vloop/VLengthLoop;                                 %E-field at plasma centre [V/m]      
 end
 
 
