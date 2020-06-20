@@ -179,17 +179,14 @@ width_PF=0.042  # Width of a turn (m)
 height_PF=0.035 # Height of a turn (m)
 
 #Define central location of coil sets
-#R_PF1=0.9*RScaleCoil  #R position of PF1 (m)
-#Z_PF1=0.3*ZScaleCoil  #Z position of PF1 (m)
-R_PF2=0.9*RScaleCoil   #R position of PF2 (m)
-Z_PF2=0.5*ZScaleCoil   #Z Position of PF2 (m)
-R_PF3=0.9*RScaleCoil   #R Position of PF3 (m)
-Z_PF3=0.8*ZScaleCoil   #Z Position of PF3 (m)
-R_Div1=0.25*RScaleCoil #R Position of Div1 (m)
-Z_Div1=1.05*ZScaleCoil #Z Position of Div1 (m)
-R_Div2=0.55*RScaleCoil #R Position of Div2 (m)
-Z_Div2=1.05*ZScaleCoil #Z Position of Div2 (m)
-
+R_PF1 = 0.938  #R position of PF1 (m)	%0.938m     (MINIMUM OF 938mm)
+Z_PF1 = 0.200  #Z Position of PF1 (m)	%0.300m     (MINIMUM OF 308mm)
+R_PF2 = 0.700  #R Position of PF2 (m)	%0.938m     (MINIMUM OF 938mm)
+Z_PF2 = 0.600  #Z Position of PF2 (m)	%0.600m     (MINIMUM OF 608mm)
+R_Div1 = 0.250 #R Position of Div1 (m)	%0.250m     (MINIMUM OF 236mm)
+Z_Div1 = 0.900 #Z Position of Div1 (m)	%0.900m     (MINIMUM OF 890mm)
+R_Div2 = 0.500 #R Position of Div2 (m)	%0.500m     (MINIMUM OF 458mm)
+Z_Div2 = 0.900 #Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)
 
 #######################  DEFINE INITIAL PARAMETERS  #######################
 
@@ -342,12 +339,12 @@ CoilWaveforms = [ISol_Waveform, IPF1_Waveform, IPF2_Waveform, IDiv1_Waveform, ID
 ########################################
 
 #Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD_Phase2.m'			#Define name of FIESTA script
-ProjectName = 'S2-000010'			#Define Global Project Name (Baseline Equilibrium)
+FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
+ProjectName = 'S1-000015-d'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
-SimNameList = ['delta_efit','Kappa_efit','I_Sol_Null','I_PF1_Equil','I_PF2_Equil', 'I_Div1_Equil','I_Div2_Equil']
+SimNameList = ['R_PF2','Z_PF2','R_PF1','Z_PF1','I_Div2_Equil','delta_efit']
 
 #Define if simulations are to be run
 IAutorun = True			#Run requested simulation series
@@ -358,24 +355,8 @@ IVerbose = True			#Verbose terminal output - not compatable with IParallel
 IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'TauR'	#Define parameter to vary - Required for diagnostics
-ParameterRange = [0.050,0.040,0.030,0.020,0.010]			#Define paramter range to vary over
-
-#'TauB' [0.012,0.015,0.018,0.021,0.024]
-#'TauR' [0.050,0.040,0.030,0.020,0.010]
-
-#TauB	- Run TauB variation for phase 1 and 2 to observe effect on null-field Bpol and 1D eddy currents
-#		- NOTE: Eddy currents induced in null-field are in opposite direction to those in discharge
-#		- therefore value of eddy currents during discarge affected by TauB due to lower starting eddy
-#
-#TauR	- Run TauR variation for phase 1 and 2 to observe effect on Vloop, Eloop
-#		- NOTE: Will probably need to change both timescale and solenoid current range to preserve Ip
-
-#'R_Div1' [0.20,0.21,0.22,0.23,0.24,0.25]
-#'R_Div2' [0.45,0.47,0.49,0.51,0.53,0.55]
-
-
-
+ParameterVaried = 'Z_PF1'	#Define parameter to vary - Required for diagnostics
+ParameterRange = [0.175, 0.200, 0.250, 0.300]			#Define paramter range to vary over
 
 #Define which diagnostics are to be performed
 savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria

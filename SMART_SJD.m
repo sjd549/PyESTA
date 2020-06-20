@@ -97,15 +97,15 @@ nPF2=nZPF2*nRPF2;
 width_PF = 0.075;  % Width of the PF coil (m)
 height_PF = 0.050; % Height of a the PF coil (m)
 
-%Define central location of coil sets                                          !!!!!NOTES
+%Define central location of coil sets                                          %NOTES
 R_PF1 = 0.938;  %R position of PF1 (m)	%0.938m     (MINIMUM OF 938mm)
-Z_PF1 = 0.150;  %Z Position of PF1 (m)	%0.300m     (MINIMUM OF 308mm)         !!!!!0.150         Closer is better for negative tri
-R_PF2 = 0.700;  %R Position of PF2 (m)	%0.938m     (MINIMUM OF 938mm)         !!!!!0.700/0.740   Closer to wall is optimal
-Z_PF2 = 0.700;  %Z Position of PF2 (m)	%0.600m     (MINIMUM OF 608mm)         !!!!!0.600         Lower is better - but reduces plasma volume
+Z_PF1 = 0.160;  %Z Position of PF1 (m)	%0.160m     (MINIMUM OF 308mm)         %Closer together is optimal for +d and -d
+R_PF2 = 0.700;  %R Position of PF2 (m)	%0.700m     (MINIMUM OF 938mm)         %Closer to wall is optimal for +d and -d
+Z_PF2 = 0.575;  %Z Position of PF2 (m)	%0.575m     (MINIMUM OF 608mm)         %Lower is better for -d, but reduces volume
 R_Div1 = 0.250; %R Position of Div1 (m)	%0.250m     (MINIMUM OF 236mm)
 Z_Div1 = 0.900; %Z Position of Div1 (m)	%0.900m     (MINIMUM OF 890mm)
 R_Div2 = 0.500; %R Position of Div2 (m)	%0.500m     (MINIMUM OF 458mm)
-Z_Div2 = 0.900; %Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)         !!!!!0.725/0.900   Doesn't help shape, lower helps stability
+Z_Div2 = 0.900; %Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)         %Lower is better for +d, but reduces volume
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -155,7 +155,7 @@ ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
 Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
-delta_efit = -2.00;					% Triangularity			[-] (-2.00-> +0.20) ::
+delta_efit = -2.00;					% Triangularity			[-] (-2.00-> +0.00 -> +1.00) ::
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -203,18 +203,18 @@ R_null = 0.15;                      	% Null field region radius	 [m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
 
-%Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri                                       !!!!!RDiv2=0.7   !!!!!RDiv2=0.938
-I_Sol_Null=+825;					%+675;          %+925;                                              !!!!!+825        !!!!!+825                                   
-I_Sol_MidRamp=+000;                 %+000           %+000;
-I_Sol_Equil=-I_Sol_Null;			%-675;          %-925;
-I_Sol_EndEquil=-800;                %-650;          %-900;                                              !!!!!-800        !!!!!-800                          
+%Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri   %Phase1PosTri
+I_Sol_Null=+825;					%+625;          %+825;          %+625;
+I_Sol_MidRamp=+000;                 %+000           %+000;          %+000;
+I_Sol_Equil=-I_Sol_Null;			%-625;          %-825;          %-625;
+I_Sol_EndEquil=-800;                %-600;          %-800;          %-600;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-500;					%-500;          %-500;
-I_PF2_Equil=+500;					%-500;          %+500;   (NEG FOR +delta, POS FOR -delta) 
-I_Div1_Equil=+000;					%+ISol;         %+ISol;
-I_Div2_Equil=+050;					%+950;          %+375;   (HIGH FOR +delta, LOW FOR -delta)          !!!!!-050       !!!!!+150-ish
-    
+I_PF1_Equil=-500;					%-500;          %-500;          %-500;
+I_PF2_Equil=+500;					%-500;          %-500;          %-500;    (NEG FOR +delta, POS FOR -delta) 
+I_Div1_Equil=+0000;					%+ISol;         %+ISol;         %+ISol;
+I_Div2_Equil=-0500;					%+1200;         %-0500;         %+1700;   (HIGH FOR +delta, LOW FOR -delta)
+
 %Define number of time-steps (vertices) in the current waveforms
 TauB  = 0.010;			% Null Buffer Timescale     [s] Determines null-field buffer
 TauR1 = 0.0008;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
@@ -483,7 +483,7 @@ a_eff = min([abs(EquilParams.r0-VesselRMinInner),abs(EquilParams.r0-VesselRMaxIn
 Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop,Eloop] = LoopVoltage(CoilWaveforms,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams.r0);
+[Vloop,Eloop] = LoopVoltage(CoilWaveforms,time,RSolCentre,ZMaxSol,ZMinSol,EquilParams.r0);
 Vloop_Lc = Eloop*Lc;                                %[V]     %Rough estimate of voltage over connection lengthscale  (Chang2013)
 Eloop_eff = abs(Eloop)*(BtorAvg_Null/BpolAvg_Null); %[V/m]   %Rough estimate of startup conditionwith pre-ionisation (An2015)
 %Generally Eloop_eff > 100 [V/m] for startup
@@ -979,7 +979,7 @@ icoil_passive = fiesta_icoil( vesselcoilset, [CoilCurrents, VesselEddyCurrents] 
 %}
 
 %Recompute efit including eddy currents using efit_config_passive and icoil_passive (maintain original efit_Geometry_Init)
-control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-5, 'boundary_method',2);
+control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-4, 'boundary_method',2);
 [efit_config_passive, signals_passive, weights_passive, index_passive] = efit_shape_controller(config_passive, efitCoils, efitGeometry_Init);
 Equil_Passive = fiesta_equilibrium('SMART_Passive', config_passive, Irod, jprofile, control, efit_config_passive, icoil_passive, signals_passive, weights_passive);
 EquilParams_Passive = parameters(Equil_Passive);
@@ -1044,7 +1044,7 @@ a_eff = min([abs(EquilParams_Passive.r0-VesselRMinInner),abs(EquilParams_Passive
 Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop_Passive,Eloop_Passive] = LoopVoltage(CoilWaveforms_Passive,time,RSolOuter,ZMaxSol,ZMinSol,EquilParams_Passive.r0);
+[Vloop_Passive,Eloop_Passive] = LoopVoltage(CoilWaveforms_Passive,time,RSolCentre,ZMaxSol,ZMinSol,EquilParams_Passive.r0);
 Vloop_Lc_Passive = Eloop_Passive*Lc;                                                %[V]     %Rough estimate of voltage over connection lengthscale  (Chang2013)
 Eloop_eff_Passive = abs(Eloop_Passive)*(BtorAvg_Null_Passive/BpolAvg_Null_Passive); %[V/m]   %Rough estimate of startup conditionwith pre-ionisation (An2015)
 %Generally Eloop_eff_Passive > 100 [V/m] for startup
@@ -1173,9 +1173,12 @@ close all
 
 %{
 %Stuff required for I/O if eddy currents are not computed
-Lc_Passive = Lc;
+Equil_Passive = Equil; equil_null_passive = equil_null; 
+config_passive = config;
+icoil_efit_passive = icoil_efit; icoil_null_passive = icoil_null;
 Vloop_Passive = Vloop; Vloop_Lc_Passive = Vloop_Lc;
 Eloop_Passive = Eloop; Eloop_eff_Passive = Eloop_eff;
+Lc_Passive = Lc;
 BpolAvg_Null_Passive = BpolAvg_Null; BtorAvg_Null_Passive = BtorAvg_Null;
 %}
 
@@ -1185,9 +1188,9 @@ BpolAvg_Null_Passive = BpolAvg_Null; BtorAvg_Null_Passive = BtorAvg_Null;
 EquilDir = strcat(ASCIIDir,'Equil_Data/'); mkdir(EquilDir);
 
 %Write 2D, 1D and 0D equilibrium values to text files once per iteration
-[fileID] = WriteEquilibrium(Equil, config, EquilDir, false);
+[fileID] = WriteEquilibrium(Equil_Passive, config_passive, EquilDir, false);
 [fileID] = WriteEquilibrium(Equil_Pert, config, EquilDir, false);
-[fileID] = WriteEquilibrium(equil_null, config, EquilDir, true);
+[fileID] = WriteEquilibrium(equil_null_passive, config_passive, EquilDir, true);
 
 %Write initial target geometry, efit geometry and perturbed geometry
 [fileID] = WriteGeometry(efitGeometry_Init, EquilDir, 'efit_Geometry_Init.txt');
@@ -1216,7 +1219,7 @@ fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_init.Sol'; icoil_init.
 Filename = strcat(icoilDir,'efit_icoil.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s %s %s %s\r\n', 'ISol','PF1','PF2','Div1','Div2');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_init.Sol'; icoil_efit.PF1'; icoil_efit.PF2'; icoil_efit.Div1'; icoil_efit.Div2']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_efit_passive.Sol'; icoil_efit_passive.PF1'; icoil_efit_passive.PF2'; icoil_efit_passive.Div1'; icoil_efit_passive.Div2']);
 
 Filename = strcat(icoilDir,'Perturbed_icoil.txt');
 fileID=fopen(Filename,'w');
@@ -1226,7 +1229,7 @@ fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_pert.Sol'; icoil_pert.
 Filename = strcat(icoilDir,'Null_icoil.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s %s %s %s\r\n', 'ISol','PF1','PF2','Div1','Div2');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_null.Sol'; icoil_null.PF1'; icoil_null.PF2'; icoil_null.Div1'; icoil_null.Div2']);
+fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_null_passive.Sol'; icoil_null_passive.PF1'; icoil_null_passive.PF2'; icoil_null_passive.Div1'; icoil_null_passive.Div2']);
 
 %Extract coil current time-traces
 ISol=I_PF_output(:,1);   %ISol
@@ -1401,7 +1404,7 @@ function [Equilibrium,EquilParams,OutputCoilWaveforms,efitGeometry,config]= ...
     
     %Initiate efit configuration - default configuration fixed for now
     config = fiesta_configuration('SMART', Grid, coilset);
-    control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-5, 'boundary_method',2);
+    control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-4, 'boundary_method',2);
     
     %Efit outputs coil currents resulting from the supplied jprofile, icoil and geometry
 	%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
