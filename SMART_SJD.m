@@ -211,9 +211,9 @@ I_Sol_EndEquil=-800;                %-600;          %-800;          %-600;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-500;					%-500;          %-500;          %-500;
-I_PF2_Equil=+500;					%-500;          %-500;          %-500;    (NEG FOR +delta, POS FOR -delta) 
-I_Div1_Equil=+0000;					%+ISol;         %+ISol;         %+ISol;
-I_Div2_Equil=-0500;					%+1200;         %-0500;         %+1700;   (HIGH FOR +delta, LOW FOR -delta)
+I_PF2_Equil=-500;					%-500;          %-500;          %-500;    (NEG FOR +delta, POS FOR -delta, after efit) 
+I_Div1_Equil=+000;					%+ISol;         %+ISol;         %+ISol;
+I_Div2_Equil=+400;					%+1200;         %-500;(+050?)   %+1700;   (HIGH FOR +delta, LOW FOR -delta, before efit)
 
 %Define number of time-steps (vertices) in the current waveforms
 TauB  = 0.010;			% Null Buffer Timescale     [s] Determines null-field buffer
