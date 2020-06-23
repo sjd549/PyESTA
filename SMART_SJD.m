@@ -34,7 +34,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S1-000015-d';		%Define global project name
+ProjectName = 'S1-000015';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -75,11 +75,11 @@ RMaxCentre=VesselRMaxInner+(VWall_Outboard/2);	% Outboard wall 'grows outwards (
 %%%%%%%%%%%%%%%%%%%%%%%  DEFINE COIL GEOMETRY  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define Solenoid Geometry and Parameters
-nSol = 210;					 		  % Number of Solenoid Windings
-RSolInner = 0.115; RSolOuter = 0.145; % Inner and Outer solenoid radii    [m]
-RSolCentre = (RSolInner+RSolOuter)/2; % Central radius of solenoid (0.13) [m]
-ZMinSol = ZMinCentre-(VWall_Upper/2); % Solenoid Min Z position           [m]
-ZMaxSol = ZMaxCentre+(VWall_Lower/2); % Solenoid Max Z position           [m]
+nSol = 210                              % Number of Solenoid Windings
+RSolInner = 0.115; RSolOuter = 0.145;   % Inner and Outer solenoid radii    [m]
+RSolCentre = (RSolInner+RSolOuter)/2;   % Central radius of solenoid (0.13) [m]
+ZMinSol = ZMinCentre;                   % Solenoid Min Z position           [m]
+ZMaxSol = ZMaxCentre;                   % Solenoid Max Z position           [m]
 
 %Number of Radial (R) and axial (Z) PF coil windings
 nZDiv1=6; nRDiv1=4;
@@ -98,14 +98,14 @@ width_PF = 0.075;  % Width of the PF coil (m)
 height_PF = 0.050; % Height of a the PF coil (m)
 
 %Define central location of coil sets                                          %NOTES
-R_PF1 = 0.938;  %R position of PF1 (m)	%0.938m     (MINIMUM OF 938mm)
-Z_PF1 = 0.160;  %Z Position of PF1 (m)	%0.160m     (MINIMUM OF 308mm)         %Closer together is optimal for +d and -d
-R_PF2 = 0.700;  %R Position of PF2 (m)	%0.700m     (MINIMUM OF 938mm)         %Closer to wall is optimal for +d and -d
-Z_PF2 = 0.575;  %Z Position of PF2 (m)	%0.575m     (MINIMUM OF 608mm)         %Lower is better for -d, but reduces volume
-R_Div1 = 0.250; %R Position of Div1 (m)	%0.250m     (MINIMUM OF 236mm)
-Z_Div1 = 0.900; %Z Position of Div1 (m)	%0.900m     (MINIMUM OF 890mm)
-R_Div2 = 0.500; %R Position of Div2 (m)	%0.500m     (MINIMUM OF 458mm)
-Z_Div2 = 0.900; %Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)         %Lower is better for +d, but reduces volume
+R_PF1 = 0.938;  %R position of PF1 (m)	%0.938m     (MINIMUM OF 938mm)                                                          ~0.700??
+Z_PF1 = 0.160;  %Z Position of PF1 (m)	%0.160m     (MINIMUM OF 308mm)         %Closer together is optimal for +d and -d        ~0.160
+R_PF2 = 0.700;  %R Position of PF2 (m)	%0.700m     (MINIMUM OF 938mm)         %Closer to wall is optimal for +d and -d         ~0.600
+Z_PF2 = 0.575;  %Z Position of PF2 (m)	%0.575m     (MINIMUM OF 608mm)         %Lower is better for -d, but reduces volume      ~0.575
+R_Div1 = 0.250; %R Position of Div1 (m)	%0.250m     (MINIMUM OF 236mm)                                                          ~0.250
+Z_Div1 = 0.900; %Z Position of Div1 (m)	%0.900m     (MINIMUM OF 890mm)                                                          ~0.900
+R_Div2 = 0.500; %R Position of Div2 (m)	%0.500m     (MINIMUM OF 458mm)                                                          ~0.300
+Z_Div2 = 0.900; %Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)         %Lower is better for +d, but reduces volume      ~0.700
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -155,7 +155,7 @@ ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
 Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
-delta_efit = -2.00;					% Triangularity			[-] (-2.00-> +0.00 -> +1.00) ::
+delta_efit = 0.00;					% Triangularity			[-] (-2.00-> +0.00 -> +1.00) ::
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -204,16 +204,16 @@ R_null = 0.15;                      	% Null field region radius	 [m]
 %%%%%%%
 
 %Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri   %Phase1PosTri
-I_Sol_Null=+825;					%+625;          %+825;          %+625;
+I_Sol_Null=+625;					%+625;          %+825;          %+625;
 I_Sol_MidRamp=+000;                 %+000           %+000;          %+000;
 I_Sol_Equil=-I_Sol_Null;			%-625;          %-825;          %-625;
-I_Sol_EndEquil=-800;                %-600;          %-800;          %-600;
+I_Sol_EndEquil=-600;                %-600;          %-800;          %-600;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-500;					%-500;          %-500;          %-500;
-I_PF2_Equil=-500;					%-500;          %-500;          %-500;    (NEG FOR +delta, POS FOR -delta, after efit) 
+I_PF2_Equil=-500;					%-500;          %+500;          %-500;    (NEG FOR +delta, POS FOR -delta, after efit) 
 I_Div1_Equil=+000;					%+ISol;         %+ISol;         %+ISol;
-I_Div2_Equil=+400;					%+1200;         %-500;(+050?)   %+1700;   (HIGH FOR +delta, LOW FOR -delta, before efit)
+I_Div2_Equil=+1201;					%+1201;         %-250;(+400?)   %+1700;   (HIGH FOR +delta, LOW FOR -delta, before efit)
 
 %Define number of time-steps (vertices) in the current waveforms
 TauB  = 0.010;			% Null Buffer Timescale     [s] Determines null-field buffer
@@ -303,7 +303,7 @@ global Grid;
 Grid = fiesta_grid(GridSize_R(1),GridSize_R(2),GridCells_R, GridSize_Z(1),GridSize_Z(2),GridCells_Z);
 
 %Extract vectors of R and Z grid points for use in further diagnostics
-rGrid=get(Grid,'r'); %1*275
+rGrid=get(Grid,'r'); %1*300
 zGrid=get(Grid,'z'); %1*251
 
 
@@ -312,9 +312,8 @@ zGrid=get(Grid,'z'); %1*251
 %Define vessel corners, thickness and filament cross-sectional area 
 VesselDimensions = [RMinCentre, RMaxCentre, ZMinCentre, ZMaxCentre];       %[m]
 WallThickness = [VWall_Upper, VWall_Outboard, VWall_Lower, VWall_Inboard]; %[m]
-%Lower filament areas give higher passive current resolution
+%Lower filament areas give higher passive current resolution (Note :: FilamentArea affects convergence)
 FilamentArea = 1.50e-4; %(2.5e-4 > A > 1.5e-4 or RZIp M,R matrices fail)   %[m^2]
-% ISSUE :: FILAMENT AREA MUST BE CHOSEN VERY CAREFULLY TO ACHIEVE CONVERGENCE - NUMERICAL STABILITY...
 
 %Construct SMART vessel wall filaments ("Static"=fixed fil area, "Diff"=scaled fil area)
 [vessel_filament,R_Fil_Array,Z_Fil_Array] = ... 
@@ -325,6 +324,9 @@ FilamentArea = 1.50e-4; %(2.5e-4 > A > 1.5e-4 or RZIp M,R matrices fail)   %[m^2
 VesselResistivity = 6.9e-7;  VesselDensity = 7.8e3;	 %[Ohm]; [Kg/m3]; Stainless Steel (GRADE)
 global passive; passive = fiesta_passive('STVesselPas',vessel_filament,'g',VesselResistivity,VesselDensity);
 global vessel; vessel = fiesta_vessel( 'STVessel',passive);
+
+%Compute characteristic magnetic field penetration timescale (Amoskov2005)
+TauVessel = (mu0*max(WallThickness)^2)/VesselResistivity;       %[s]
 
 %%%%%%%%%%%%%%%%%%%%%%  INITIATE SOL & PF COILS  %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -366,12 +368,8 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%% TO DO %%%
 
-%%%   UPDATE SMART_PHASE2 USING THIS SMART_SJD.m AND GET A NEW BASELINE
-%%%   GET ALL VESSEL, COIL AND CURRENT WAVEFORM DATA UPDATED ON SMART REPO
-%%%   GET NEGATIVE TRIANGULARITY CASES WORKING FOR S1 AND S2 WITH EDDYS
-%%%   GET POSITIVE TRIANGULARITY CASES WORKING FOR S1 AND S2 WITH EDDYS
 %%%   ARCHIVE ALL NEW BIBLO AND ADD TO MENDELEY ASAP
-
+%%%   GET ALL VESSEL, COIL AND CURRENT WAVEFORM DATA UPDATED ON SMART REPO
 %%%   GET ALL FIGURES INTO FUNCTIONS - MAKE VESSEL/COIL SUB-FUNCTION
 %%%   GET I/O ALL INTO FUNCTIONS AND GET NEW SAVING ROUTINES SORTED OUT
 %%%   MIGRATE THE CreateSMARTCoilCircuit FUCTION TO THIS VERSION OF CODE
@@ -380,24 +378,12 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%%   GET THE FEEDBACK SYSTEM WORKING FOR VERTICAL AND HORIZONTAL STABILITY
 
-%%%   FIX THE CORNER OF THE DIFF VESSEL WALLS (LAST FILAMENT IS LARGER - ROUNDING ISSUE)
+%%%   FIX THE CORNER OF THE DIFF VESSEL WALLS (LAST FILAMENT IS LARGER)
 
 %%%   ENABLE EASILY TOGGLEABLE SINGLE NULL CONFIGURATION (extensive re-write)
 
 %%%   GET RZIP ABLE TO TAKE BOTH COIL AND VESSEL FILAMENTS !!!!
-
-
-
-%%%   UPDATE COIL DIMENSIONS                                                  --- DONE
-%%%   UPDATE COIL LOCATIONS                                                   --- DONE
-%%%   GET BASELINE CASE CURRENT WAVEFORMS SORTED FOR PHASE 1 AND 2            --- DONE
-%%%   GET NEGATIVE AND POSITIVE TRIANGULARITY CASES SORTED FOR PHASE 1 AND 2  --- DONE (NEED POSITIVE TRIANGULARITY)
-%%%   RERUN ALL S1-000012 CASES WITH THE UPDATED COIL CURRENT AND VOLTAGE     --- DONE
-%%%   ARCHIVE ANYTHING PRIOR TO S2-000011 and S1-0000012                      --- DONE
-%%%   RERUN ANY REQUIRED TAU-R OR TAU-B SIMULATION SERIES                     --- DONE
-
-%%%   GET PHASE 1 DUAL-RAMP BASELINE SORTED FOR VARYING TAUR                  --- DONE
-%%%   SEND ANY REQUIRED DATA TO MANU AND ALESSIO                              --- DONE
+%%%   findboundary.m function contains rules for LCFS boundary
 
 
 %%% NOTES %%%
@@ -487,8 +473,6 @@ Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 Vloop_Lc = Eloop*Lc;                                %[V]     %Rough estimate of voltage over connection lengthscale  (Chang2013)
 Eloop_eff = abs(Eloop)*(BtorAvg_Null/BpolAvg_Null); %[V/m]   %Rough estimate of startup conditionwith pre-ionisation (An2015)
 %Generally Eloop_eff > 100 [V/m] for startup
-
-%MAYBE?? Also Calculate Paschen Curve and Determine Breakdown HERE??
 
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
@@ -959,8 +943,9 @@ close('all')
 close all
 
 %Extract previously calculated efit coil currents without eddies
-CoilCurrents = transpose(CoilWaveforms(:,TimeIndex_Discharge)); %n=5, coil filaments
-CoilCurrents(iDiv2) = I_Div2_Equil;                             %Slightly increase IDiv2 and retry
+%CoilCurrents = transpose(CoilWaveforms_Init(:,TimeIndex_Discharge)); %n=5, coil filaments
+CoilCurrents = transpose(CoilWaveforms(:,TimeIndex_Discharge));       %n=5, coil filaments
+CoilCurrents(iDiv2) = I_Div2_Equil;                                   %Slightly increase IDiv2 and retry
 
 %Create new fiesta coilset and configuration to re-perform efit
 global vesselcoilset
@@ -1173,8 +1158,8 @@ close all
 
 %{
 %Stuff required for I/O if eddy currents are not computed
-Equil_Passive = Equil; equil_null_passive = equil_null; 
-config_passive = config;
+Equil_Passive = Equil; equil_null_passive = equil_null;
+EquilParams_Passive = EquilParams; config_passive = config;
 icoil_efit_passive = icoil_efit; icoil_null_passive = icoil_null;
 Vloop_Passive = Vloop; Vloop_Lc_Passive = Vloop_Lc;
 Eloop_Passive = Eloop; Eloop_eff_Passive = Eloop_eff;
@@ -1315,7 +1300,7 @@ fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'*1000; Net_IPassive']);
 
 Filename = strcat(ASCIIDir,'Eta.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'Eta_Perp [%]', 'Eta_Para [%]');
+fprintf(fileID,'%s %s\r\n', 'Eta_Perp [Ohm]', 'Eta_Para [Ohm]');
 fprintf(fileID,'%1.12f %1.12f\r\n', PlasmaResistPerp', PlasmaResistPara');
 
 Filename = strcat(ASCIIDir,'Bpol.txt');
@@ -1326,12 +1311,17 @@ fprintf(fileID,'%1.12f %1.12f\r\n', BpolAvg_Null_Passive', BtorAvg_Null_Passive'
 Filename = strcat(ASCIIDir,'IRod.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s\r\n', 'IRod [A]');
-fprintf(fileID,'%1.12f\r\n', EquilParams.irod');
+fprintf(fileID,'%1.12f\r\n', EquilParams_Passive.irod');
+
+Filename = strcat(ASCIIDir,'TauVessel.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s\r\n', 'TauVessel [ms]');
+fprintf(fileID,'%1.12f\r\n', TauVessel*1000');
 
 Filename = strcat(ASCIIDir,'betaP.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s\r\n', 'betaP [%]', 'betaP_Pert [%]');
-fprintf(fileID,'%1.12f %1.12f\r\n', EquilParams.betap', EquilParams_Pert.betap');
+fprintf(fileID,'%1.12f %1.12f\r\n', EquilParams_Passive.betap', EquilParams_Pert.betap');
 
 Filename = strcat(ASCIIDir,'Lc.txt');
 fileID=fopen(Filename,'w');
@@ -1345,7 +1335,7 @@ fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', Vloop_Passive', Vloop_Lc_Passi
 
 Filename = strcat(ASCIIDir,'MaxStress.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'StressR_max', 'StressZ_max');
+fprintf(fileID,'%s %s\r\n', 'StressR_max [Pa]', 'StressZ_max [Pa]');
 fprintf(fileID,'%1.12f %1.12f\r\n', StressR_max', StressZ_max');
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
@@ -1378,7 +1368,6 @@ disp([ 'Done!' ]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%      FUNCTIONS      %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 
 
@@ -1476,7 +1465,7 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     Ip_long = zeros(size(Time_Linear));         %Sets Ip_long to zero array
     Vp_long = NaN(size(Time_Linear));           %Sets Vp_long to 'NaN' array (Current Driven)
 
-    %Compute dynamic coil currents employing Current Criven Ip
+    %Compute dynamic coil currents employing Current Driven Ip
 	%CurlyM and CurlyR are large inductance and resistance matrices.
     [V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, Time_Adaptive ] = ...
         state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names',coil_names, 'show_plot',false, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
@@ -1488,11 +1477,11 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     Vp_output(Time_Plasma) = 0;                                  %Set voltage to zero when plasma exists
     Vp_long = interp1(Time_Adaptive, Vp_output, Time_Linear);    %Sets Vp_long = 0 when Time_Linear > 0.
     Ip_long = NaN*Vp_long;                                       %Sets Ip_long to 'NaN' array (Voltage Driven)
-
-    %Compute dynamic coil currents employing Voltage Criven Ip
+    
+    %Compute dynamic coil currents employing Voltage Driven Ip
     [ V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, Time_Adaptive ] = ...
         state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names',coil_names, 'show_plot',false, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
-    
+
     %Clean up before returning to main code
     close all
 end

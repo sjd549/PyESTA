@@ -75,11 +75,11 @@ RMaxCentre=VesselRMaxInner+(VWall_Outboard/2);	% Outboard wall 'grows outwards (
 %%%%%%%%%%%%%%%%%%%%%%%  DEFINE COIL GEOMETRY  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define Solenoid Geometry and Parameters
-nSol = 210;					 		  % Number of Solenoid Windings
-RSolInner = 0.115; RSolOuter = 0.145; % Inner and Outer solenoid radii    [m]
-RSolCentre = (RSolInner+RSolOuter)/2; % Central radius of solenoid (0.13) [m]
-ZMinSol = ZMinCentre-(VWall_Upper/2); % Solenoid Min Z position           [m]
-ZMaxSol = ZMaxCentre+(VWall_Lower/2); % Solenoid Max Z position           [m]
+nSol = 210                              % Number of Solenoid Windings
+RSolInner = 0.115; RSolOuter = 0.145;   % Inner and Outer solenoid radii    [m]
+RSolCentre = (RSolInner+RSolOuter)/2;   % Central radius of solenoid (0.13) [m]
+ZMinSol = ZMinCentre;                   % Solenoid Min Z position           [m]
+ZMaxSol = ZMaxCentre;                   % Solenoid Max Z position           [m]
 
 %Number of Radial (R) and axial (Z) PF coil windings
 nZDiv1=6; nRDiv1=4;
