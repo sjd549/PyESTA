@@ -34,7 +34,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S2-000016';		%Define global project name
+ProjectName = 'S1-000018';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -78,8 +78,8 @@ RMaxCentre=VesselRMaxInner+(VWall_Outboard/2);	% Outboard wall 'grows outwards (
 nSol = 210                                  % Number of Axial Solenoid Windings
 RSolInner = 0.115; RSolOuter = 0.145;       % Inner and Outer solenoid radii    [m]
 Width_Sol = 0.0080; Height_Sol = 0.0125;    % Width and height of Sol Winding   [m]
-RSolCentre = (RSolInner+RSolOuter)/2;       % Geometric Centre of Sol (0.13)    [m]
-RSolCentreWinding = RSolOuter-Width_Sol     % Winding Centre of Sol (0.1370)    [m] 
+RSolCentre = (RSolInner+RSolOuter)/2;       % Geometric Centre of Sol (0.130)   [m]
+RSolCentreWinding = RSolOuter-Width_Sol     % Winding Centre of Sol   (0.137)   [m] 
 ZMinSol = ZMinCentre;                       % Solenoid Min Z position           [m]
 ZMaxSol = ZMaxCentre;                       % Solenoid Max Z position           [m]
 
@@ -126,9 +126,9 @@ global BEarth; BEarth = 1.0E-4;  % Earth's B-Field (Def 5e-5)	[T]
 %Define initial operating conditions (primarily used for Topeol2)
 Te = 250;			% Electron Temperature [eV]
 Ti = Te*0.1;		% Ion Temperature      [eV]
-BT = 0.3;			% Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 100e3;			% Plasma current       [A]
-RGeo = 0.420;		% Geometrical Radius   [m] (~0.420)
+BT = 0.1;			% Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = 30e3;			% Plasma current       [A]
+RGeo = 0.420;		% Geometrical Radius   [m] (~0.440)
 ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
 RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
 rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.250)
@@ -139,7 +139,7 @@ li2 = 1;			% Inductance	       [-]
 
 %Compute further operating conditions (primarily used for Topeol2)
 Gr_Limit = 1e20*(Ip*1e-6/(pi*Kappa*rGeo^2));     % Greenwald Limit    [m-3]
-Gr_Frac = 0.70;                            % Greenwald Fraction       [-]
+Gr_Frac = 0.15;                            % Greenwald Fraction       [-]
 ne = Gr_Limit*Gr_Frac;                     % Electron Density         [m-3]
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
@@ -152,7 +152,7 @@ betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; 	% Beta Poloi
 BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    		% Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.420;					% Geometrical Radius	[m] (Default 0.420) ::
+RGeo_efit = 0.420;					% Geometrical Radius	[m] (Default 0.440) ::
 ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
@@ -204,25 +204,25 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-                                    %RGeo=0.42  %RGeo=0.42      %RGeo=0.46
-%Solenoid coil currents [kA]		%Phase2     %Phase2NegTri   %Phase2PosTri
-I_Sol_Null=+4000;					%+4000;     %+4000;         %+4000;
-I_Sol_MidRamp=+0000;				%+0000;     %+0000;         %+0000;
-I_Sol_Equil=-0500;                  %-0500;     %-1200;         %-1200;
-I_Sol_EndEquil=-0900;           	%-0900;     %-1600;         %-1600;
+                                    %RGeo=0.42      %RGeo=0.44      %RGeo=0.44
+%Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri   %Phase1PosTri (@TauR1 = 5.0ms)
+I_Sol_Null=+1000;					%+1000;         %+1000;         %+1000;
+I_Sol_MidRamp=+000;                 %+000           %+000;          %+000;
+I_Sol_Equil=-150;			        %-150;          %-520;          %-350;
+I_Sol_EndEquil=-125;                %-125;          %-500;          %-325;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-1100;					%-1100;     %-1100;         %-1100;
-I_PF2_Equil=-1100;					%-1100;     %-1100;         %-1100;     (NEG FOR +delta, POS FOR -delta, after efit) 
-I_Div1_Equil=+1500;					%+1500;     %-3500;         %+2500;     (HIGH FOR +delta, LOW FOR -delta, before efit)
-I_Div2_Equil=+0000;                 %+0000;     %+0000;         %+0000;
+I_PF1_Equil=-400;					%-400;          %-400;          %-400;
+I_PF2_Equil=-400;					%-400;          %-400;          %-400;          (NEG FOR +delta, POS FOR -delta, after efit) 
+I_Div1_Equil=+0400;					%+0400;         %-1500/1800;    %+1000/1800;    (HIGH FOR +delta, LOW FOR -delta, before efit)
+I_Div2_Equil=+0000;					%+000;          %+000;          %+000;
 
 %Define number of time-steps (vertices) in the current waveforms
-TauN  = 0.020;			% Null-Field Timescale      [s] Determines null-field decay timescale
-TauR1 = 0.008;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
-TauR2 = 0.020;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
+TauN  = 0.015;			% Null-Field Timescale      [s] Determines null-field decay timescale
+TauR1 = 0.002;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
+TauR2 = 0.015;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
 TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s] 
-TauP  = 0.100;			% Pulse Timescale      		[s] Determines flat-top timescale
+TauP  = 0.020;			% Pulse Timescale      		[s] Determines flat-top timescale
 %Time   [Init      PrePulse   InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
 time =  [-2*TauN   -TauN      0.0           TauR1        TauR         TauR+TauP    TauR+TauP+(2*TauN)];
 nTime = length(time);	% Coil Waveform Timesteps	[-]
@@ -966,7 +966,7 @@ sensor_btheta_passive = InitiateBSensors(EquilParams_Passive.r0_geom,EquilParams
 %    response(rzip_config, Equil_Passive, 'rp', PlasmaResistPerp);
 %ISSUE :: CV = greens(coilset, vessel) returns NaNs, likely because the vessel filaments are overlapping the vessel 'coils' in Equil_Passive
 %      :: Equil_Passive contains vessel filament 'coils', while RZIP is being fed 'vessel' filaments, both of which have the same coordinates
-%      :: SET RZIP UP WITH ONLY PF COILS FOR ALL FILAMENTS
+
 
 %%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
 
@@ -1061,9 +1061,6 @@ Filename = '_TargetEquilibrium_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({Equil_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
 
-CoilCurrentsEfit(1:nPF)
-CoilCurrentsEfit_Passive(1:nPF)
-
 %%%%%%%%%%%%%%%%%%%%  PLOT NULL-FIELD PHI SURFACES  %%%%%%%%%%%%%%%%%%%%%
 
 %Plot the optimised null-field phi
@@ -1072,9 +1069,6 @@ CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({Equil_Null_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
-
-CoilCurrentsNull(1:nPF)
-CoilCurrentsNull_Passive(1:nPF)
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT NULL-FIELD BPOL  %%%%%%%%%%%%%%%%%%%%%
 
@@ -1324,7 +1318,7 @@ fprintf(fileID,'%1.12f\r\n', Lc_Passive');
 Filename = strcat(ASCIIDir,'VLoop.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s %s %s\r\n', 'Vloop [V]', '     DeltaPhi [Vs]', ' Eloop [V/m]  ', ' Eloop_eff [V/m]');
-fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', Vloop_Passive', DeltaPhiSol_Passive', Eloop_Passive', Eloop_eff_Passive');
+fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', Vloop_Passive', DeltaPhiSolew', Eloop_Passive', Eloop_eff_Passive');
 
 Filename = strcat(ASCIIDir,'MaxStress.txt');
 fileID=fopen(Filename,'w');
