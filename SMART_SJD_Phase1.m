@@ -75,29 +75,31 @@ RMaxCentre=VesselRMaxInner+(VWall_Outboard/2);	% Outboard wall 'grows outwards (
 %%%%%%%%%%%%%%%%%%%%%%%  DEFINE COIL GEOMETRY  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define Solenoid Geometry and Parameters
-nSol = 210                                  % Number of Axial Solenoid Windings
+nSol = 230                                  % Number of Axial Solenoid Windings
 RSolInner = 0.115; RSolOuter = 0.145;       % Inner and Outer solenoid radii    [m]
-Width_Sol = 0.0080; Height_Sol = 0.0125;    % Width and height of Sol Winding   [m]
-RSolCentre = (RSolInner+RSolOuter)/2;       % Geometric Centre of Sol (0.130)   [m]
-RSolCentreWinding = RSolOuter-Width_Sol     % Winding Centre of Sol   (0.137)   [m] 
-ZMinSol = ZMinCentre;                       % Solenoid Min Z position           [m]
-ZMaxSol = ZMaxCentre;                       % Solenoid Max Z position           [m]
+Width_Sol = 0.011; Height_Sol = 0.011;      % Width and height of Sol Winding   [m]
+RSolCentre = (RSolInner+RSolOuter)/2;       % Geometric Centre of Sol (0.13)    [m]
+RSolCentreWinding = RSolOuter-Width_Sol;    % Winding Centre of Sol (0.1340)    [m] 
+ZMinSol = -0.7750; %ZMinCentre;             % Solenoid Min Z position           [m]
+ZMaxSol = +0.7750; %ZMaxCentre;             % Solenoid Max Z position           [m]
 
 %Number of Radial (R) and axial (Z) PF coil windings
-nZDiv1=6; nRDiv1=4;
-nZDiv2=6; nRDiv2=4;
-nZPF1=6; nRPF1=4;
-nZPF2=6; nRPF2=4;
+nZDiv1=6; nRDiv1=6;     % Square
+nZDiv2=6; nRDiv2=4;     % Axial Rectangle
+nZPF1=6; nRPF1=4;       % Axial Rectangle
+nZPF2=6; nRPF2=4;       % Axial Rectangle
 
 %Calculate total number of windings in each coil
-nDiv1=nZDiv1*nRDiv1;
-nDiv2=nZDiv2*nRDiv2;
-nPF1=nZPF1*nRPF1;
-nPF2=nZPF2*nRPF2;
+nDiv1=nZDiv1*nRDiv1;    % 36 Total Windings
+nDiv2=nZDiv2*nRDiv2;    % 24 Total Windings
+nPF1=nZPF1*nRPF1;       % 24 Total Windings
+nPF2=nZPF2*nRPF2;       % 24 Total Windings
 
 %Define coil total cross-sectional dimensions
-width_PF = 0.075;  % Width of the PF coil (m)
-height_PF = 0.050; % Height of a the PF coil (m)
+width_PF1 = 0.075; height_PF1 = 0.050;    %[m]
+width_PF2 = 0.075; height_PF2 = 0.050;    %[m]
+width_Div1 = 0.075; height_Div1 = 0.075;  %[m]
+width_Div2 = 0.075; height_Div2 = 0.050;  %[m]
 
 %Define central location of coil sets                                          %NOTES  (Outer midplane flange diameter = 176.8mm (180 mm))
 R_PF1 = 0.940;  %R position of PF1 (m)	%0.940m     (MINIMUM OF 938mm)
@@ -128,7 +130,7 @@ Te = 250;			% Electron Temperature [eV]
 Ti = Te*0.1;		% Ion Temperature      [eV]
 BT = 0.1;			% Toroidal B-Field     [T] (Defined at Rgeo)
 Ip = 30e3;			% Plasma current       [A]
-RGeo = 0.420;		% Geometrical Radius   [m] (~0.440)
+RGeo = 0.420;		% Geometrical Radius   [m] (~0.420)
 ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
 RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
 rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.250)
@@ -152,7 +154,7 @@ betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; 	% Beta Poloi
 BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    		% Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.420;					% Geometrical Radius	[m] (Default 0.440) ::
+RGeo_efit = 0.420;					% Geometrical Radius	[m] (Default 0.420) ::
 ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
@@ -204,22 +206,23 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-                                    %RGeo=0.42      %RGeo=0.44      %RGeo=0.44
-%Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri   %Phase1PosTri (@TauR1 = 5.0ms)
+                                    %TauR1=3.5ms    %TauR=3.5ms     %TauR=3.5ms
+                                    %RGeo=0.42      %RGeo=0.42      %RGeo=0.46
+%Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri   %Phase1PosTri
 I_Sol_Null=+1000;					%+1000;         %+1000;         %+1000;
 I_Sol_MidRamp=+000;                 %+000           %+000;          %+000;
-I_Sol_Equil=-150;			        %-150;          %-520;          %-350;
-I_Sol_EndEquil=-125;                %-125;          %-500;          %-325;
+I_Sol_Equil=-100;			        %-100;          %-250;          %-350;
+I_Sol_EndEquil=-075;                %-075;          %-225;          %-325;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-400;					%-400;          %-400;          %-400;
-I_PF2_Equil=-400;					%-400;          %-400;          %-400;          (NEG FOR +delta, POS FOR -delta, after efit) 
-I_Div1_Equil=+0400;					%+0400;         %-1500/1800;    %+1000/1800;    (HIGH FOR +delta, LOW FOR -delta, before efit)
-I_Div2_Equil=+0000;					%+000;          %+000;          %+000;
+I_PF1_Equil=-0400;					%-0400;         %-0400;         %-0400;
+I_PF2_Equil=-0400;					%-0400;         %-0400;         %-0400;     (NEG FOR +delta, POS FOR -delta, after efit) 
+I_Div1_Equil=+0300;					%+0300;         %-0600;         %+0900;     (HIGH FOR +delta, LOW FOR -delta, before efit)
+I_Div2_Equil=+0000;					%+0000;         %+0000;         %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
 TauN  = 0.015;			% Null-Field Timescale      [s] Determines null-field decay timescale
-TauR1 = 0.002;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
+TauR1 = 0.0035;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
 TauR2 = 0.015;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
 TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s] 
 TauP  = 0.020;			% Pulse Timescale      		[s] Determines flat-top timescale
@@ -349,10 +352,10 @@ nPF = 5;
 %Create coil set from parameters defined above. (Function made by Carlos Soria)
 %Function createVESTPFCircuit creates two PF coils. One in (R, Z) and another in (R, -Z)
 Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,coil_temp,resistivity,coil_density);
-PF1  = CreateSMARTCoilCircuit('PF1',R_PF1,Z_PF1,width_PF,height_PF,coilturns(iPF1),nZPF1,nRPF1,true,coil_temp,resistivity,coil_density);
-PF2  = CreateSMARTCoilCircuit('PF2',R_PF2,Z_PF2,width_PF,height_PF,coilturns(iPF2),nZPF2,nRPF2,true,coil_temp,resistivity,coil_density);
-Div1 = CreateSMARTCoilCircuit('Div1',R_Div1,Z_Div1,width_PF,height_PF,coilturns(iDiv1),nZDiv1,nRDiv1,true,coil_temp,resistivity,coil_density); 
-Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_PF,height_PF,coilturns(iDiv2),nZDiv2,nRDiv2,true,coil_temp,resistivity,coil_density);
+PF1  = CreateSMARTCoilCircuit('PF1',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,true,coil_temp,resistivity,coil_density);
+PF2  = CreateSMARTCoilCircuit('PF2',R_PF2,Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,true,coil_temp,resistivity,coil_density);
+Div1 = CreateSMARTCoilCircuit('Div1',R_Div1,Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,true,coil_temp,resistivity,coil_density); 
+Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_Div2,height_Div2,coilturns(iDiv2),nZDiv2,nRDiv2,true,coil_temp,resistivity,coil_density);
 
 %Collate global coilset containing Solenoid, PF and Div coil circuits (expects a row aligned filament array)
 R_Fil_Array = transpose(R_Fil_Array); Z_Fil_Array = transpose(Z_Fil_Array);     
@@ -642,7 +645,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %Plot plasma current over full timescale
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1)
+subplot(2,1,1); hold on; grid on;
 plot(time_adaptive*1000, Ip_output/1000, 'LineWidth',2)
 title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'I_{p}', 'FontSize',16); legend boxoff;
@@ -651,7 +654,7 @@ ylabel(gca,'Plasma Current I_{p} (kA)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 13, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2)
+subplot(2,1,2); hold on; grid on;
 plot(time_adaptive(1:end-1)*1000, Delta_Ip_output/1000, 'LineWidth',2)
 title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'dI_{p}/dt', 'FontSize',16); legend boxoff;
@@ -812,13 +815,13 @@ Force_fil=cross(VesselEddyCurrentVec,B_vessel);	%[N] %size [number of filaments*
 
 %Pressure acting on vessel wall is force over unit filiment area
 %These are absolute numbers - don't include any directionality
-PressureR=abs(Force_max(1))/(height_PF);	%[Pa]
-PressureZ=abs(Force_max(3))/(height_PF);	%[Pa]
+PressureR=abs(Force_max(1))/(FilamentArea);	%[Pa]
+PressureZ=abs(Force_max(3))/(FilamentArea);	%[Pa]
 
 %Stress acting on vessel wall is the combined force divided by the unit filiment area
 %These are directional, some are negative and some are positive
-StressR=(Force_fil(:,1))/(height_PF);		%[Pa]
-StressZ=(Force_fil(:,3))/(height_PF);		%[Pa]
+StressR=(Force_fil(:,1))/(FilamentArea);	%[Pa]
+StressZ=(Force_fil(:,3))/(FilamentArea);	%[Pa]
 %Obtain maximum radial and axial stresses - either positive or negative
 StressR_max=max(abs(StressR));				%[Pa]
 StressZ_max=max(abs(StressZ));				%[Pa]
@@ -826,17 +829,13 @@ StressZ_max=max(abs(StressZ));				%[Pa]
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT VESSEL EDDY STRESSES %%%%%%%%%%%%%%%%%%%%%%%%
 
-%Scale stresses from [Pa] to [Atm]
-StressR=StressR/2.0e5;
-StressZ=StressZ/2.0e5;
-
 %Plot figure showing vessel eddy stresses
 close all
 figure; hold on; axis equal;
 plot(coilset);
 %plot(vessel);
-quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','off');
-title('SMART Vessel Eddy-Stresses');
+quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','on');
+title('SMART Vessel Eddy-Stresses iter(1)');
 view(2) %2D view
 legend(gca,'hide');
 set(gca,'XLim',[0 1.1]);
@@ -966,7 +965,7 @@ sensor_btheta_passive = InitiateBSensors(EquilParams_Passive.r0_geom,EquilParams
 %    response(rzip_config, Equil_Passive, 'rp', PlasmaResistPerp);
 %ISSUE :: CV = greens(coilset, vessel) returns NaNs, likely because the vessel filaments are overlapping the vessel 'coils' in Equil_Passive
 %      :: Equil_Passive contains vessel filament 'coils', while RZIP is being fed 'vessel' filaments, both of which have the same coordinates
-
+%      :: SET RZIP UP WITH ONLY PF COILS FOR ALL FILAMENTS
 
 %%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
 
@@ -1061,6 +1060,9 @@ Filename = '_TargetEquilibrium_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({Equil_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
 
+CoilCurrentsEfit(1:nPF)
+CoilCurrentsEfit_Passive(1:nPF)
+
 %%%%%%%%%%%%%%%%%%%%  PLOT NULL-FIELD PHI SURFACES  %%%%%%%%%%%%%%%%%%%%%
 
 %Plot the optimised null-field phi
@@ -1069,6 +1071,9 @@ CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({Equil_Null_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
+
+CoilCurrentsNull(1:nPF)
+CoilCurrentsNull_Passive(1:nPF)
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT NULL-FIELD BPOL  %%%%%%%%%%%%%%%%%%%%%
 
@@ -1155,9 +1160,9 @@ BpolAvg_Null_Passive = BpolAvg_Null; BtorAvg_Null_Passive = BtorAvg_Null;
 EquilDir = strcat(ASCIIDir,'Equil_Data/'); mkdir(EquilDir);
 
 %Write 2D, 1D and 0D equilibrium values to text files once per iteration
-[fileID] = WriteEquilibrium(Equil_Passive, config_passive, EquilDir, false);
-[fileID] = WriteEquilibrium(Equil_Pert, config, EquilDir, false);
-[fileID] = WriteEquilibrium(Equil_Null_Passive, config_passive, EquilDir, true);
+[fileID] = WriteEquilibrium(Equil_Passive, config_passive, EquilDir, '', false);
+[fileID] = WriteEquilibrium(Equil_Null_Passive, config_passive, EquilDir, '', true);
+[fileID] = WriteEquilibrium(Equil_Pert, config, EquilDir, '_Pert', false);
 
 %Write initial target geometry, efit geometry and perturbed geometry
 [fileID] = WriteGeometry(efitGeometry_Init, EquilDir, 'efit_Geometry_Init.txt');
@@ -1318,7 +1323,7 @@ fprintf(fileID,'%1.12f\r\n', Lc_Passive');
 Filename = strcat(ASCIIDir,'VLoop.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s %s %s\r\n', 'Vloop [V]', '     DeltaPhi [Vs]', ' Eloop [V/m]  ', ' Eloop_eff [V/m]');
-fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', Vloop_Passive', DeltaPhiSolew', Eloop_Passive', Eloop_eff_Passive');
+fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', Vloop_Passive', DeltaPhiSol_Passive', Eloop_Passive', Eloop_eff_Passive');
 
 Filename = strcat(ASCIIDir,'MaxStress.txt');
 fileID=fopen(Filename,'w');
@@ -1966,8 +1971,12 @@ function [Vloop,Eloop,DeltaPhi]=LoopVoltage(CoilWaveforms,time,RSol,ZMaxSol,ZMin
     Vloop = IAreaLoop*((mu0*dIdt*coilturns(iSol))/SolLength);  %Loop voltage from solenoid [V] 
     Eloop = Vloop/VLengthLoop;                                 %E-field at plasma centre [V/m]
 
-    %Compute average solenoid flux swing during solenoid ramp-down
+    %Compute average solenoid magnetic flux swing during ramp-down
     DeltaPhi = Vloop*dt;                                       %Solenoid flux swing [Vs]
+    
+    %NOTE :: MAXIMUM POSSIBLE SOLENOID MAGNETIC FLUX
+    %(mu0*pi*ncoil*RSol^2)/(HeightSol*2*MaxISol)               %Assume one linear ramp [Vs]
+    %(((mu0*pi*230*RSolCentreWinding^2)/(ZMaxSol*2))*2*12500)  %Sanity check ~ 0.252   [Vs]
 end
 
 
@@ -2021,7 +2030,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Write 2D, 1D and 0D equilibria out to files
-function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,VacuumField)
+function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,EquilName,VacuumField)
 
     %Get any required global variables
     global Grid;
@@ -2038,7 +2047,7 @@ function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,VacuumField)
         qProfile = qprofile(Equilibrium);
         qProfileVariables = fieldnames(qProfile);
         qProfileParams = struct2cell(qProfile(:,1));
-        Filename = strcat(EquilDir,'EquilProfiles.txt');
+        Filename = strcat(EquilDir,'EquilProfiles',EquilName,'.txt');
         fileID=fopen(Filename,'w');
         for i = 1:length(qProfileVariables)
             fprintf(fileID,'%s\r\n', string(qProfileVariables(i)));
@@ -2051,10 +2060,10 @@ function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,VacuumField)
         end
 
         %Write 0D equilibrium parameters file
-        EquilibriumParams = parameters(Equilibrium)         %ISSUE :: Must print or will save incorrectly.
+        EquilibriumParams = parameters(Equilibrium);
         ParamVariables = fieldnames(EquilibriumParams);
         ParamValues = struct2cell(EquilibriumParams(:,1));
-        Filename = strcat(EquilDir,'EquilParam.txt');
+        Filename = strcat(EquilDir,'EquilParam',EquilName,'.txt');
         fileID=fopen(Filename,'w');
         for i = 1:length(ParamValues)
             try fprintf(fileID,'%s, %0.5f\r\n',[string(ParamVariables(i)); ParamValues(i)]);
