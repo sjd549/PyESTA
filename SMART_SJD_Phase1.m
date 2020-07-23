@@ -34,7 +34,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S1-000018';		%Define global project name
+ProjectName = 'S1-000019';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -129,7 +129,7 @@ global BEarth; BEarth = 1.0E-4;  % Earth's B-Field (Def 5e-5)	[T]
 Te = 250;			% Electron Temperature [eV]
 Ti = Te*0.1;		% Ion Temperature      [eV]
 BT = 0.1;			% Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 30e3;			% Plasma current       [A]
+Ip = 35e3;			% Plasma current       [A]
 RGeo = 0.420;		% Geometrical Radius   [m] (~0.420)
 ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
 RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
@@ -141,7 +141,7 @@ li2 = 1;			% Inductance	       [-]
 
 %Compute further operating conditions (primarily used for Topeol2)
 Gr_Limit = 1e20*(Ip*1e-6/(pi*Kappa*rGeo^2));     % Greenwald Limit    [m-3]
-Gr_Frac = 0.15;                            % Greenwald Fraction       [-]
+Gr_Frac = 0.20;                            % Greenwald Fraction       [-]
 ne = Gr_Limit*Gr_Frac;                     % Electron Density         [m-3]
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
@@ -206,23 +206,23 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-                                    %TauR1=3.5ms    %TauR=3.5ms     %TauR=3.5ms
+                                    %TauR1=4.0ms    %TauR=5.0ms     %TauR=5.0ms
                                     %RGeo=0.42      %RGeo=0.42      %RGeo=0.46
 %Solenoid coil currents [kA]		%Phase1Base     %Phase1NegTri   %Phase1PosTri
-I_Sol_Null=+1000;					%+1000;         %+1000;         %+1000;
+I_Sol_Null=+1200;					%+1200;         %+1500;         %+1500;
 I_Sol_MidRamp=+000;                 %+000           %+000;          %+000;
-I_Sol_Equil=-100;			        %-100;          %-250;          %-350;
-I_Sol_EndEquil=-075;                %-075;          %-225;          %-325;
+I_Sol_Equil=-150;			        %-150;          %-150;          %-150;
+I_Sol_EndEquil=-125;                %-125;          %-125;          %-125;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-0400;					%-0400;         %-0400;         %-0400;
 I_PF2_Equil=-0400;					%-0400;         %-0400;         %-0400;     (NEG FOR +delta, POS FOR -delta, after efit) 
-I_Div1_Equil=+0300;					%+0300;         %-0600;         %+0900;     (HIGH FOR +delta, LOW FOR -delta, before efit)
+I_Div1_Equil=+0300;					%+0300;         %-0500;         %+0950;     (HIGH FOR +delta, LOW FOR -delta, before efit)
 I_Div2_Equil=+0000;					%+0000;         %+0000;         %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
-TauN  = 0.015;			% Null-Field Timescale      [s] Determines null-field decay timescale
-TauR1 = 0.0035;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
+TauN  = 0.018;			% Null-Field Timescale      [s] Determines null-field decay timescale
+TauR1 = 0.004;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
 TauR2 = 0.015;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
 TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s] 
 TauP  = 0.020;			% Pulse Timescale      		[s] Determines flat-top timescale
@@ -1016,6 +1016,7 @@ Eloop_eff_Passive = abs(Eloop_Passive)*(BtorAvg_Null_Passive/BpolAvg_Null_Passiv
 Pressure_Passive = EquilParams_Passive.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
 [TauAvalanche_Passive,Pressure_Passive,Alpha_Passive,Vde_Passive] = ...
     AvalancheTimescale(Pressure_Passive,Eloop_Passive,Lc_Passive,ne,1.0,true);
+
 
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
@@ -1852,9 +1853,9 @@ function [BpolAvg,BtorAvg]=ExtractNullBMin(EquilParams,BpolData,BtorData,R_null)
 
     %Enforce lower limit for BpolMin (default to a multiple of Earth's B-field)
     BMin = BEarth; %[T]     (Default BEarth = 1e-5 T = 0.5 G)
-    if BpolAvg < BMin
+    if BpolAvg < 0.8*BMin
         BpolAvg = BpolAvg+BMin;	
-    elseif BtorAvg < BMin
+    elseif BtorAvg < 0.8*BMin
         BtorAvg = BtorAvg+BMin;
     end
     %Lloyd1991 suggests DIII-D Tokamak Bpolmin as 0.2 -> 1.2mT (2 -> 12G)
