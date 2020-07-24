@@ -65,7 +65,7 @@ import time
 #Enforce matplotlib to avoid instancing undisplayed windows
 #matplotlib-tcl-asyncdelete-async-handler-deleted-by-the-wrong-thread
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')			!!! CAUSES FIGURES TO NOT PLOT !!!
 
 #Import additional modules
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -339,45 +339,64 @@ CoilWaveforms = [ISol_Waveform, IPF1_Waveform, IPF2_Waveform, IDiv1_Waveform, ID
 ########################################
 
 #Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD.m'			#Define name of FIESTA script
-ProjectName = 'S1-000015-d'			#Define Global Project Name (Baseline Equilibrium)
-SeriesName = 'auto'					#Parameter scan series name ('auto' for automatic)
+FIESTAName = 'SMART_SJD_Phase2.m'	#Define name of FIESTA MatLab script
+ProjectName = 'S1-000019'			#Define Global Project Name (Baseline Equilibrium)
+SeriesName = 'Vary Phase' #'auto'	#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
 SimNameList = ['R_PF2','Z_PF2','R_PF1','Z_PF1','I_Div2_Equil','delta_efit']
 
 #Define if simulations are to be run
-IAutorun = True			#Run requested simulation series
+IAutorun = False		#Run requested simulation series
 IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
-
-#Define equilibrium calculation method
-IefitCoils = ['PF1','PF2']				#Define coils for which efit, feedback is applied
 
 #Define paramters to be varied and ranges to be varied over
 ParameterVaried = 'Z_PF1'	#Define parameter to vary - Required for diagnostics
 ParameterRange = [0.175, 0.200, 0.250, 0.300]			#Define paramter range to vary over
 
-#Define which diagnostics are to be performed
-savefig_EquilStability = True		#Plots current trends in response to perturbed equilibria
-savefig_EfitEquilTrends = True		#Plots efit equilibrium geometry trends from Param(equil)
+
+########################################
+#### 	  	 DIAGNOSTICS 		   #####
+########################################
+
+#Requested Equil Variables
+TrendAxisVariables=''				#Force trend figures to use different variable
+
+
+#Requested diagnostics and plotting routines.
+savefig_EquilStability = False		#Plots current trends in response to perturbed equilibria
+savefig_EfitEquilTrends = False		#Plots efit equilibrium geometry trends from Param(equil)
 savefig_UserEquilTrends = False		#Plots user defined equilibrium trends from Param(equil)	#UserEquilParameter
 #savefig_EquilSeperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 #savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 #savefig_EquilXpoint = False		#Plots X-point location (R,Z) trends
 
-savefig_CoilCurrentTraces = True	#Plots PF coil current timetraces for each simulation
-savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
+savefig_CoilCurrentTraces = False	#Plots PF coil current timetraces for each simulation
+savefig_CoilCurrentTrends = False	#Plots trends in PF coil currents over all simulations
 
-savefig_ConnectionLength = True		#Plots trends in average connection length over all simulations
-savefig_PaschenCurves = True		#Plots Paschen curves for each simulation using Lc
+savefig_ConnectionLength = False		#Plots trends in average connection length over all simulations
+savefig_PaschenCurves = False		#Plots Paschen curves for each simulation using Lc
 
 savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
-savefig_EddyCurrent = True			#Plots total vessel eddy current trends over all simulations
+savefig_EddyCurrent = False			#Plots total vessel eddy current trends over all simulations
+
+
+#Image plotting options.
+image_extension = '.png'				#Extensions ('.png', '.jpg', '.eps')
+image_aspectratio = [10,10]				#[x,y] in cm [Doesn't rotate dynamically]
+image_radialcrop = [0.65]				#[R1,R2] in cm
+image_axialcrop = [1.0,4.0]				#[Z1,Z2] in cm
+image_cbarlimit = []					#[min,max] colourbar limits	
 
 
 #Image overrides and tweaks
-Image_TrendAxisOverride=''			#Force trend figures to use different variable
+titleoverride = []						#TBC
+legendoverride = []						#TBC
+xaxisoverride = []						#TBC
+xlabeloverride = []						#TBC
+ylabeloverride = []						#TBC
+cbaroverride = []						#TBC
 
 #====================================================================#
 #====================================================================#
@@ -622,7 +641,7 @@ def ExtractSubDirs(SeriesDirString,Root=True):
 		#List local directory and search for any folders associated with project
 		Directorylist = os.listdir( os.getcwd() )
 		for i in range(0,len(Directorylist)):
-			if ProjectName in Directorylist[i]:
+			if SeriesDirString in Directorylist[i]:
 				#ONLY TAKES FIRST PROJECT FOLDER - NEED TO UPDATE FOR MULTI-FOLDER
 				SeriesDir = Directorylist[i]
 				break
@@ -693,18 +712,22 @@ def ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical'):
 			#Read in 2D data from ASCII formatted file.
 			datafile = open(Filename)
 			RawData = datafile.readlines()
-			for m in range(0,len(RawData)):
-				Row = RawData[m].split()
+			RawData,Header = RawData[1::],RawData[0]
 
-				#Determine how many rows of data exist.
-				if len(OutputData) == 0:
-					for i in range(0,len(Row)): OutputData.append(list())
-				#endif
+			#Enlarge output data array by number of columns
+			NumColumns = len(RawData[0].split())
+			for m in range(0,NumColumns):
+				OutputData.append(list())
+			#endfor
+
+			for i in range(0,len(RawData)):
+				#For each column, split row and turn to float
+				Row = RawData[i].split()
 				for j in range(0,len(Row)):
 					try: Row[j] = float(Row[j])
 					except: Row[j] = str(Row[j])
 				#endfor
-				for k in range(0,len(OutputData)):
+				for k in range(0,NumColumns):
 					OutputData[k].append(Row[k])
 				#endfor
 			#endfor
@@ -823,7 +846,7 @@ def CreateSimName(SimNameList,VariedParameter='NaN',ParameterValue='NaN'):
 #Takes directories of all folders in the simulation series folder
 #Returns a 1D array of floating values based on the varied parameter
 #Example: TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried)
-def CreateTrendAxis(SimulationNames,VariableString,Image_TrendAxisOverride=''):
+def CreateTrendAxis(SimulationNames,VariableString,TrendAxisVariables=''):
 
 	#Create required list to store output
 	TrendAxis = list()
@@ -835,8 +858,8 @@ def CreateTrendAxis(SimulationNames,VariableString,Image_TrendAxisOverride=''):
 		SplitSimName = SimulationNames[i].split(' ')			#Split simulation parameters
 
 		#Find trend variable and extract value - check override variable first
-		if len(Image_TrendAxisOverride) > 0:
-			TrendString = filter(lambda x: Image_TrendAxisOverride in x, SplitSimName)[0]
+		if len(TrendAxisVariables) > 0:
+			TrendString = filter(lambda x: TrendAxisVariables in x, SplitSimName)[0]
 		else: 
 			try: TrendString = filter(lambda x: VariableString in x, SplitSimName)[0]
 			except: TrendString = SplitSimName[0]
@@ -914,10 +937,7 @@ print ''
 
 #Auto generate series folder name if requested
 if SeriesName == 'auto': SeriesName = 'Vary '+ParameterVaried
-#Ensure varied parameter appears first in SimulationName
-SimNameList = [SimNameList[i] for i in range(0,len(SimNameList)) if SimNameList[i]!=ParameterVaried]
-SimNameList = [ParameterVaried]+SimNameList
-
+elif SeriesName != 'auto': SeriesDirString = SeriesName
 
 #Autorun simulations over defined paramter range if requested
 if IAutorun == True:
@@ -926,6 +946,10 @@ if IAutorun == True:
 	HomeDir = os.getcwd()
 	SeriesDirString = '/'+ProjectName+' '+SeriesName+'/'
 	SeriesDir = CreateNewFolder(HomeDir,SeriesDirString)
+
+	#Ensure varied parameter appears first in SimulationName
+	SimNameList = [SimNameList[i] for i in range(0,len(SimNameList)) if SimNameList[i]!=ParameterVaried]
+	SimNameList = [ParameterVaried]+SimNameList
 
 	#For all requested input parameters
 	for i in range(0,len(ParameterRange)):
@@ -1015,7 +1039,6 @@ if IAutorun == True:
 if savefig_EfitEquilTrends == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1025,7 +1048,7 @@ if savefig_EfitEquilTrends == True:
 	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Quick and dirty removal of most useful trends
 	RGeo,ZGeo,Kappa,AspectRatio,delta = list(),list(),list(),list(),list()	#efit params
@@ -1050,7 +1073,7 @@ if savefig_EfitEquilTrends == True:
 #	#Create output folder for all coil trend figures
 #	EquilTrendsDir = CreateNewFolder(SeriesDirString,'/Equil_Trends/')
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1111,7 +1134,6 @@ if savefig_EfitEquilTrends == True:
 if savefig_UserEquilTrends == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1121,7 +1143,7 @@ if savefig_UserEquilTrends == True:
 	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#List equilibrium parameters by index - !!! CONVERT INTO INDEX LIBRARY !!!
 	#!!! MAKE LAMBDA FUNCTION TO EXTRACT REQUESTED PARAMETERS FOR PLOTTING !!!
@@ -1142,7 +1164,7 @@ if savefig_UserEquilTrends == True:
 #	#Create output folder for all coil trend figures
 #	EquilTrendsDir = CreateNewFolder(SeriesDirString,'/Equil_Trends/')
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1183,7 +1205,6 @@ if savefig_UserEquilTrends == True:
 if savefig_EquilStability == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1222,7 +1243,7 @@ if savefig_EquilStability == True:
 	#endfor
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Quick and dirty removal of relevent trends
 	RGeo,ZGeo,Kappa,A,delta = list(),list(),list(),list(),list()	#efit params
@@ -1256,7 +1277,7 @@ if savefig_EquilStability == True:
 	#===================##===================#
 
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1340,7 +1361,6 @@ if savefig_EquilStability == True:
 if savefig_CoilCurrentTraces == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1364,7 +1384,7 @@ if savefig_CoilCurrentTraces == True:
 	#endfor
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale data for plotting: [s] to [ms]
 	for i in range(0,len(Time_Arrays)):
@@ -1412,7 +1432,7 @@ if savefig_CoilCurrentTraces == True:
 #	#Create output folder for all coil trend figures
 #	ICoilTimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1486,7 +1506,6 @@ if savefig_CoilCurrentTraces == True:
 if savefig_CoilCurrentTrends == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1511,7 +1530,7 @@ if savefig_CoilCurrentTrends == True:
 	#endfor
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale data for plotting: [s] to [ms]
 	for i in range(0,len(Time_Arrays)):
@@ -1585,7 +1604,7 @@ if savefig_CoilCurrentTrends == True:
 #	#Create output folder for all coil trend figures
 #	CurrentTrendsDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1734,7 +1753,6 @@ if savefig_CoilCurrentTrends == True:
 if savefig_ConnectionLength == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1751,13 +1769,13 @@ if savefig_ConnectionLength == True:
 	#endfor
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#===================##===================#
 	#===================##===================#
 
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1801,7 +1819,6 @@ if savefig_ConnectionLength == True:
 if savefig_PaschenCurves == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -1840,10 +1857,10 @@ if savefig_PaschenCurves == True:
 	#endfor
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1927,50 +1944,37 @@ if savefig_PaschenCurves == True:
 if savefig_PlasmaCurrent == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
 
 	#Extract plasma current data from series directories
 	Filename = 'RZIP_Data/Ip.txt'
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-
-	#Remove any header string from the data
-	for i in range(0,len(Time_Arrays)):
-		Time_Arrays[i] = Time_Arrays[i][1::]
-		Ip_Arrays[i] = Ip_Arrays[i][1::]
-	#endfor
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
+	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
-
-	#Rescale data for plotting: [s] to [ms]
-	for i in range(0,len(Time_Arrays)):
-		for j in range(0,len(Time_Arrays[i])):
-			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
-		#endfor
-	#endfor
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale data for plotting: [A] to [kA]
-	for i in range(0,len(Ip_Arrays)):
-		for j in range(0,len(Ip_Arrays[i])):
-			Ip_Arrays[i][j] = Ip_Arrays[i][j]/1000.0
+	for l in range(0,NumFolders):
+		for i in range(0,len(Ip_Arrays[l][0])):
+			Ip_Arrays[l][1][i] = Ip_Arrays[l][1][i]/1000.0
 		#endfor
 	#endfor
 
 	#Calculate maximum Ip for each simulation over the full series
 	Ip_MaxTrend,Ip_MinTrend = list(),list()
-	for i in range(0,len(Ip_Arrays)):
-		Ip_MaxTrend.append(max(Ip_Arrays[i]))
-		Ip_MinTrend.append(min(Ip_Arrays[i]))
+	for l in range(0,NumFolders):
+		Ip_MaxTrend.append(max(Ip_Arrays[l][1]))
+		Ip_MinTrend.append(min(Ip_Arrays[l][1]))
 	#endfor
 
 	#===================##===================#
 	#===================##===================#
 
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
@@ -1978,7 +1982,7 @@ if savefig_PlasmaCurrent == True:
 	fig,ax = plt.subplots(1, figsize=(12,10))
 
 	#Plot plasma current with respect to adaptive_time
-	for i in range(0,len(Ip_Arrays)): ax.plot(Time_Arrays[i],Ip_Arrays[i], lw=2)
+	for l in range(0,NumFolders): ax.plot(Time_Arrays[l][0],Ip_Arrays[l][1], lw=2)
 	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
 	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
 	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
@@ -1987,27 +1991,27 @@ if savefig_PlasmaCurrent == True:
 #	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
 	ax.tick_params(axis='x', labelsize=20)
 	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim( min(Time_Arrays[0])*1.20,max(Time_Arrays[0])*1.50 )		
+	ax.set_xlim( min(Time_Arrays[l][0])*1.20,max(Time_Arrays[l][0])*1.50 )		
 #	ax.set_ylim(2,32)
 
 	#Plot trend in plasma current with respect to varied parameter
-	from mpl_toolkits.axes_grid.inset_locator import inset_axes
-	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
-	ax2 = fig.add_axes([left, bottom, width, height])
+#	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+#	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
+#	ax2 = fig.add_axes([left, bottom, width, height])
 	###
-	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
-	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
-	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
-	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
+#	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
+#	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
+#	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
+#	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
 #	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
 #	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
-	ax2.tick_params(axis='x', labelsize=14)
-	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.tick_params(axis='x', labelsize=14)
+#	ax2.tick_params(axis='y', labelsize=14)
 #	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
 #	ax2.set_ylim(0.79,1.01)
 
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/Ip_Trends.png')
+	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/'+'Ip_Trends'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -2032,7 +2036,6 @@ if savefig_PlasmaCurrent == True:
 if savefig_EddyCurrent == True:
 
 	#Obtain simulation folder directories for project and requested series
-	SeriesDirString = SeriesName+' '+ProjectName
 	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
 	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
@@ -2048,14 +2051,7 @@ if savefig_EddyCurrent == True:
 	#endfor
 
 	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,Image_TrendAxisOverride)
-
-	#Rescale data for plotting: [s] to [ms]
-	for i in range(0,len(Time_Arrays)):
-		for j in range(0,len(Time_Arrays[i])):
-			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
-		#endfor
-	#endfor
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale data for plotting: [A] to [kA]
 	for i in range(0,len(IPass_Arrays)):
@@ -2075,7 +2071,7 @@ if savefig_EddyCurrent == True:
 	#===================##===================#
 
 	#Organize figure labelling variables
-	if len(Image_TrendAxisOverride) > 0: Parameter = Image_TrendAxisOverride
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
 	#endif
 
