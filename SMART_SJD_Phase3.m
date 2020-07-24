@@ -209,10 +209,10 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
                                     %TauR1=30ms %TauR=30ms      %TauR=30ms
                                     %RGeo=0.42  %RGeo=0.xx      %RGeo=0.xx
 %Solenoid coil currents [kA]		%Phase3     %Phase3NegTri   %Phase3PosTri
-I_Sol_Null=+10000;					%+10000;    %+xx000;        %+xx000;
+I_Sol_Null=+08000;					%+08000;    %+xx000;        %+xx000;
 I_Sol_MidRamp=+0000;				%+00000;    %+00000;        %+00000;
 I_Sol_Equil=-1000;                  %-01000;    %-xx000;        %-xx000;
-I_Sol_EndEquil=-7000;           	%-07000;    %-xx000;        %-xx000;
+I_Sol_EndEquil=-6500;           	%-06500;    %-xx000;        %-xx000;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-4000;					%-4000;     %-xx00;         %-xx00;
@@ -222,7 +222,7 @@ I_Div2_Equil=+0000;                 %+0000;     %+0000;         %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
 TauN  = 0.030;			% Null-Field Timescale      [s] Determines null-field decay timescale
-TauR1 = 0.030;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
+TauR1 = 0.015;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
 TauR2 = 0.100;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
 TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s] 
 TauP  = 0.500;			% Pulse Timescale      		[s] Determines flat-top timescale
