@@ -34,7 +34,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S3-000002';		%Define global project name
+ProjectName = 'S3-000003';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -129,7 +129,7 @@ global BEarth; BEarth = 1.0E-4;  % Earth's B-Field (Def 5e-5)	[T]
 Te = 250;			% Electron Temperature [eV]
 Ti = Te*0.1;		% Ion Temperature      [eV]
 BT = 1.0;			% Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 300e3;			% Plasma current       [A]
+Ip = 500e3;         % Plasma current       [A]
 RGeo = 0.420;		% Geometrical Radius   [m] (~0.420)
 ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
 RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
@@ -206,23 +206,23 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-                                    %TauR1=30ms %TauR=30ms      %TauR=30ms
+                                    %TauR1=40ms %TauR=40ms      %TauR=40ms
                                     %RGeo=0.42  %RGeo=0.xx      %RGeo=0.xx
 %Solenoid coil currents [kA]		%Phase3     %Phase3NegTri   %Phase3PosTri
-I_Sol_Null=+08000;					%+08000;    %+xx000;        %+xx000;
+I_Sol_Null=+12000;					%+12000;    %+xx000;        %+xx000;
 I_Sol_MidRamp=+0000;				%+00000;    %+00000;        %+00000;
-I_Sol_Equil=-1000;                  %-01000;    %-xx000;        %-xx000;
-I_Sol_EndEquil=-6500;           	%-06500;    %-xx000;        %-xx000;
+I_Sol_Equil=-01200;                 %-01200;    %-xx000;        %-xx000;
+I_Sol_EndEquil=-10000;           	%-10000;    %-xx000;        %-xx000;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-4000;					%-4000;     %-xx00;         %-xx00;
-I_PF2_Equil=-4000;					%-4000;     %-xx00;         %-xx00;     (NEG FOR +delta, POS FOR -delta, after efit) 
-I_Div1_Equil=+4500;					%+4500;     %-xx00;         %+xx00;     (HIGH FOR +delta, LOW FOR -delta, before efit)
+I_PF2_Equil=-4000;					%-4000;     %-xx00;         %-xx00;     (NEG FOR +delta, POS FOR -delta) 
+I_Div1_Equil=+4000;					%+4000;     %-xx00;         %+xx00;     (HIGH FOR +delta, LOW FOR -delta)
 I_Div2_Equil=+0000;                 %+0000;     %+0000;         %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
-TauN  = 0.030;			% Null-Field Timescale      [s] Determines null-field decay timescale
-TauR1 = 0.015;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
+TauN  = 0.025;			% Null-Field Timescale      [s] Determines null-field decay timescale
+TauR1 = 0.040;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
 TauR2 = 0.100;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
 TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s] 
 TauP  = 0.500;			% Pulse Timescale      		[s] Determines flat-top timescale
@@ -375,7 +375,6 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%%   GET ALL VESSEL, COIL AND CURRENT WAVEFORM DATA UPDATED ON SMART REPO
 %%%   GET ALL FIGURES INTO FUNCTIONS - MAKE VESSEL/COIL SUB-FUNCTION
-%%%   GET I/O ALL INTO FUNCTIONS AND GET NEW SAVING ROUTINES SORTED OUT
 %%%   MIGRATE THE CreateSMARTCoilCircuit FUCTION TO THIS VERSION OF CODE
 %%%   FINISH COMMENTS ON THE NEW CreateSMARTSolenoidCircuit FUNCTION
 %%%   FINISH COMMENTS ON ALL NEW FUNCTIONS
@@ -388,7 +387,7 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%%   FIX THE CORNER OF THE DIFF VESSEL WALLS (LAST FILAMENT IS LARGER)
 
-%%%   GET RZIP ABLE TO TAKE BOTH COIL AND VESSEL FILAMENTS !!!!
+%%%   GET RZIP ABLE TO TAKE BOTH COIL AND VESSEL FILAMENTS
 %%%   findboundary.m function contains rules for LCFS boundary
 
 

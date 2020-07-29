@@ -54,6 +54,7 @@ if 'True' in str(options):
 
 #Import core modules
 import matplotlib.cm as cm
+import matplotlib
 import numpy as np
 import scipy as sp
 import math as m
@@ -64,7 +65,6 @@ import time
 
 #Enforce matplotlib to avoid instancing undisplayed windows
 #matplotlib-tcl-asyncdelete-async-handler-deleted-by-the-wrong-thread
-import matplotlib
 #matplotlib.use('Agg')			!!! CAUSES FIGURES TO NOT PLOT !!!
 
 #Import additional modules
@@ -74,6 +74,7 @@ from subprocess import Popen, PIPE
 from matplotlib import pyplot as plt
 from matplotlib import ticker
 from scipy import ndimage
+from cycler import cycler			#Enables easy modification of mpl.rcParams.color()
 from tqdm import tqdm
 from pylab import *
 
@@ -383,7 +384,7 @@ savefig_EddyCurrent = False			#Plots total vessel eddy current trends over all s
 
 
 #Image plotting options.
-image_extension = '.png'				#Extensions ('.png', '.jpg', '.eps')
+image_extension = '.eps'				#Extensions ('.png', '.jpg', '.eps')
 image_aspectratio = [10,10]				#[x,y] in cm [Doesn't rotate dynamically]
 image_radialcrop = [0.65]				#[R1,R2] in cm
 image_axialcrop = [1.0,4.0]				#[Z1,Z2] in cm
@@ -451,13 +452,16 @@ def Matplotlib_GlobalOptions():
 #	mpl.style.use('classic')								#Resets to classic 1.x.x format
 	
 	#Image options			
-	mpl.rcParams['figure.figsize'] = [10.0,10.0]			#Sets default figure size
-	mpl.rcParams['figure.dpi'] = 200						#Sets viewing dpi
-	mpl.rcParams['savefig.dpi'] = 100						#Sets saved dpi
-	mpl.rcParams['image.interpolation'] = 'bilinear'		#Applies bilinear image 'smoothing'
-	mpl.rcParams['image.resample'] = True					#Resamples data before colourmapping
-	mpl.rcParams['image.cmap'] = 'plasma'					#Select global colourmap 
+	mpl.rcParams['figure.figsize'] = [10.0,10.0]				#Sets default figure size
+	mpl.rcParams['figure.dpi'] = 200							#Sets viewing dpi
+	mpl.rcParams['savefig.dpi'] = 100							#Sets saved dpi
+	mpl.rcParams['image.interpolation'] = 'bilinear'			#Applies bilinear image 'smoothing'
+	mpl.rcParams['image.resample'] = True						#Resamples data before colourmapping
+	mpl.rcParams['axes.prop_cycle'] = cycler(color='krbgcmy')	#Select global line colour cycle
+	mpl.rcParams['image.cmap'] = 'plasma'						#Select global colourmap 
 	#'jet','plasma','gnuplot'
+
+
 
 	#Axis options
 	mpl.rcParams['axes.autolimit_mode'] = 'round_numbers'	#View limits coencide with axis ticks
@@ -1992,7 +1996,7 @@ if savefig_PlasmaCurrent == True:
 	ax.tick_params(axis='x', labelsize=20)
 	ax.tick_params(axis='y', labelsize=20)
 	ax.set_xlim( min(Time_Arrays[l][0])*1.20,max(Time_Arrays[l][0])*1.50 )		
-#	ax.set_ylim(2,32)
+	ax.set_ylim( -5,						 max(max(Ip_Arrays[l]))*1.05 )
 
 	#Plot trend in plasma current with respect to varied parameter
 #	from mpl_toolkits.axes_grid.inset_locator import inset_axes
