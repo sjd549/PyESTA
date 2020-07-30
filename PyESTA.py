@@ -353,8 +353,8 @@ IParallel = False		#Enable mutli-simulations in parallel
 IVerbose = True			#Verbose terminal output - not compatable with IParallel
 
 #Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'Z_PF1'	#Define parameter to vary - Required for diagnostics
-ParameterRange = [0.175, 0.200, 0.250, 0.300]			#Define paramter range to vary over
+ParameterVaried = 'Phase'	#Define parameter to vary - Required for diagnostics
+ParameterRange = []			#Define paramter range to vary over
 
 
 ########################################
@@ -368,18 +368,15 @@ TrendAxisVariables=''				#Force trend figures to use different variable		[BREAKS
 PaschenPressure = [1E-7,1E-2]		#Operating pressure range in Torr [Min,Max]
 
 #Requested diagnostics and plotting routines.
-savefig_2DEquilPlots = False
+savefig_1DEquilProfiles = False		#Plots 1D profiles through equilibrium midplane		#TO DO!!!
+savefig_2DEquilPlots = True			#Plots 2D images of the target equilibria
 savefig_EquilTrends = False			#Plots efit equilibrium geometry trends from Param(equil)
-#savefig_UserEquilTrends = False	#MERGE WITH EQUIL TRENDS AS OPTION!!!	
-#savefig_EquilSeperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
-#savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
-#savefig_EquilXpoint = False		#Plots X-point location (R,Z) trends
 
-savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
-savefig_CoilVoltageTrends = True	#Plots trends in PF coil voltages over all simulations
-savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
-savefig_EddyCurrent = True			#Plots vessel net eddy current trends over all simulations
-savefig_Breakdown = True			#Plots Paschen curves and connection length for each simulation
+savefig_CoilCurrentTrends = False	#Plots trends in PF coil currents over all simulations
+savefig_CoilVoltageTrends = False	#Plots trends in PF coil voltages over all simulations
+savefig_PlasmaCurrent = False		#Plots plasma current trends over all simulations
+savefig_EddyCurrent = False			#Plots vessel net eddy current trends over all simulations
+savefig_Breakdown = False			#Plots Paschen curves and connection length for each simulation
 
 savefig_VerticalStability = False	#Plots vertical stability growth rates and perturbed coil currents
 
@@ -387,14 +384,15 @@ savefig_VerticalStability = False	#Plots vertical stability growth rates and per
 #Image plotting options.
 image_extension = '.eps'				#Extensions ('.png', '.jpg', '.eps')
 image_aspectratio = [10,10]				#[x,y] in cm [Doesn't rotate dynamically]
-image_radialcrop = [0.65]				#[R1,R2] in cm
-image_axialcrop = [1.0,4.0]				#[Z1,Z2] in cm
+image_radialcrop = []					#[R1,R2] in cm
+image_axialcrop = []					#[Z1,Z2] in cm
 image_cbarlimit = []					#[min,max] colourbar limits	
 
-image_normalize = False					#Normalize image/profiles to local max
+image_contourplot = True				#Plot contourlines onto 2D images
+image_normalise = False					#normalise image/profiles to local max
 image_plotgrid = False					#Plot major/minor gridlines on profiles
 image_logplot = False					#Plot ln(Data), against linear axis.
-
+image_rotate = False					#Rotate 2D figures 90 degrees to the left
 
 #Image overrides and tweaks
 titleoverride = []						#TBC
@@ -753,7 +751,7 @@ def ReadDataFromFile(Filename,Dimension='2D',Orientation='Vertical'):
 
 #=========================#
 
-def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Vertical',Reorder=True):
+def ExtractFIESTAData(SeriesSubDirs,DataFilename,Dimension='2D',Orientation='Vertical',Reorder=True):
 
 	#Create any required arrays for data storage and record HomeDir for navigation
 	GlobalDataArrays,ReorderedDataArrays = list(),list()
@@ -764,7 +762,7 @@ def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Ver
 		#cd into the relevent directory and extract the data
 		os.chdir(SeriesSubDirs[i]+'/RawData/')
 		#GlobalDataArray organized as [Folder][Variable][Value]
-		GlobalDataArrays.append(ReadDataFromFile(DataFileName,Dimension,Orientation))
+		GlobalDataArrays.append(ReadDataFromFile(DataFilename,Dimension,Orientation))
 	#endfor
 	#cd back into PyESTA directory for continuity
 	os.chdir(HomeDir)
@@ -793,6 +791,63 @@ def ExtractFIESTAData(SeriesSubDirs,DataFileName,Dimension='2D',Orientation='Ver
 
 	#Return ordered data arrays
 	return(OutputDataArrays)
+#enddef
+
+#=========================#
+
+def ExtractFIESTAEquil(SeriesSubDirs,DataFilename):
+
+	#Create any required arrays for data storage and record HomeDir for navigation
+	OutputData,RGrids,ZGrids = list(),list(),list()
+	HomeDir = os.getcwd()
+
+	#For all simulation directories in the requested simulation series
+	for i in range(0,len(SeriesSubDirs)):
+		#cd into the relevent directory and extract the data
+		os.chdir(SeriesSubDirs[i]+'/RawData/')
+		datafile = open(DataFilename)
+		RawData = datafile.readlines()
+
+		#Isolate header and extract grid resolution
+		Header = RawData[0].split()
+		Date, Unknown = str(Header[1]), int(Header[2])
+		RGrid, ZGrid = int(Header[3]), int(Header[4])
+		DataLim = ((RGrid*ZGrid)/5)+1
+
+		#Extract equlibrium 2D flux surface, excluding header and footer
+		Equil1DArray = list()
+		for m in range(1,DataLim):
+			Row = RawData[m]
+			#Equil data is saved as double precision (%1.16f) in blocks of 5 values
+			for n in range(0,5): 
+				try: 
+					Value = float(Row[16*n:16*(n+1)])
+					Equil1DArray.append(Value)
+				except: 
+					print 'ERROR: Equilibrium data corrupted at line: '+str(m+1)
+					break
+				#endtry
+			#endfor
+		#endfor
+		#Reshape array into 2D using grid resolution and 'roll' image 20 cells left 
+		Equil2DArray = np.reshape(Equil1DArray,(ZGrid,RGrid))
+		Equil2DArray = np.roll(Equil2DArray, -20, axis=1)		#Fixes alignment issue
+
+		#Skim values that are beyond threshold limits - improves image contrast
+		for i in range(0,5):
+			for j in range(0,len(Equil2DArray[i])):
+				Equil2DArray[i][j] = 0.0
+			#endfor
+		#endfor
+
+		OutputData.append(Equil2DArray)
+		RGrids.append(RGrid)
+		ZGrids.append(ZGrid)
+	#endfor
+
+	#cd back into PyESTA directory for continuity
+	os.chdir(HomeDir)
+	return(OutputData,RGrids,ZGrids)
 #enddef
 
 #=========================#
@@ -921,8 +976,8 @@ def ImagePlotter1D(axis,profile,aspectratio,fig=111,ax=111):
 	#Apply any required numerical changes to the profile.
 	if image_logplot == True:
 		profile = np.log(profile)
-	if image_normalize == True:
-		profile = Normalize(profile)[0]
+	if image_normalise == True:
+		profile = normalise(profile)[0]
 	#endif
 
 	#Plot profile and return.
@@ -937,7 +992,7 @@ def ImagePlotter1D(axis,profile,aspectratio,fig=111,ax=111):
 #Create figure and plot a 2D image with associated image plotting requirements.
 #Returns plotted image, axes and figure after applying basic data restructuring.
 #fig,ax,im,Image = ImagePlotter2D(Image,extent,image_aspectratio,variablelist[l],fig,ax[0])
-def ImagePlotter2D(Image,extent,aspectratio=image_aspectratio,variable='N/A',fig=111,ax=111):
+def ImagePlotter2D(Image,extent,aspectratio=image_aspectratio,fig=111,ax=111):
 
 	#Generate new figure if required. {kinda hacky...}
 	if fig == 111 and ax == 111:
@@ -945,10 +1000,6 @@ def ImagePlotter2D(Image,extent,aspectratio=image_aspectratio,variable='N/A',fig
 	elif fig == 111:
 		fig = figure(aspectratio)
 	#endif
-
-	#Apply image axis-symmetry, with negative values, if required.
-	Radial = IsRadialVariable(variable)  
-	Image = SymmetryConverter(Image,Radial)
 
 	#Rotate image if required
 	if image_rotate == True:
@@ -959,14 +1010,14 @@ def ImagePlotter2D(Image,extent,aspectratio=image_aspectratio,variable='N/A',fig
 	#Apply any required numerical changes to the image.
 	if image_logplot == True:
 		Image = np.log(Image)
-	elif image_normalize == True:
-		Image = Normalize(Image)[0]
+	elif image_normalise == True:
+		Image = normalise(Image)[0]
 	#endif
 
 	#Plot image with or without contour plots, (contour scale = 90% of cbar scale)
 	if image_contourplot == True:
 		im = ax.contour(Image,extent=extent,origin="lower")
-		im.set_clim(CbarMinMax(Image)[0]*0.90,CbarMinMax(Image)[1]*0.90)
+		im.set_clim(np.min(Image)*0.90,np.max(Image)*0.90)
 		im = ax.imshow(Image,extent=extent,origin="lower")
 	else:
 		im = ax.imshow(Image,extent=extent,origin="lower")
@@ -995,7 +1046,7 @@ def ImageOptions(fig,ax,Xlabel='',Ylabel='',Title='',Legend=[],Crop=False,Rotate
 
 	#Set title and legend if one is supplied.
 	if len(Title) > 0:
-		ax.set_title(Title, fontsize=14, y=1.03)
+		ax.set_title(Title, fontsize=18, y=1.03)
 	if len(Legend) > 0:
 		ax.legend(Legend, fontsize=16, frameon=False)		#loc = automatic
 	#endif
@@ -1039,7 +1090,7 @@ def ImageOptions(fig,ax,Xlabel='',Ylabel='',Title='',Legend=[],Crop=False,Rotate
 #Allows pre-defined colourbar limits in form [min,max].
 #Returns cbar axis if further changes are required.
 #cbar = Colourbar(ax[0],'Label',5,Lim=[0,1])
-def Colourbar(ax=plt.gca(),Label='',Ticks=5,Lim=[]):
+def Colourbar(ax,im,Label='',Ticks=5,Lim=[]):
 
 	#Set default font and spacing options and modify if required
 	Rotation,Labelpad = 270,30
@@ -1129,7 +1180,7 @@ print '|  |_)  |  \   \/   /  |  |__     |   (----`---|  |----`  /  ^  \    '
 print '|   ___/    \_    _/   |   __|     \   \       |  |      /  /_\  \   '
 print '|  |          |  |     |  |____.----)   |      |  |     /  _____  \  '
 print '| _|          |__|     |_______|_______/       |__|    /__/     \__\ '
-print '                                                               V0.3.0'
+print '                                                               V0.4.0'
 print '---------------------------------------------------------------------'
 print ''
 print 'The following diagnostics were requested:'
@@ -1259,6 +1310,7 @@ SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 NumFolders = len(SimulationDirs)
 
 
+plt.close('all')
 print'--------------------'
 print'# Starting Analysis:'
 print'--------------------'
@@ -1273,6 +1325,59 @@ print'--------------------'
 
 
 
+
+
+
+
+
+
+
+#====================================================================#
+				   	   #2D EQUILIBRIUM FIGURES#
+#====================================================================#
+
+
+#Plot 2D equilibria from Equil.txt files
+if savefig_2DEquilPlots == True:
+
+	#Extract equilibrium data from series directories
+	Filename = 'Equil_Data/Equil.txt'
+	Equil_Arrays,RGrids,ZGrids = ExtractFIESTAEquil(SimulationDirs,Filename)
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+
+	#===================##===================#
+	#===================##===================#
+
+
+	#Plot each equilibrium		#NEEDS COMPLETING!!!
+	for l in range(0,NumFolders):
+
+		Extent = [0.01,1.1, -1.3,1.3]		#[GridSize_R, GridSize_Z]
+		fig,ax,im,Image = ImagePlotter2D(Equil_Arrays[l],Extent,image_aspectratio)
+#		SMARTVessel()
+#		SMARTCoils()
+
+		#Apply figure labels, title, legend and cropping
+		Title, Legend = 'SMART Target Equilibrium', TrendAxis
+		Xlabel, Ylabel = 'Radius $R$ [m]', 'Height $Z$ [m]'
+		ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+		cbar = Colourbar(ax, im, 'Flux Surface Function $\Phi(R,Z)$',5)
+		
+		#Hacky, need to update cropping function for 1D figures
+		ax.set_xlim(0.00, 1.1)		
+		ax.set_ylim(-1.0, 1.0)
+
+		plt.tight_layout(pad=3.0,h_pad=1.0)
+		plt.savefig(SeriesDirString+'/TargetEquilibrium'+image_extension)
+#		plt.show()
+		plt.close('all')
+	#endfor
+#endif
+
+#=====================================================================#
+#=====================================================================#
 
 
 
@@ -1356,10 +1461,6 @@ if savefig_EquilTrends == True:
 	plt.savefig(SeriesDirString+'/Equil_Trends.png')
 #	plt.show()
 	plt.close('all')
-
-	print'----------------------------------'
-	print'# Efit Equilibrium Trends Complete'
-	print'----------------------------------'
 #endif
 
 #=====================================================================#
@@ -1427,7 +1528,7 @@ if savefig_UserEquilTrends == True:
 	plt.close('all')
 
 	print'----------------------------------'
-	print'# User Equilibrium Trends Complete'
+	print'# Efit Equilibrium Trends Complete'
 	print'----------------------------------'
 #endif
 
