@@ -362,25 +362,26 @@ ParameterRange = [0.175, 0.200, 0.250, 0.300]			#Define paramter range to vary o
 ########################################
 
 #Requested Equil Variables
-TrendAxisVariables=''				#Force trend figures to use different variable
+TrendAxisVariables=''				#Force trend figures to use different variable		[BREAKS!!!]
 
+#Various Diagnostic inputs
+PaschenPressure = [1E-7,1E-2]		#Operating pressure range in Torr [Min,Max]
 
 #Requested diagnostics and plotting routines.
-savefig_EquilStability = False		#Plots current trends in response to perturbed equilibria
-savefig_EfitEquilTrends = False		#Plots efit equilibrium geometry trends from Param(equil)
-savefig_UserEquilTrends = False		#Plots user defined equilibrium trends from Param(equil)	#UserEquilParameter
+savefig_2DEquilPlots = False
+savefig_EquilTrends = False			#Plots efit equilibrium geometry trends from Param(equil)
+#savefig_UserEquilTrends = False	#MERGE WITH EQUIL TRENDS AS OPTION!!!	
 #savefig_EquilSeperatrix = False	#Plots seperatrix extrema [Rmin,Rmax,Zmin,ZMax] trends
 #savefig_EquilMidplane = False		#Plots 2D Radial slice at Z=0 trends
 #savefig_EquilXpoint = False		#Plots X-point location (R,Z) trends
 
-savefig_CoilCurrentTraces = False	#Plots PF coil current timetraces for each simulation
-savefig_CoilCurrentTrends = False	#Plots trends in PF coil currents over all simulations
-
-savefig_ConnectionLength = False		#Plots trends in average connection length over all simulations
-savefig_PaschenCurves = False		#Plots Paschen curves for each simulation using Lc
-
+savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
+savefig_CoilVoltageTrends = True	#Plots trends in PF coil voltages over all simulations
 savefig_PlasmaCurrent = True		#Plots plasma current trends over all simulations
-savefig_EddyCurrent = False			#Plots total vessel eddy current trends over all simulations
+savefig_EddyCurrent = True			#Plots vessel net eddy current trends over all simulations
+savefig_Breakdown = True			#Plots Paschen curves and connection length for each simulation
+
+savefig_VerticalStability = False	#Plots vertical stability growth rates and perturbed coil currents
 
 
 #Image plotting options.
@@ -389,6 +390,10 @@ image_aspectratio = [10,10]				#[x,y] in cm [Doesn't rotate dynamically]
 image_radialcrop = [0.65]				#[R1,R2] in cm
 image_axialcrop = [1.0,4.0]				#[Z1,Z2] in cm
 image_cbarlimit = []					#[min,max] colourbar limits	
+
+image_normalize = False					#Normalize image/profiles to local max
+image_plotgrid = False					#Plot major/minor gridlines on profiles
+image_logplot = False					#Plot ln(Data), against linear axis.
 
 
 #Image overrides and tweaks
@@ -411,12 +416,9 @@ cbaroverride = []						#TBC
 
 #TO DO
 #IMMEDIATE FIXES
-#Enable auto-detection of output folders so user doesn't have to change parameter variable
+#Unify PyESTA namelist inputs with .m namelist inputs 		- Ideally in external namelist file
 
 #CORE FUNCTIONALITY
-#Unify PyESTA namelist inputs with .m namelist inputs 		- Ideally in external namelist file
-#Rename all FIESTA output text files in unified format      - Enable CSV or Row-Wise data storing
-#Save all PyESTA output data in seperate output folder      - Enable CSV or Row-Wise data storing
 #Add capability to iterate towards fixed equilibrium conditions - i.e. iterate on single variable
 #Add ability to change multiple variables per run
 #Add ability to use multiple cores, including safety		- NEEDS TESTING!!!
@@ -440,7 +442,7 @@ cbaroverride = []						#TBC
 
 
 #====================================================================#
-				   #DEFINE COMMONLY USED FUNCTIONS#
+				#DEFINE COMMONLY USED I/O FUNCTIONS#
 #====================================================================#
 
 #Takes global inputs from switchboard, returns nothing
@@ -453,15 +455,13 @@ def Matplotlib_GlobalOptions():
 	
 	#Image options			
 	mpl.rcParams['figure.figsize'] = [10.0,10.0]				#Sets default figure size
-	mpl.rcParams['figure.dpi'] = 200							#Sets viewing dpi
+	mpl.rcParams['figure.dpi'] = 100							#Sets viewing dpi
 	mpl.rcParams['savefig.dpi'] = 100							#Sets saved dpi
 	mpl.rcParams['image.interpolation'] = 'bilinear'			#Applies bilinear image 'smoothing'
 	mpl.rcParams['image.resample'] = True						#Resamples data before colourmapping
 	mpl.rcParams['axes.prop_cycle'] = cycler(color='krbgcmy')	#Select global line colour cycle
 	mpl.rcParams['image.cmap'] = 'plasma'						#Select global colourmap 
 	#'jet','plasma','gnuplot'
-
-
 
 	#Axis options
 	mpl.rcParams['axes.autolimit_mode'] = 'round_numbers'	#View limits coencide with axis ticks
@@ -879,11 +879,228 @@ def CreateTrendAxis(SimulationNames,VariableString,TrendAxisVariables=''):
 	return(TrendAxis)
 #enddef
 
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+#====================================================================#
+				  #COMMONLY USED PLOTTING FUNCTIONS#
+#====================================================================#
+
+#Create figure of desired size and with variable axes.
+#Returns figure and axes seperately.
+#fig,ax = figure(image_aspectratio,1,shareX=False)
+def figure(aspectratio=[],subplots=1,shareX=False):
+	if len(aspectratio) == 2:
+		fig, ax = plt.subplots(subplots, figsize=(aspectratio[0],aspectratio[1]),sharex=shareX)
+	else:
+		fig, ax = plt.subplots(subplots, figsize=(10,10), sharex=shareX)
+	#endif
+	return(fig,ax)
+#enddef
+
 #=========================#
 
+#Create figure and plot a 1D graph with associated image plotting requirements.
+#Returns plotted axes and figure if new ones were created.
+#Else plots to existing figure and returns the image object.
+#ImagePlotter1D(Zlineout,Zaxis,image_aspectratio,fig,ax[0]):
+def ImagePlotter1D(axis,profile,aspectratio,fig=111,ax=111):
+
+	#Generate new figure if required. {kinda hacky...}
+	if fig == 111 and ax == 111:
+		fig,ax = figure(aspectratio)
+	elif fig == 111:
+		fig = figure(aspectratio)
+	#endif
+
+	#Apply any required numerical changes to the profile.
+	if image_logplot == True:
+		profile = np.log(profile)
+	if image_normalize == True:
+		profile = Normalize(profile)[0]
+	#endif
+
+	#Plot profile and return.
+	im = ax.plot(axis,profile, lw=2)
+
+	try: return(fig,ax,im)
+	except: return()
+#enddef
+
+#=========================#
+
+#Create figure and plot a 2D image with associated image plotting requirements.
+#Returns plotted image, axes and figure after applying basic data restructuring.
+#fig,ax,im,Image = ImagePlotter2D(Image,extent,image_aspectratio,variablelist[l],fig,ax[0])
+def ImagePlotter2D(Image,extent,aspectratio=image_aspectratio,variable='N/A',fig=111,ax=111):
+
+	#Generate new figure if required. {kinda hacky...}
+	if fig == 111 and ax == 111:
+		fig,ax = figure(aspectratio)
+	elif fig == 111:
+		fig = figure(aspectratio)
+	#endif
+
+	#Apply image axis-symmetry, with negative values, if required.
+	Radial = IsRadialVariable(variable)  
+	Image = SymmetryConverter(Image,Radial)
+
+	#Rotate image if required
+	if image_rotate == True:
+		Image = np.asarray(Image)
+		Image = Image.transpose().tolist()
+	#endif
+
+	#Apply any required numerical changes to the image.
+	if image_logplot == True:
+		Image = np.log(Image)
+	elif image_normalize == True:
+		Image = Normalize(Image)[0]
+	#endif
+
+	#Plot image with or without contour plots, (contour scale = 90% of cbar scale)
+	if image_contourplot == True:
+		im = ax.contour(Image,extent=extent,origin="lower")
+		im.set_clim(CbarMinMax(Image)[0]*0.90,CbarMinMax(Image)[1]*0.90)
+		im = ax.imshow(Image,extent=extent,origin="lower")
+	else:
+		im = ax.imshow(Image,extent=extent,origin="lower")
+	#endif
+	return(fig,ax,im,Image)
+#enddef
+
+#=========================#
+
+#Applies plt.options to current figure based on user input.
+#Returns nothing, open figure is required, use figure().
+#For best results call immediately before saving/displaying figure.
+#ImageOptions(fig,plt.gca(),Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+def ImageOptions(fig,ax,Xlabel='',Ylabel='',Title='',Legend=[],Crop=False,Rotate=False):
+
+	#Apply user overrides to plots.
+	if len(titleoverride) > 0:
+		Title = titleoverride
+	if len(legendoverride) > 0:
+		Legend = legendoverride
+	if len(xlabeloverride) > 0:
+		Xlabel = xlabeloverride[0]
+	if len(ylabeloverride) > 0:
+		Ylabel = ylabeloverride[0]
+	#endif
+
+	#Set title and legend if one is supplied.
+	if len(Title) > 0:
+		ax.set_title(Title, fontsize=14, y=1.03)
+	if len(Legend) > 0:
+		ax.legend(Legend, fontsize=16, frameon=False)		#loc = automatic
+	#endif
+
+	#Set labels and ticksize.
+	ax.set_xlabel(Xlabel, fontsize=24)
+	ax.set_ylabel(Ylabel, fontsize=24)
+	ax.tick_params(axis='x', labelsize=18)
+	ax.tick_params(axis='y', labelsize=18)
+
+	#Force scientific notation for all axes, accounting for non-scalar x-axes.
+	try: ax.xaxis.get_major_locator().set_params(style='sci',scilimits=(-2,3),axis='both')
+	except: Axes_Contain_Strings = True
+#	try: ax.ticklabel_format(style='sci',scilimits=(-2,3),axis='both')	#Old tickformat.
+#	except: ax.ticklabel_format(style='sci',scilimits=(-2,3),axis='y')	#Old tickformat.
+	#endtry
+
+	#Set grid, default is off.
+	if image_plotgrid == True: ax.grid(True)
+	#endif
+
+	#Crop image dimensions, use provided dimensions or default if not provided.
+	if isinstance(Crop, (list, np.ndarray) ) == True:
+		CropImage(ax,Extent=Crop,Rotate=Rotate)
+	elif any( [len(image_radialcrop),len(image_axialcrop)] ) > 0:
+		if Crop == True:
+			CropImage(ax,Rotate=Rotate)
+		#endif
+	#endif
+
+	#Arrange figure such that labels, legends and titles fit within frame.
+	fig.tight_layout()
+
+	return()
+#enddef
+
+#=========================#
+
+#Creates and plots a colourbar with given label and binsize.
+#Takes image axis, label string, number of ticks and limits
+#Allows pre-defined colourbar limits in form [min,max].
+#Returns cbar axis if further changes are required.
+#cbar = Colourbar(ax[0],'Label',5,Lim=[0,1])
+def Colourbar(ax=plt.gca(),Label='',Ticks=5,Lim=[]):
+
+	#Set default font and spacing options and modify if required
+	Rotation,Labelpad = 270,30
+	LabelFontSize,TickFontsize = 24,18
+	if '\n' in Label: Labelpad += 25		#Pad label for multi-line names
+
+	#Create and define colourbar axis
+	divider = make_axes_locatable(ax)
+	cax = divider.append_axes("right", size="2%", pad=0.1)
+	cbar = plt.colorbar(im, cax=cax)
+
+	#Set number of ticks, label location and define scientific notation.
+	cbar.set_label(Label, rotation=Rotation,labelpad=Labelpad,fontsize=LabelFontSize)
+	cbar.formatter.set_powerlimits((-2,3))
+	cbar.locator = ticker.MaxNLocator(nbins=Ticks)
+	cbar.ax.yaxis.offsetText.set(size=TickFontsize)
+	yticks(fontsize=TickFontsize)
+
+	#Apply colourbar limits if specified.  (lim=[min,max])
+	if len(Lim) == 2: im.set_clim(vmin=Lim[0], vmax=Lim[1])
+
+	return(cbar)
+#enddef
+
+#=========================#
+
+#Creates an invisible colourbar to align subplots without colourbars.
+#Takes image axis, returns colourbar axis if further edits are required
+#cax = InvisibleColourbar(ax[0])
+def InvisibleColourbar(ax='NaN'):
+	if ax == 'NaN': ax = plt.gca()
+
+	#Create colourbar axis, ideally should 'find' values of existing cbar! 
+	divider = make_axes_locatable(ax)
+	cax = divider.append_axes("right", size="2%", pad=0.1)
+
+	#Set new cax to zero size and remove ticks.
+	try: cax.set_facecolor('none')				#matplotlib v2.x.x method
+	except: cax.set_axis_bgcolor('none')		#matplotlib v1.x.x method
+	for axis in ['top','bottom','left','right']:
+		cax.spines[axis].set_linewidth(0)
+	cax.set_xticks([])
+	cax.set_yticks([])
+
+	return(cax)
+#enddef
+
+#=========================#
 
 #=====================================================================#
 #=====================================================================#
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -912,7 +1129,7 @@ print '|  |_)  |  \   \/   /  |  |__     |   (----`---|  |----`  /  ^  \    '
 print '|   ___/    \_    _/   |   __|     \   \       |  |      /  /_\  \   '
 print '|  |          |  |     |  |____.----)   |      |  |     /  _____  \  '
 print '| _|          |__|     |_______|_______/       |__|    /__/     \__\ '
-print '                                                               V0.2.0'
+print '                                                               V0.3.0'
 print '---------------------------------------------------------------------'
 print ''
 print 'The following diagnostics were requested:'
@@ -920,13 +1137,14 @@ print '-----------------------------------------'
 if IAutorun == True:
 	print'# Simulation Series Autorun'
 	print''
-if True in [savefig_EfitEquilTrends,savefig_UserEquilTrends]:
-	#[savefig_EquilSeperatrix,savefig_EquilMidplane,savefig_EquilXpoint]
+if True in [savefig_2DEquilPlots,savefig_EquilTrends]:
 	print'# 2D Equilibrium Analysis'
-if True in [savefig_PlasmaCurrent]:
-	print'# 1D Plasma Current Analysis'
-if True in [savefig_CoilCurrentTraces]:
-	print'# 1D Coil Current Analysis'
+if True in [savefig_PlasmaCurrent,savefig_EddyCurrent]:
+	print'# 1D Dynamic Current Analysis'
+if True in [savefig_CoilCurrentTrends,savefig_CoilVoltageTrends]:
+	print'# 1D Coil Waveform Analysis'
+if True in [savefig_Breakdown]:
+	print'# 1D Breakdown Analysis'
 print '-----------------------------------------'
 print ''
 
@@ -1035,16 +1253,35 @@ if IAutorun == True:
 					   #ANALYSIS AND DIAGNOSTICS#
 #====================================================================#
 
+#Obtain simulation folder directories for project and requested series
+SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+NumFolders = len(SimulationDirs)
+
+
+print'--------------------'
+print'# Starting Analysis:'
+print'--------------------'
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+
+
+
+
+
 #====================================================================#
-				       #Efit EQUILIBRIUM TRENDS#
+				    #EQUILIBRIUM PARAMETER TRENDS#	---- TO BE REFACTORED
 #====================================================================#
 
 #Plot general equilibrium trends from Param(equil)
-if savefig_EfitEquilTrends == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+if savefig_EquilTrends == True:
 
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/EquilParam.txt'
@@ -1056,7 +1293,7 @@ if savefig_EfitEquilTrends == True:
 
 	#Quick and dirty removal of most useful trends
 	RGeo,ZGeo,Kappa,AspectRatio,delta = list(),list(),list(),list(),list()	#efit params
-	for l in range(0,len(SimulationDirs)):
+	for l in tqdm(range(0,len(SimulationDirs))):
 		RGeo.append( ValueEquil[l][13] )		#Magnetic Radius		 	[m]
 		ZGeo.append( ValueEquil[l][14] )		#Magnetic Axis			 	[m]
 		Kappa.append( ValueEquil[l][21] )		#Elongation 				[-]
@@ -1067,7 +1304,7 @@ if savefig_EfitEquilTrends == True:
 		rGeo = RGeo[-1]/AspectRatio[-1]			#Minor Radius				[m]
 		PlasVolume = ValueEquil[l][35]			#3D Plasma Volume			[m3]
 		SurfaceArea = ValueEquil[l][36]			#2D Plasma X-section area	[m2]
-		GradShift = RGeo[-1]-0.44				#Shafranov Shift			[m]
+		GradShift = RGeo[-1]-0.42				#Shafranov Shift			[m]
 		VertShift = ZGeo[-1]-0.00				#Vertical Shift				[m]
 	#endfor
 
@@ -1129,17 +1366,14 @@ if savefig_EfitEquilTrends == True:
 #=====================================================================#
 
 
-
+#	---- TO BE MERGED WITH DIAGNOSTIC ABOVE
 #====================================================================#
 				       #USER EQUILIBRIUM TRENDS#
 #====================================================================#
-
+#	---- TO BE MERGED WITH DIAGNOSTIC ABOVE
+savefig_UserEquilTrends = False
 #Plot general equilibrium trends from Param(equil)
 if savefig_UserEquilTrends == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
 
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/EquilParam.txt'
@@ -1202,15 +1436,725 @@ if savefig_UserEquilTrends == True:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #====================================================================#
-				         #EQUILIBRIUM STABILITY#
+				  #COIL CURRENT TRENDS DIAGNOSTIC#
 #====================================================================#
 
-if savefig_EquilStability == True:
+#Compare optimised plasma current profiles
+if savefig_CoilCurrentTrends == True:
 
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	#Extract absolute coil currents and time axis from series directories
+	Filename = 'icoil_Data/CoilCurrents.txt'
+	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
+
+	#Extract delta coil currents and time axis from series directories
+	Filename = 'icoil_Data/DeltaCoilCurrents.txt'
+	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
+	DeltaTime_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	DeltaISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	DeltaIPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	DeltaIPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	DeltaIDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	DeltaIDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+
+	#Rescale absolute coil currents: [A] to [kA]
+	for i in range(0,len(ISol_Arrays)):
+		for j in range(0,len(ISol_Arrays[i])):	
+			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0				#[kA]
+			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/1000.0				#[kA]
+			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0				#[kA]
+			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0				#[kA]
+			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0				#[kA]
+		#endfor
+	#endfor
+
+	#Rescale Delta coil currents: [A] to [kA]
+	for i in range(0,len(DeltaISol_Arrays)):
+		for j in range(0,len(DeltaISol_Arrays[i])):	
+			DeltaISol_Arrays[i][j] = DeltaISol_Arrays[i][j]/1000.0		#[kA/ms]
+			DeltaIPF1_Arrays[i][j] = DeltaIPF1_Arrays[i][j]/1000.0		#[kA/ms]
+			DeltaIPF2_Arrays[i][j] = DeltaIPF2_Arrays[i][j]/1000.0		#[kA/ms]
+			DeltaIDiv1_Arrays[i][j] = DeltaIDiv1_Arrays[i][j]/1000.0	#[kA/ms]
+			DeltaIDiv2_Arrays[i][j] = DeltaIDiv2_Arrays[i][j]/1000.0	#[kA/ms]
+		#endfor
+	#endfor
+
+	#Calculate maximum coil current for each coil
+	MaxIPF1,MaxIPF2,MaxIDiv1,MaxIDiv2 = list(),list(),list(),list()
+	MaxISol,MaxIAvg = list(),list()
+	for i in range(0,len(ISol_Arrays)):
+		MaxISol.append( max(ISol_Arrays[i], key=abs) )			#[kA]
+		MaxIPF1.append( max(IPF1_Arrays[i], key=abs) )			#[kA]
+		MaxIPF2.append( max(IPF2_Arrays[i], key=abs) )			#[kA]
+		MaxIDiv1.append( max(IDiv1_Arrays[i], key=abs) )		#[kA]
+		MaxIDiv2.append( max(IDiv2_Arrays[i], key=abs) )		#[kA]
+		Tot = abs(MaxISol[i])+abs(MaxIPF1[i])+abs(MaxIPF2[i])+abs(MaxIDiv1[i])+abs(MaxIDiv2[i])
+		MaxIAvg.append( Tot/NumCoils )							#[kA]
+	#endfor
+
+	#Calculate maximum change in current experienced for each coil set
+	MaxDeltaIPF1,MaxDeltaIPF2 = list(),list()
+	MaxDeltaIDiv1,MaxDeltaIDiv2 = list(),list()
+	MaxDeltaISol = list()
+	for i in range(0,len(DeltaISol_Arrays)):
+		MaxDeltaISol.append( max(DeltaISol_Arrays[i], key=abs) )
+		MaxDeltaIPF1.append( max(DeltaIPF1_Arrays[i], key=abs) )
+		MaxDeltaIPF2.append( max(DeltaIPF2_Arrays[i], key=abs) )
+		MaxDeltaIDiv1.append( max(DeltaIDiv1_Arrays[i], key=abs) )
+		MaxDeltaIDiv2.append( max(DeltaIDiv2_Arrays[i], key=abs) )
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+#	#Create output folder for all coil trend figures
+#	CurrentTrendsDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
+	#Organize figure labelling variables
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
+	else: Parameter = ParameterVaried
+	#endif
+
+	#For every simulation folder in the current series:
+	for i in range(0,NumCoils):
+
+		#Set which coil current timetrace to compare
+		Coilset = ['ISol','IPF1','IPF2','IDiv1','IDiv2']
+		if i == 0: Coil,ICoil_Arrays = 'ISol',ISol_Arrays
+		if i == 1: Coil,ICoil_Arrays = 'IPF1',IPF1_Arrays
+		if i == 2: Coil,ICoil_Arrays = 'IPF2',IPF2_Arrays
+		if i == 3: Coil,ICoil_Arrays = 'IDiv1',IDiv1_Arrays
+		if i == 4: Coil,ICoil_Arrays = 'IDiv2',IDiv2_Arrays
+
+		#Plot each coil current with respect to time
+		fig,ax = figure(image_aspectratio,1,shareX=False)
+		for j in tqdm(range(0,len(ICoil_Arrays))):
+			ImagePlotter1D(Time_Arrays[j],ICoil_Arrays[j],image_aspectratio,fig,ax)
+		#endfor
+
+		#Apply figure labels, title, legend and cropping
+		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
+		Title = 'Time-Traces of '+Coil+' Coil Currents for '+Parameter+' in '+Range
+		Xlabel, Ylabel = 'Coil Current $I$ [kA]', 'Time $\\tau$ [ms]'
+		Legend = TrendAxis
+		ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+
+		plt.tight_layout(pad=3.0,h_pad=1.0)
+		plt.savefig(SeriesDirString+'/'+Coil+'_Current_Trends'+image_extension)
+#		plt.show()
+		plt.close('all')
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Create image limits
+	GlobalMaxDelta = MaxDeltaISol+MaxDeltaIPF1+MaxDeltaIPF2+MaxDeltaIDiv1+MaxDeltaIDiv2
+	Ylims = [min(GlobalMaxDelta),max(GlobalMaxDelta)]
+
+	#Create fig and plot...
+	fig,ax = figure(image_aspectratio,2,shareX=False)
+	#...ax[0] coil currents for each simulation...
+	ImagePlotter1D(TrendAxis,MaxISol,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxIPF1,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxIPF2,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxIDiv1,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxIDiv2,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxIAvg,image_aspectratio,fig,ax[0])
+	ax[0].plot(TrendAxis[MaxIAvg.index(min(MaxIAvg))],min(MaxIAvg), 'kv', ms=14, lw=2.0) #Min Avg
+	#...and [1] delta coil currents for each simulation
+	ImagePlotter1D(TrendAxis,MaxDeltaISol,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaIPF1,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaIPF2,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaIDiv1,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaIDiv2,image_aspectratio,fig,ax[1])
+
+	#Apply figure labels, title, legend and cropping
+	Title = 'Maximum Coil Current for Varying '+Parameter
+	Xlabel1, Ylabel1 = '', 'Maximum Coil \n Current $I$ [kA]'
+	Xlabel2, Ylabel2 = 'Varying: '+Parameter, 'Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]'
+	Legend = Coilset
+	ImageOptions(fig,ax[0],Xlabel1,Ylabel1,Title,Legend,Crop=False,Rotate=False)
+	ImageOptions(fig,ax[1],Xlabel2,Ylabel2,'',Legend,Crop=False,Rotate=False)
+
+	#Clean up and save figure to home directory
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Coil_CurrentTrends'+image_extension)
+#	plt.show()
+	plt.close('all')
+
+	print'------------------------------'
+	print'# Coil Current Trends Complete'
+	print'------------------------------'
+#endfor
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+#====================================================================#
+				  #COIL VOLTAGE TRENDS DIAGNOSTIC#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_CoilVoltageTrends == True:
+
+	#Extract absolute coil voltages and time axis from series directories
+	Filename = 'icoil_Data/CoilVoltages.txt'
+	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
+	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	VSol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	VPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	VPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	VDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	VDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
+
+	#Extract delta coil voltages and time axis from series directories
+	Filename = 'icoil_Data/DeltaCoilVoltages.txt'
+	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
+	DeltaTime_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
+	DeltaVSol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
+	DeltaVPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
+	DeltaVPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
+	DeltaVDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
+	DeltaVDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+
+	#Rescale absolute coil currents: [V] to [kV]
+	for i in range(0,len(VSol_Arrays)):
+		for j in range(0,len(VSol_Arrays[i])):	
+			VSol_Arrays[i][j] = VSol_Arrays[i][j]/1000.0				#[kV]
+			VPF1_Arrays[i][j] = VPF1_Arrays[i][j]/1000.0				#[kV]
+			VPF2_Arrays[i][j] = VPF2_Arrays[i][j]/1000.0				#[kV]
+			VDiv1_Arrays[i][j] = VDiv1_Arrays[i][j]/1000.0				#[kV]
+			VDiv2_Arrays[i][j] = VDiv2_Arrays[i][j]/1000.0				#[kV]
+		#endfor
+	#endfor
+
+	#Rescale Delta coil currents: [V] to [kV]
+	for i in range(0,len(DeltaVSol_Arrays)):
+		for j in range(0,len(DeltaVSol_Arrays[i])):	
+			DeltaVSol_Arrays[i][j] = DeltaVSol_Arrays[i][j]/1000.0		#[kV/ms]
+			DeltaVPF1_Arrays[i][j] = DeltaVPF1_Arrays[i][j]/1000.0		#[kV/ms]
+			DeltaVPF2_Arrays[i][j] = DeltaVPF2_Arrays[i][j]/1000.0		#[kV/ms]
+			DeltaVDiv1_Arrays[i][j] = DeltaVDiv1_Arrays[i][j]/1000.0	#[kV/ms]
+			DeltaVDiv2_Arrays[i][j] = DeltaVDiv2_Arrays[i][j]/1000.0	#[kV/ms]
+		#endfor
+	#endfor
+
+	#Calculate maximum coil current for each coil
+	MaxVPF1,MaxVPF2,MaxVDiv1,MaxVDiv2 = list(),list(),list(),list()
+	MaxVSol,MaxVAvg = list(),list()
+	for i in range(0,len(VSol_Arrays)):
+		MaxVSol.append( max(VSol_Arrays[i], key=abs) )			#[kV]
+		MaxVPF1.append( max(VPF1_Arrays[i], key=abs) )			#[kV]
+		MaxVPF2.append( max(VPF2_Arrays[i], key=abs) )			#[kV]
+		MaxVDiv1.append( max(VDiv1_Arrays[i], key=abs) )		#[kV]
+		MaxVDiv2.append( max(VDiv2_Arrays[i], key=abs) )		#[kV]
+		Tot = abs(MaxVSol[i])+abs(MaxVPF1[i])+abs(MaxVPF2[i])+abs(MaxVDiv1[i])+abs(MaxVDiv2[i])
+		MaxVAvg.append( Tot/NumCoils )							#[kV]
+	#endfor
+
+	#Calculate maximum change in current experienced for each coil set
+	MaxDeltaVPF1,MaxDeltaVPF2 = list(),list()
+	MaxDeltaVDiv1,MaxDeltaVDiv2 = list(),list()
+	MaxDeltaVSol = list()
+	for i in range(0,len(DeltaVSol_Arrays)):
+		MaxDeltaVSol.append( max(DeltaVSol_Arrays[i], key=abs) )
+		MaxDeltaVPF1.append( max(DeltaVPF1_Arrays[i], key=abs) )
+		MaxDeltaVPF2.append( max(DeltaVPF2_Arrays[i], key=abs) )
+		MaxDeltaVDiv1.append( max(DeltaVDiv1_Arrays[i], key=abs) )
+		MaxDeltaVDiv2.append( max(DeltaVDiv2_Arrays[i], key=abs) )
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+#	#Create output folder for all coil trend figures
+#	CurrentTrendsDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
+	#Organize figure labelling variables
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
+	else: Parameter = ParameterVaried
+	#endif
+
+	#For every simulation folder in the current series:
+	for i in range(0,NumCoils):
+
+		#Set which coil current timetrace to compare
+		Coilset = ['VSol','VPF1','VPF2','VDiv1','VDiv2']
+		if i == 0: Coil,VCoil_Arrays = 'ISol',VSol_Arrays
+		if i == 1: Coil,VCoil_Arrays = 'IPF1',VPF1_Arrays
+		if i == 2: Coil,VCoil_Arrays = 'IPF2',VPF2_Arrays
+		if i == 3: Coil,VCoil_Arrays = 'IDiv1',VDiv1_Arrays
+		if i == 4: Coil,VCoil_Arrays = 'IDiv2',VDiv2_Arrays
+
+		#Plot each coil current with respect to time
+		fig,ax = figure(image_aspectratio,1,shareX=False)
+		for j in tqdm(range(0,len(VCoil_Arrays))):
+			ImagePlotter1D(Time_Arrays[j],VCoil_Arrays[j],image_aspectratio,fig,ax)
+		#endfor
+
+		#Apply figure labels, title, legend and cropping
+		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
+		Title = 'Time-Traces of '+Coil+' Coil Voltages for '+Parameter+' in '+Range
+		Xlabel, Ylabel = 'Coil Voltage $V$ [kV]', 'Time $\\tau$ [ms]'
+		Legend = TrendAxis
+		ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+
+		plt.tight_layout(pad=3.0,h_pad=1.0)
+		plt.savefig(SeriesDirString+'/'+Coil+'_Voltage_Trends'+image_extension)
+#		plt.show()
+		plt.close('all')
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Create image limits
+	GlobalMaxDelta = MaxDeltaISol+MaxDeltaIPF1+MaxDeltaIPF2+MaxDeltaIDiv1+MaxDeltaIDiv2
+	Ylims = [min(GlobalMaxDelta),max(GlobalMaxDelta)]
+
+	#Create fig and plot...
+	fig,ax = figure(image_aspectratio,2,shareX=False)
+	#...ax[0] coil currents for each simulation...
+	ImagePlotter1D(TrendAxis,MaxVSol,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxVPF1,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxVPF2,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxVDiv1,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxVDiv2,image_aspectratio,fig,ax[0])
+	ImagePlotter1D(TrendAxis,MaxVAvg,image_aspectratio,fig,ax[0])
+	ax[0].plot(TrendAxis[MaxVAvg.index(min(MaxVAvg))],min(MaxVAvg), 'kv', ms=14, lw=2.0) #Min Avg
+	#...and [1] delta coil currents for each simulation
+	ImagePlotter1D(TrendAxis,MaxDeltaVSol,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaVPF1,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaVPF2,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaVDiv1,image_aspectratio,fig,ax[1])
+	ImagePlotter1D(TrendAxis,MaxDeltaVDiv2,image_aspectratio,fig,ax[1])
+
+	#Apply figure labels, title, legend and cropping
+	Title = 'Maximum Coil Current for Varying '+Parameter
+	Xlabel1, Ylabel1 = '', 'Maximum Coil \n Voltage $V$ [kV]'
+	Xlabel2, Ylabel2 = 'Varying: '+Parameter, 'Maximum Change in \n Voltage $\Delta V$ [kV ms$^{-1}$]'
+	Legend = Coilset
+	ImageOptions(fig,ax[0],Xlabel1,Ylabel1,Title,Legend,Crop=False,Rotate=False)
+	ImageOptions(fig,ax[1],Xlabel2,Ylabel2,'',Legend,Crop=False,Rotate=False)
+
+	#Clean up and save figure to home directory
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Coil_VoltageTrends'+image_extension)
+#	plt.show()
+	plt.close('all')
+
+	print'------------------------------'
+	print'# Coil Voltage Trends Complete'
+	print'------------------------------'
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#====================================================================#
+					  #PLASMA BREAKDOWN DIAGNOSTICS#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_Breakdown == True:
+
+	#Extract relevent data from series directories
+	Lc_Arrays = ExtractFIESTAData(SimulationDirs,'Lc.txt','2D','Vertical',False)
+	EMF_Arrays = ExtractFIESTAData(SimulationDirs,'VLoop.txt','2D','Vertical',False)
+
+	#Strip and organize breakdown parameters into seperate variables
+	VLoop_Arrays,ELoop_Arrays,ELoopEff_Arrays = list(),list(),list()
+	DeltaPhi_Arrays = list()
+	for l in range(0,NumFolders):
+		#HACKY:: Extra [0][0] removes outer array(s) for single variable readin - FIX THIS!!!
+		Lc_Arrays[l] = Lc_Arrays[l][0][0]				
+		VLoop_Arrays.append(EMF_Arrays[l][0][0])
+		DeltaPhi_Arrays.append(EMF_Arrays[l][1][0])
+		ELoop_Arrays.append(EMF_Arrays[l][2][0])
+		ELoopEff_Arrays.append(EMF_Arrays[l][3][0])
+	#endfor
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Plot connection length trends for each detected simulation folder
+	fig,ax,im = ImagePlotter1D(TrendAxis,Lc_Arrays,image_aspectratio)
+	#endfor
+	
+	#Apply figure labels, title, legend and cropping
+	Xlabel, Ylabel = 'Varying: '+Parameter, 'Connection Length $L_{c}$ [m]'
+	Title = 'Connection Length for Varying '+str(Parameter)
+	Legend = ['Lc']
+	ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+
+	#Clean up and save figure to home directory
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Lc_Trends'+image_extension)
+#	plt.show()
+	plt.close('all')
+
+	#===================##===================##===================#
+	#===================##===================##===================#
+
+	#Create arbitary pressure array over requested pressure range
+	Resolution = 25000
+	PressureArray = np.linspace(PaschenPressure[0],PaschenPressure[1],Resolution).tolist()
+
+	#Initialise Paschen minimum Efield arrays 
+	EMinArrays,MinEMinArray = list(),list()
+	for i in range(0,len(Lc_Arrays)): EMinArrays.append( list() )
+
+	#Construct EMinArrays for each connection length over provided background pressure range
+	for i in range(0,len(EMinArrays)):
+		for j in range(0,len(PressureArray)):
+			#Compute minimum E-field for breakdown employing townsend coefficients for Duterium (Song2017)
+			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Arrays[i])	#[V/m]
+			if EMin < 0: EMin = np.nan
+			EMinArrays[i].append( EMin )
+		#endfor
+		MinEMinArray.append( min(filter(lambda v: v==v, EMinArrays[i])) )  					#[V/m]
+	#endfor
+
+	#Stretch ELoop_Arrays to the same length as EMinArrays for plotting
+	for l in range(0,NumFolders):
+		ELoop = ELoop_Arrays[l]
+		ELoop_Arrays[l] = list()
+		for i in range(0,len(EMinArrays[0])):
+			ELoop_Arrays[l].append(ELoop)
+		#endfor
+	#endfor
+
+	#Create trendaxis from folder names and organize figure labelling variables
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Round connective length and scale pressure array for plotting
+	for i in range(0,len(Lc_Arrays)): Lc_Arrays[i] = round(Lc_Arrays[i],1)			#[m]
+	for i in range(0,len(PressureArray)): PressureArray[i] = PressureArray[i]*1000	#[mTorr]
+
+	#===================##===================#
+	#===================##===================#
+
+	#Create fig and plot plasma current for each detected simulation folder
+	fig,ax = figure(image_aspectratio,1,shareX=False)
+	ColourCycle = ['k','r','b','g','c','m','y']
+	for l in tqdm(range(0,NumFolders)): ax.plot(PressureArray,EMinArrays[l], ColourCycle[l]+'-', lw=2, ms=12)
+	for l in range(0,NumFolders):	ax.plot(PressureArray,ELoop_Arrays[l], ColourCycle[l]+'--', lw=1.5, ms=12)
+	#endfor
+	
+	#Apply figure labels, title, legend and cropping
+	Xlabel, Ylabel = 'Prefill Pressure $P$ [mTorr]', 'Toroidal E-Field $\\bf{E}$ [V m$^{-1}$]'
+	Title = 'Plasma Current Time-Trace for Varying '+str(Parameter)
+	Legend = [Parameter+'='+str(TrendAxis[i]) for i in range(0,len(TrendAxis))]
+	ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+	ax.set_xscale("log")
+	ax.set_yscale("log")
+
+	#Hacky, need to update cropping function for 1D figures
+	ax.set_xlim(1e-3,5)			#Pressure [mTorr]
+	ax.set_ylim(0.05,25)		#E-Field [Vm-1]
+
+	#Clean up and save figure to home directory
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Paschen_Breakdown'+image_extension)
+#	plt.show()
+	plt.close('all')
+
+	#Plot trend in minimum breakdown E-field with respect to varied parameter
+#	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+#	left, bottom, width, height = [0.19,0.19,0.25,0.20]			#[0.62,0.27,0.23,0.23]
+#	ax2 = fig.add_axes([left, bottom, width, height])
+	###
+#	ax2.plot(TrendAxis,MinEMinArray,'ko--', markerfacecolor='none', ms=8, lw=1.5)
+#	ax2.plot(TrendAxis[MinEMinArray.index(min(MinEMinArray))],min(MinEMinArray),'ko', ms=10)
+#	ax2.set_ylabel('Minimum $\\bf{E}$ [V m$^{-1}$]', labelpad=0, fontsize=14.5)
+#	ax2.set_xlabel('Varying: '+Parameter, fontsize=15)
+#	ax2.ticklabel_format(axis="x", style="sci", scilimits=(-2,3))
+#	ax2.tick_params(axis='x', labelsize=14)
+#	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.set_xlim(0,1)
+#	ax2.set_ylim(0.79,1.01)
+
+	print'--------------------------------'
+	print'# Breakdown Diagnostics Complete'
+	print'--------------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#====================================================================#
+		 			  #PLASMA CURRENT DIAGNOSTICS#
+#====================================================================#
+
+#Compare optimised plasma current profiles
+if savefig_PlasmaCurrent == True:
+
+	#Extract plasma current data from series directories
+	Filename = 'RZIP_Data/Ip.txt'
+	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+
+	#Rescale data for plotting: [A] to [kA]
+	for l in range(0,NumFolders):
+		for i in range(0,len(Ip_Arrays[l][0])):
+			Ip_Arrays[l][1][i] = Ip_Arrays[l][1][i]/1000.0
+		#endfor
+	#endfor
+
+	#Calculate maximum Ip for each simulation over the full series
+	Ip_MaxTrend,Ip_MinTrend = list(),list()
+	for l in range(0,NumFolders):
+		Ip_MaxTrend.append(max(Ip_Arrays[l][1]))
+		Ip_MinTrend.append(min(Ip_Arrays[l][1]))
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create fig and plot plasma current for each detected simulation folder
+	fig,ax = figure(image_aspectratio,1,shareX=False)
+	for l in tqdm(range(0,NumFolders)):
+		ImagePlotter1D(Ip_Arrays[l][0],Ip_Arrays[l][1],image_aspectratio,fig,ax)
+	#endfor
+	
+	#Apply figure labels, title, legend and cropping
+	Xlabel, Ylabel = 'Time $\\tau$ [ms]', 'Plasma Current $I_{p}$ [kA]'
+	Title = 'Plasma Current Time-Trace for Varying '+str(Parameter)
+	Legend = TrendAxis
+	ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+
+	#Hacky, need to update cropping function for 1D figures
+	ax.set_xlim( min(Ip_Arrays[l][0])*1.20	,max(Ip_Arrays[l][0])*1.30   )		
+	ax.set_ylim( -5							,max(max(Ip_Arrays[l]))*1.05 )
+
+	#Clean up and save figure to home directory
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Ip_Trends'+image_extension)
+#	plt.show()
+	plt.close('all')
+
+	#Plot trend in plasma current with respect to varied parameter
+#	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+#	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
+#	ax2 = fig.add_axes([left, bottom, width, height])
+	###
+#	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
+#	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
+#	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
+#	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
+#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
+#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax2.tick_params(axis='x', labelsize=14)
+#	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
+#	ax2.set_ylim(0.79,1.01)
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+#====================================================================#
+					  #EDDY CURRENT DIAGNOSTICS#
+#====================================================================#
+
+#Compare vessel eddy current profiles
+if savefig_EddyCurrent == True:
+
+	#Extract plasma current data from series directories
+	Filename = 'RZIP_Data/IPass.txt'
+	IPassive_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
+
+	#Create trendaxis from folder names
+	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
+
+	#Rescale data for plotting: [A] to [kA]
+	for l in range(0,NumFolders):
+		for i in range(0,len(IPassive_Arrays[l][0])):
+			IPassive_Arrays[l][1][i] = IPassive_Arrays[l][1][i]/1000.0
+		#endfor
+	#endfor
+
+	#Calculate maximum net eddy current for each simulation over the full series
+	IPassive_MaxTrend,IPassive_MinTrend = list(),list()
+	for l in range(0,NumFolders):
+		IPassive_MaxTrend.append(max(IPassive_Arrays[l][1]))
+		IPassive_MinTrend.append(min(IPassive_Arrays[l][1]))
+	#endfor
+
+	#===================##===================#
+	#===================##===================#
+
+	#Organize figure labelling variables
+	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
+	else: Parameter = ParameterVaried
+	#endif
+
+	#Create fig and plot passive currents for each detected simulation folder
+	fig,ax = figure(image_aspectratio,1,shareX=False)
+	for l in tqdm(range(0,NumFolders)):
+		ImagePlotter1D(IPassive_Arrays[l][0],IPassive_Arrays[l][1],image_aspectratio,fig,ax)
+	#endfor
+	
+	#Apply figure labels, title, legend and cropping
+	Xlabel, Ylabel = 'Time $\\tau$ [ms]', 'Passive Current $I_{passive}$ [kA]'
+	Title = 'Passive Current Time-Trace for Varying '+str(Parameter)
+	Legend = TrendAxis
+	ImageOptions(fig,ax,Xlabel,Ylabel,Title,Legend,Crop=False,Rotate=False)
+
+	#Hacky, need to update cropping function for 1D figures
+	ax.set_xlim( min(IPassive_Arrays[l][0])*1.20,	max(IPassive_Arrays[l][0])*1.30 )		
+	ax.set_ylim( -5,								max(max(IPassive_Arrays[l]))*1.05 )
+
+	#Clean up and save figure to home directory
+	plt.tight_layout(pad=3.0,h_pad=1.0)
+	plt.savefig(SeriesDirString+'/PassiveCurrent_Trends'+image_extension)
+#	plt.show()
+	plt.close('all')
+
+	#Plot trend in plasma current with respect to varied parameter
+#	from mpl_toolkits.axes_grid.inset_locator import inset_axes
+#	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
+#	ax2 = fig.add_axes([left, bottom, width, height])
+	###
+#	ax2.plot(TrendAxis,IPass_MaxTrend,'ko--', ms=8, lw=1.5)
+#	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
+#	ax2.set_ylabel('Maximum Eddy \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
+#	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
+#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
+#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
+#	ax2.tick_params(axis='x', labelsize=14)
+#	ax2.tick_params(axis='y', labelsize=14)
+#	ax2.set_xlim( min(TrendAxis),max(TrendAxis) )
+#	ax2.set_ylim(0.79,1.01)
+
+	print'------------------------------'
+	print'# Current Diagnostics Complete'
+	print'------------------------------'
+#endif
+
+#=====================================================================#
+#=====================================================================#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#====================================================================#
+				         #VERTICAL STABILITY#	---- TO BE REFACTORED
+#====================================================================#
+
+if savefig_VerticalStability == True:
 
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/EquilParam.txt'
@@ -1330,593 +2274,8 @@ if savefig_EquilStability == True:
 #	plt.show()
 	plt.close('all')
 
-	print'--------------------------------'
-	print'# Equilibrium stability Complete'
-	print'--------------------------------'
-#endif
-
-#=====================================================================#
-#=====================================================================#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#====================================================================#
-				  #COIL CURRENT WAVEFORM DIAGNOSTIC#
-#====================================================================#
-
-#Compare optimised plasma current profiles
-if savefig_CoilCurrentTraces == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract coil currents and time axis from series directories
-	Filename = 'icoil_Data/CoilCurrents.txt'
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
-	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
-	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
-	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
-
-	#Remove any header string from the data
-	for i in range(0,len(Time_Arrays)):
-		Time_Arrays[i] = Time_Arrays[i][1::]
-		ISol_Arrays[i] = ISol_Arrays[i][1::]
-		IPF1_Arrays[i] = IPF1_Arrays[i][1::]
-		IPF2_Arrays[i] = IPF2_Arrays[i][1::]
-		IDiv1_Arrays[i] = IDiv1_Arrays[i][1::]
-		IDiv2_Arrays[i] = IDiv2_Arrays[i][1::]
-	#endfor
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
-
-	#Rescale data for plotting: [s] to [ms]
-	for i in range(0,len(Time_Arrays)):
-		for j in range(0,len(Time_Arrays[i])):
-			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
-		#endfor
-	#endfor
-
-	#Rescale data for plotting: [A] to [kA]
-	for i in range(0,len(ISol_Arrays)):
-		for j in range(0,len(ISol_Arrays[i])):
-		 	#Coil currents are no-longer saved scaled by the number of windings
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0#/(1000.0*nSol)
-			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/1000.0#/(1000.0*24)
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0#/(1000.0*24)
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0#/(1000.0*24)
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0#/(1000.0*24)
-		#endfor
-	#endfor
-
-	#Calculate dI/dt for each coil set
-	DeltaIPF1,DeltaIPF2 = list(),list()
-	DeltaIDiv1,DeltaIDiv2 = list(),list()
-	DeltaISol = list()
-	for i in range(0,len(ISol_Arrays)):
-		DeltaISol.append(list())
-		DeltaIPF1.append(list())
-		DeltaIPF2.append(list())
-		DeltaIDiv1.append(list())
-		DeltaIDiv2.append(list())
-		for j in range(1,len(ISol_Arrays[i])):
-			Delta_t = Time_Arrays[i][j]-Time_Arrays[i][j-1]
-			#
-			DeltaISol[i].append( (ISol_Arrays[i][j]-ISol_Arrays[i][j-1])/Delta_t )
-			DeltaIPF1[i].append( (IPF1_Arrays[i][j]-IPF1_Arrays[i][j-1])/Delta_t )
-			DeltaIPF2[i].append( (IPF2_Arrays[i][j]-IPF2_Arrays[i][j-1])/Delta_t )
-			DeltaIDiv1[i].append( (IDiv1_Arrays[i][j]-IDiv1_Arrays[i][j-1])/Delta_t )
-			DeltaIDiv2[i].append( (IDiv2_Arrays[i][j]-IDiv2_Arrays[i][j-1])/Delta_t )
-		#endfor
-	#endfor
-
-	#===================##===================#
-	#===================##===================#
-
-#	#Create output folder for all coil trend figures
-#	ICoilTimeTracesDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
-	#Organize figure labelling variables
-	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
-	else: Parameter = ParameterVaried
-	#endif
-
-	#For every simulation folder in the current series:
-	for l in range(0,len(ISol_Arrays)):
-
-		#Create figure for each Coil Ramp Time Trace diagnostic
-		fig,ax = plt.subplots(2, figsize=(12,14), sharex=True)
-
-		#Plot each coil current with respect to time
-		ax[0].plot(Time_Arrays[l],ISol_Arrays[l], 'k-', lw=2)
-		ax[0].plot(Time_Arrays[l],IPF1_Arrays[l], 'r-', lw=2)
-		ax[0].plot(Time_Arrays[l],IPF2_Arrays[l], 'b-', lw=2)
-		ax[0].plot(Time_Arrays[l],IDiv1_Arrays[l], 'c-', lw=2)
-		ax[0].plot(Time_Arrays[l],IDiv2_Arrays[l], 'm-', lw=2)
-
-		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
-		ax[0].set_title('Time-Traces of Coil Currents for '+Parameter+' in '+Range, fontsize=20, y=1.03)
-		Legend = ['Sol','PF1','PF2','Div1','Div2']
-		ax[0].legend(Legend, fontsize=22, ncol=2, frameon=False)
-		ax[0].set_ylabel('Coil Current $I$ [kA]', fontsize=25)
-#		ax[0].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#		ax[0].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#		ax[0].yaxis.set_major_locator(ticker.MultipleLocator(240))
-		ax[0].tick_params(axis='x', labelsize=20)
-		ax[0].tick_params(axis='y', labelsize=20)
-#		ax[0].set_xlim(-50,100)		
-#		ax[0].set_ylim(2,32)
-
-		#Plot derivitive of each coil current with respect to time
-		ax[1].plot(Time_Arrays[l][1::],DeltaISol[l], 'k-', lw=2)
-		ax[1].plot(Time_Arrays[l][1::],DeltaIPF1[l], 'r-', lw=2)
-		ax[1].plot(Time_Arrays[l][1::],DeltaIPF2[l], 'b-', lw=2)
-		ax[1].plot(Time_Arrays[l][1::],DeltaIDiv1[l], 'c-', lw=2)
-		ax[1].plot(Time_Arrays[l][1::],DeltaIDiv2[l], 'm-', lw=2)
-
-		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
-		ax[1].set_title('Time-Traces of Delta Coil Currents for '+Parameter+' in '+Range, fontsize=20, y=1.03)
-		Legend = ['Sol','PF1','PF2','Div1','Div2']
-		ax[1].legend(Legend, fontsize=22, ncol=2, frameon=False)
-		ax[1].set_ylabel('Change in Coil Current \n $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
-		ax[1].set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#		ax[1].xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#		ax[1].yaxis.set_major_locator(ticker.MultipleLocator(240))
-		ax[1].tick_params(axis='x', labelsize=20)
-		ax[1].tick_params(axis='y', labelsize=20)
-#		ax[1].set_xlim(-50,100)		
-#		ax[1].set_ylim(2,32)
-
-		plt.tight_layout(pad=3.0,h_pad=1.0)
-#		plt.savefig(ICoilTimeTracesDir+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
-		plt.savefig(SeriesDirString+'/CoilRamp_'+str(TrendAxis[l])+'TimeTrace.png')
-
-		plt.show()
-		plt.close('all')
-	#endfor
-	print'----------------------------------'
-	print'# Coil Current Timetraces Complete'
-	print'----------------------------------'
-
-#=====================================================================#
-#=====================================================================#
-
-
-
-#====================================================================#
-				  #COIL CURRENT TRENDS DIAGNOSTIC#
-#====================================================================#
-
-#Compare optimised plasma current profiles
-if savefig_CoilCurrentTrends == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract coil currents and time axis from series directories
-	Filename = 'icoil_Data/CoilCurrents.txt'
-	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	ISol_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-	IPF1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[2]
-	IPF2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[3]
-	IDiv1_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[4]
-	IDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
-
-	#Remove any header string from the data
-	for i in range(0,len(Time_Arrays)):
-		Time_Arrays[i] = Time_Arrays[i][1::]
-		ISol_Arrays[i] = ISol_Arrays[i][1::]
-		IPF1_Arrays[i] = IPF1_Arrays[i][1::]
-		IPF2_Arrays[i] = IPF2_Arrays[i][1::]
-		IDiv1_Arrays[i] = IDiv1_Arrays[i][1::]
-		IDiv2_Arrays[i] = IDiv2_Arrays[i][1::]
-	#endfor
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
-
-	#Rescale data for plotting: [s] to [ms]
-	for i in range(0,len(Time_Arrays)):
-		for j in range(0,len(Time_Arrays[i])):
-			Time_Arrays[i][j] = Time_Arrays[i][j]*1000.0
-		#endfor
-	#endfor
-
-	#Rescale data for plotting: [A] to [kA]
-	for i in range(0,len(ISol_Arrays)):
-		for j in range(0,len(ISol_Arrays[i])):
-		 	#Coil currents are no-longer saved scaled by the number of windings
-			ISol_Arrays[i][j] = ISol_Arrays[i][j]/1000.0#/(1000.0*nSol)
-			IPF1_Arrays[i][j] = IPF1_Arrays[i][j]/1000.0#/(1000.0*24)
-			IPF2_Arrays[i][j] = IPF2_Arrays[i][j]/1000.0#/(1000.0*24)
-			IDiv1_Arrays[i][j] = IDiv1_Arrays[i][j]/1000.0#/(1000.0*24)
-			IDiv2_Arrays[i][j] = IDiv2_Arrays[i][j]/1000.0#/(1000.0*24)
-		#endfor
-	#endfor
-
-	#Calculate maximum coil current for each coil
-	MaxIPF1,MaxIPF2 = list(),list()
-	MaxIDiv1,MaxIDiv2 = list(),list()
-	MaxISol = list()
-	MaxIAvg = list()
-	for i in range(0,len(ISol_Arrays)):
-		MaxISol.append( max(ISol_Arrays[i], key=abs) )
-		MaxIPF1.append( max(IPF1_Arrays[i], key=abs) )
-		MaxIPF2.append( max(IPF2_Arrays[i], key=abs) )
-		MaxIDiv1.append( max(IDiv1_Arrays[i], key=abs) )
-		MaxIDiv2.append( max(IDiv2_Arrays[i], key=abs) )
-		MaxIAvg.append( (abs(MaxISol[i])+abs(MaxIPF1[i])+abs(MaxIPF2[i])+abs(MaxIDiv1[i])+abs(MaxIDiv2[i]))/NumCoils )
-	#endfor
-
-	#Calculate dI/dt for each coil set
-	DeltaIPF1,DeltaIPF2 = list(),list()
-	DeltaIDiv1,DeltaIDiv2 = list(),list()
-	DeltaISol = list()
-	for i in range(0,len(ISol_Arrays)):
-		DeltaISol.append(list())
-		DeltaIPF1.append(list())
-		DeltaIPF2.append(list())
-		DeltaIDiv1.append(list())
-		DeltaIDiv2.append(list())
-		for j in range(1,len(ISol_Arrays[i])):
-			Delta_t = Time_Arrays[i][j]-Time_Arrays[i][j-1]
-			#
-			DeltaISol[i].append( (ISol_Arrays[i][j]-ISol_Arrays[i][j-1])/Delta_t )
-			DeltaIPF1[i].append( (IPF1_Arrays[i][j]-IPF1_Arrays[i][j-1])/Delta_t )
-			DeltaIPF2[i].append( (IPF2_Arrays[i][j]-IPF2_Arrays[i][j-1])/Delta_t )
-			DeltaIDiv1[i].append( (IDiv1_Arrays[i][j]-IDiv1_Arrays[i][j-1])/Delta_t )
-			DeltaIDiv2[i].append( (IDiv2_Arrays[i][j]-IDiv2_Arrays[i][j-1])/Delta_t )
-		#endfor
-	#endfor
-
-	#Calculate maximum change in current experienced for each coil set
-	MaxDeltaIPF1,MaxDeltaIPF2 = list(),list()
-	MaxDeltaIDiv1,MaxDeltaIDiv2 = list(),list()
-	MaxDeltaISol = list()
-	for i in range(0,len(DeltaISol)):
-		MaxDeltaISol.append( max(DeltaISol[i], key=abs) )
-		MaxDeltaIPF1.append( max(DeltaIPF1[i], key=abs) )
-		MaxDeltaIPF2.append( max(DeltaIPF2[i], key=abs) )
-		MaxDeltaIDiv1.append( max(DeltaIDiv1[i], key=abs) )
-		MaxDeltaIDiv2.append( max(DeltaIDiv2[i], key=abs) )
-	#endfor
-
-	#===================##===================#
-	#===================##===================#
-
-#	#Create output folder for all coil trend figures
-#	CurrentTrendsDir = CreateNewFolder(SeriesDirString,'/ICoil_Trends/')
-	#Organize figure labelling variables
-	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
-	else: Parameter = ParameterVaried
-	#endif
-
-	#For every simulation folder in the current series:
-	for i in range(0,NumCoils):
-
-		#Set which coil current timetrace to compare
-		if i == 0: 	
-			Coil = 'ISol'
-			Current_Arrays = ISol_Arrays
-		if i == 1:
-			Coil = 'IPF1'
-			Current_Arrays = IPF1_Arrays
-		if i == 2: 
-			Coil = 'IPF2'	
-			Current_Arrays = IPF2_Arrays
-		if i == 3: 	
-			Coil = 'IDiv1'
-			Current_Arrays = IDiv1_Arrays
-		if i == 4: 	
-			Coil = 'IDiv2'
-			Current_Arrays = IDiv2_Arrays
-		#endif
-
-		#Create figure to compare each coil current time-trace
-		fig,ax = plt.subplots(1, figsize=(12,8))
-
-		#Plot each coil current with respect to time
-		for j in range(0,len(Current_Arrays)):
-			ax.plot(Time_Arrays[j],Current_Arrays[j], lw=2)
-		#endfor
-
-		#Set title, legend and savestrings
-		Range = '['+str(min(TrendAxis))+' - '+str(max(TrendAxis))+']'
-		Title = 'Time-Traces of '+Coil+' Coil Currents for '+Parameter+' in '+Range
-		Legend = TrendAxis
-		SaveString = SeriesDirString+'/'+Coil+'_Current_Trends.png'
-
-		ax.set_title(Title, fontsize=20, y=1.03)
-		ax.legend(Legend, fontsize=22, ncol=2, frameon=False)
-		ax.set_ylabel('Coil Current $I$ [kA]', fontsize=25)
-		ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#		ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#		ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
-		ax.tick_params(axis='x', labelsize=20)
-		ax.tick_params(axis='y', labelsize=20)
-#		ax.set_xlim(-50,100)		
-#		ax.set_ylim(2,32)
-
-		plt.tight_layout(pad=3.0,h_pad=1.0)
-		plt.savefig(SaveString)
-		plt.show()
-		plt.close('all')
-	#endfor
-
-	print'------------------------------'
-	print'# Coil Current Trends Complete'
-	print'------------------------------'
-
-	#=================#
-
-	#Create image limits
-	GlobalMaxDelta = MaxDeltaISol+MaxDeltaIPF1+MaxDeltaIPF2+MaxDeltaIDiv1+MaxDeltaIDiv2
-	Ylims = [min(GlobalMaxDelta),max(GlobalMaxDelta)]
-
-	#Create figure for Coil Maximum Ramp Diagnostic
-	fig,ax = plt.subplots(2, figsize=(12,14))
-
-	#Plot derivitive of each coil current with respect to time
-	ax[0].plot(TrendAxis,MaxISol, 'ko-', ms=10, lw=2)
-	ax[0].plot(TrendAxis,MaxIPF1, 'r^-', ms=10, lw=2)
-	ax[0].plot(TrendAxis,MaxIPF2, 'bs-', ms=10, lw=2)
-	ax[0].plot(TrendAxis,MaxIDiv1, 'c*-', ms=10, lw=2)
-	ax[0].plot(TrendAxis,MaxIDiv2, 'mh-', ms=10, lw=2)
-	ax[0].plot(TrendAxis,MaxIAvg, 'kv:', markerfacecolor='none', ms=10, lw=2)			 #Avg ICoil
-	ax[0].plot(TrendAxis[MaxIAvg.index(min(MaxIAvg))],min(MaxIAvg), 'kv', ms=14, lw=2.0) #Min Avg
-
-	ax[0].set_title('Maximum Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
-	Legend = ['Sol','PF1','PF2','Div1','Div2','Avg']
-	ax[0].legend(Legend, fontsize=22, ncol=2, frameon=False)
-	ax[0].set_ylabel('Maximum Coil \n Current $I$ [kA]', fontsize=25)
-#	ax[0].set_xlabel(Parameter, fontsize=25)
-#	ax[0].xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
-#	ax[0].yaxis.set_major_locator(ticker.MultipleLocator(50))
-	ax[0].tick_params(axis='x', labelsize=20)
-	ax[0].tick_params(axis='y', labelsize=20)
-	ax[0].set_xlim(TrendAxis[0],TrendAxis[-1])		
-#	ax[0].set_ylim(-1.5,1.5)
-
-	##########
-
-	#Plot derivitive of each coil current with respect to time
-	ax[1].plot(TrendAxis,MaxDeltaISol, 'ko-', ms=10, lw=2)
-	ax[1].plot(TrendAxis,MaxDeltaIPF1, 'r^-', ms=10, lw=2)
-	ax[1].plot(TrendAxis,MaxDeltaIPF2, 'bs-', ms=10, lw=2)
-	ax[1].plot(TrendAxis,MaxDeltaIDiv1, 'c*-', ms=10, lw=2)
-	ax[1].plot(TrendAxis,MaxDeltaIDiv2, 'mh-', ms=10, lw=2)
-
-	ax[1].set_title('Maximum Delta Coil Current for Varying '+Parameter, fontsize=20, y=1.03)
-	Legend = ['Sol','PF1','PF2','Div1','Div2']
-	ax[1].legend(Legend, fontsize=22, ncol=2, frameon=False)
-	ax[1].set_ylabel('Maximum Change in \n Current $\Delta I$ [kA ms$^{-1}$]', fontsize=25)
-	ax[1].set_xlabel(Parameter, fontsize=25)
-#	ax[1].xaxis.set_major_locator(ticker.MultipleLocator( (max(TrendAxis)-min(TrendAxis))/5 ))
-#	ax[1].yaxis.set_major_locator(ticker.MultipleLocator(50))
-	ax[1].tick_params(axis='x', labelsize=20)
-	ax[1].tick_params(axis='y', labelsize=20)
-	ax[1].set_xlim(TrendAxis[0],TrendAxis[-1])		
-	ax[1].set_ylim(Ylims[0]*1.25,Ylims[1]*1.25)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/CoilRamp_Trends.png')
-	plt.show()
-	plt.close('all')
-
-	print'----------------------------'
-	print'# Coil Current Ramp Complete'
-	print'----------------------------'
-#endfor
-
-#=====================================================================#
-#=====================================================================#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#====================================================================#
-					  #PLASMA BREAKDOWN DIAGNOSTICS#
-#====================================================================#
-
-#Compare optimised plasma current profiles
-if savefig_ConnectionLength == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract relevent data from series directories
-	Filename = 'LCon.txt'
-	Lc_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	Filename = 'Eta.txt'
-	Eta_Perp_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	Eta_Para_Array = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-
-	#Remove any header string from the data
-	for i in range(0,len(Time_Arrays)):
-		Lc_Arrays[i] = Lc_Arrays[i][1::]
-	#endfor
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
-
-	#===================##===================#
-	#===================##===================#
-
-	#Organize figure labelling variables
-	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
-	else: Parameter = ParameterVaried
-	#endif
-
-	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,10))
-
-	#Plot plasma current with respect to adaptive_time
-	ax.plot(TrendAxis,Lc_Arrays, 'ko-', ms=10, lw=2)
-
-	ax.set_title('Connection Length for Varying '+Parameter, fontsize=20, y=1.03)
-	Legend = ['Lc']
-	ax.legend(Legend, fontsize=22, frameon=False)
-	ax.set_ylabel('Connection Length [m]', fontsize=25)
-	ax.set_xlabel('Varying: '+Parameter, fontsize=25)
-	ax.ticklabel_format(style='sci', axis='x', scilimits=(-2,2))
-#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-#	ax.set_xlim(0,1)		
-#	ax.set_ylim(2,32)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/Lc_Trends.png')
-#	plt.show()
-	plt.close('all')
-
-	print'------------------------'
-	print'# Lc Diagnostic Complete'
-	print'------------------------'
-#endif
-
-#=====================================================================#
-#=====================================================================#
-
-
-
-#=====================================================================#
-#=====================================================================#
-
-if savefig_PaschenCurves == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract relevent data from series directories
-	Filename = 'LCon.txt'
-	Lc_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-#	Filename = 'VLoop.txt'
-#	VLoop_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-
-	#Remove any header string from the data - ???also removes lowest array???
-	for i in range(0,len(Lc_Arrays)):
-		Lc_Arrays[i] = Lc_Arrays[i][1::][0]
-#		VLoop_Arrays[i] = VLoop_Arrays[i][1::][0]
-	#endfor
-
-	#Create arbitary pressure array over 1E-6 --> 1E-2 Torr
-	Limits,Resolution = [1E-6,1E-2],25000
-	PressureArray = np.linspace(Limits[0],Limits[1],Resolution).tolist()
-
-	#Initialise required arrays EMinArrays 
-	EMinArrays,MinEMinArray = list(),list()
-	for i in range(0,len(Lc_Arrays)): EMinArrays.append( list() )
-
-	#Construct EMinArrays for each Lcon by varying background pressure
-	#N.B. !!! Lcon will vary with background pressure so this is only approximate !!!
-	for i in range(0,len(EMinArrays)):
-		for j in range(0,len(PressureArray)):
-
-			#Compute minimum E-field for breakdown as cited from Song2017
-			EMin = (PressureArray[j]*1.25E4)/np.log(510.0*PressureArray[j]*Lc_Arrays[i])
-			if EMin < 0: EMin = np.nan
-
-			EMinArrays[i].append( EMin )
-		#endfor
-		MinEMinArray.append( min(filter(lambda v: v==v, EMinArrays[i])) )  
-	#endfor
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
-
-	#Organize figure labelling variables
-	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
-	else: Parameter = ParameterVaried
-	#endif
-
-	#Round connective length for plotting
-	for i in range(0,len(Lc_Arrays)): Lc_Arrays[i] = round(Lc_Arrays[i],1)
-	#Scale pressure array for plotting
-	for i in range(0,len(PressureArray)): PressureArray[i] = PressureArray[i]*1000	#[mTorr]
-
-	#===================##===================#
-	#===================##===================#
-
-	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,10), sharex=True)
-
-	#Plot minimum electric field for breakdown for each connection length
-	for i in range(0,len(Lc_Arrays)):
-		ax.plot(PressureArray,EMinArrays[i], '--', lw=2, ms=12)
-	#####
-	Legend = [Parameter+'='+str(TrendAxis[i]) for i in range(0,len(TrendAxis))]
-	ax.legend(Legend, fontsize=20, loc=4, frameon=False)
-	ax.set_xlabel('Prefill Pressure $P$ [mTorr]', fontsize=26)
-	ax.set_ylabel('Toroidal E-Field $\\bf{E}$ [V m$^{-1}$]', fontsize=26)
-	#ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5E21))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xscale("log")
-	ax.set_yscale("log")
-	ax.set_xlim(5e-3,5)			#Pressure [mTorr]
-	ax.set_ylim(0.05,25)		#E-Field [Vm-1]
-
-	#Plot trend in minimum breakdown E-field with respect to varied parameter
-	from mpl_toolkits.axes_grid.inset_locator import inset_axes
-	left, bottom, width, height = [0.19,0.19,0.25,0.20]			#[0.62,0.27,0.23,0.23]
-	ax2 = fig.add_axes([left, bottom, width, height])
-	###
-	ax2.plot(TrendAxis,MinEMinArray,'ko--', markerfacecolor='none', ms=8, lw=1.5)
-	ax2.plot(TrendAxis[MinEMinArray.index(min(MinEMinArray))],min(MinEMinArray),'ko', ms=10)
-	ax2.set_ylabel('Minimum $\\bf{E}$ [V m$^{-1}$]', labelpad=0, fontsize=14.5)
-	ax2.set_xlabel('Varying: '+Parameter, fontsize=15)
-	ax2.ticklabel_format(axis="x", style="sci", scilimits=(-2,3))
-	ax2.tick_params(axis='x', labelsize=14)
-	ax2.tick_params(axis='y', labelsize=14)
-#	ax2.set_xlim(0,1)
-#	ax2.set_ylim(0.79,1.01)
-
-	plt.tight_layout(pad=2.0)
-	plt.savefig(SeriesDirString+'/Paschen_Breakdown.png')
-#	plt.show()
-	plt.close('all')
-
 	print'-----------------------------'
-	print'# Paschen Diagnostic Complete'
+	print'# Stability Analysis Complete'
 	print'-----------------------------'
 #endif
 
@@ -1937,192 +2296,6 @@ if savefig_PaschenCurves == True:
 
 
 
-
-
-
-#====================================================================#
-					  #PLASMA CURRENT DIAGNOSTICS#
-#====================================================================#
-
-#Compare optimised plasma current profiles
-if savefig_PlasmaCurrent == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-	NumFolders = len(SimulationDirs)
-
-	#Extract plasma current data from series directories
-	Filename = 'RZIP_Data/Ip.txt'
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
-	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
-
-	#Rescale data for plotting: [A] to [kA]
-	for l in range(0,NumFolders):
-		for i in range(0,len(Ip_Arrays[l][0])):
-			Ip_Arrays[l][1][i] = Ip_Arrays[l][1][i]/1000.0
-		#endfor
-	#endfor
-
-	#Calculate maximum Ip for each simulation over the full series
-	Ip_MaxTrend,Ip_MinTrend = list(),list()
-	for l in range(0,NumFolders):
-		Ip_MaxTrend.append(max(Ip_Arrays[l][1]))
-		Ip_MinTrend.append(min(Ip_Arrays[l][1]))
-	#endfor
-
-	#===================##===================#
-	#===================##===================#
-
-	#Organize figure labelling variables
-	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
-	else: Parameter = ParameterVaried
-	#endif
-
-	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,10))
-
-	#Plot plasma current with respect to adaptive_time
-	for l in range(0,NumFolders): ax.plot(Time_Arrays[l][0],Ip_Arrays[l][1], lw=2)
-	ax.set_title('Plasma Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
-	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
-	ax.set_ylabel('Plasma Current $I_{p}$ [kA]', fontsize=25)
-	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim( min(Time_Arrays[l][0])*1.20,max(Time_Arrays[l][0])*1.50 )		
-	ax.set_ylim( -5,						 max(max(Ip_Arrays[l]))*1.05 )
-
-	#Plot trend in plasma current with respect to varied parameter
-#	from mpl_toolkits.axes_grid.inset_locator import inset_axes
-#	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
-#	ax2 = fig.add_axes([left, bottom, width, height])
-	###
-#	ax2.plot(TrendAxis,Ip_MaxTrend,'ko--', ms=8, lw=1.5)
-#	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
-#	ax2.set_ylabel('Maximum Plasma \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
-#	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
-#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
-#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax2.tick_params(axis='x', labelsize=14)
-#	ax2.tick_params(axis='y', labelsize=14)
-#	ax2.set_xlim( min(TrendAxis),max(TrendAxis)*1.10 )
-#	ax2.set_ylim(0.79,1.01)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/'+'Ip_Trends'+image_extension)
-#	plt.show()
-	plt.close('all')
-
-	print'-------------------------'
-	print'# Ip Diagnostics Complete'
-	print'-------------------------'
-#endif
-
-#=====================================================================#
-#=====================================================================#
-
-
-
-
-
-
-#====================================================================#
-					  #EDDY CURRENT DIAGNOSTICS#
-#====================================================================#
-
-#Compare vessel eddy current profiles
-if savefig_EddyCurrent == True:
-
-	#Obtain simulation folder directories for project and requested series
-	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-
-	#Extract plasma current data from series directories
-	Filename = 'RZIP_Data/IPass.txt'
-	Time_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
-	IPass_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
-
-	#Remove any header string from the data
-	for i in range(0,len(Time_Arrays)):
-		Time_Arrays[i] = Time_Arrays[i][1::]
-		IPass_Arrays[i] = IPass_Arrays[i][1::]
-	#endfor
-
-	#Create trendaxis from folder names
-	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
-
-	#Rescale data for plotting: [A] to [kA]
-	for i in range(0,len(IPass_Arrays)):
-		for j in range(0,len(IPass_Arrays[i])):
-			IPass_Arrays[i][j] = IPass_Arrays[i][j]/1000.0
-		#endfor
-	#endfor
-
-	#Calculate maximum Ip for each simulation over the full series
-	IPass_MaxTrend,IPass_MinTrend = list(),list()
-	for i in range(0,len(IPass_Arrays)):
-		IPass_MaxTrend.append(max(IPass_Arrays[i]))
-		IPass_MinTrend.append(min(IPass_Arrays[i]))
-	#endfor
-
-	#===================##===================#
-	#===================##===================#
-
-	#Organize figure labelling variables
-	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
-	else: Parameter = ParameterVaried
-	#endif
-
-	#Create figure for plasma current diagnostic
-	fig,ax = plt.subplots(1, figsize=(12,10))
-
-	#Plot plasma current with respect to adaptive_time
-	for i in range(0,len(IPass_Arrays)): ax.plot(Time_Arrays[i],IPass_Arrays[i], lw=2)
-	ax.set_title('Eddy Current Time-Trace for Varying '+Parameter, fontsize=20, y=1.03)
-	ax.legend(TrendAxis, fontsize=22, loc=1, frameon=False)
-	ax.set_ylabel('Eddy Current $I_{p}$ [kA]', fontsize=25)
-	ax.set_xlabel('Time $\\tau$ [ms]', fontsize=25)
-#	ax.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
-#	ax.yaxis.set_major_locator(ticker.MultipleLocator(240))
-	ax.tick_params(axis='x', labelsize=20)
-	ax.tick_params(axis='y', labelsize=20)
-	ax.set_xlim( min(Time_Arrays[0])*1.50,max(Time_Arrays[0])*1.30 )		
-#	ax.set_ylim(2,32)
-
-	#Plot trend in plasma current with respect to varied parameter
-	from mpl_toolkits.axes_grid.inset_locator import inset_axes
-	left, bottom, width, height = [0.23,0.63,0.25,0.25]			#[0.62,0.27,0.23,0.23]
-	ax2 = fig.add_axes([left, bottom, width, height])
-	###
-	ax2.plot(TrendAxis,IPass_MaxTrend,'ko--', ms=8, lw=1.5)
-	ax2.legend(['Max $I_{p}$'], fontsize=14, frameon=False)
-	ax2.set_ylabel('Maximum Eddy \n Current $I_{p,max}$ [kA]', labelpad=0, fontsize=14.5)
-	ax2.set_xlabel('Varied Parameter: '+Parameter, fontsize=15)
-#	ax2.xaxis.set_major_locator(ticker.MultipleLocator(90))
-#	ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
-	ax2.tick_params(axis='x', labelsize=14)
-	ax2.tick_params(axis='y', labelsize=14)
-#	ax2.set_xlim( min(TrendAxis),max(TrendAxis) )
-#	ax2.set_ylim(0.79,1.01)
-
-	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/PassiveCurrent_Trends.png')
-#	plt.show()
-	plt.close('all')
-
-	print'-----------------------------------'
-	print'# Eddy Current Diagnostics Complete'
-	print'-----------------------------------'
-#endif
-
-#=====================================================================#
-#=====================================================================#
 
 
 
