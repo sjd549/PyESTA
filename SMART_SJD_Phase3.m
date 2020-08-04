@@ -34,7 +34,7 @@ NumThreads = maxNumCompThreads(NumThreads);
 FigExt = '.png'; 		%'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S3-000003';		%Define global project name
+ProjectName = 'S3-000003-d';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -159,7 +159,7 @@ ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
 Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
-delta_efit = 0.00;					% Triangularity			[-] (-1.00-> +0.00 -> +1.00) ::
+delta_efit = -1.00;					% Triangularity			[-] (-1.00-> +0.00 -> +1.00) ::
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -207,17 +207,17 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
                                     %TauR1=40ms %TauR=40ms      %TauR=40ms
-                                    %RGeo=0.42  %RGeo=0.xx      %RGeo=0.xx
+                                    %RGeo=0.42  %RGeo=0.42      %RGeo=0.xx
 %Solenoid coil currents [kA]		%Phase3     %Phase3NegTri   %Phase3PosTri
-I_Sol_Null=+12000;					%+12000;    %+xx000;        %+xx000;
+I_Sol_Null=+13000;					%+12000;    %+13000;        %+xx000;
 I_Sol_MidRamp=+0000;				%+00000;    %+00000;        %+00000;
-I_Sol_Equil=-01200;                 %-01200;    %-xx000;        %-xx000;
-I_Sol_EndEquil=-10000;           	%-10000;    %-xx000;        %-xx000;
+I_Sol_Equil=-03500;                 %-01200;    %-03500;        %-xx000;
+I_Sol_EndEquil=-13000;           	%-10000;    %-13000;        %-xx000;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-4000;					%-4000;     %-xx00;         %-xx00;
-I_PF2_Equil=-4000;					%-4000;     %-xx00;         %-xx00;     (NEG FOR +delta, POS FOR -delta) 
-I_Div1_Equil=+4000;					%+4000;     %-xx00;         %+xx00;     (HIGH FOR +delta, LOW FOR -delta)
+I_PF1_Equil=-4000;					%-4000;     %-4000;         %-xx00;
+I_PF2_Equil=-4000;					%-4000;     %-4000;         %-xx00;     (NEG FOR +delta, POS FOR -delta) 
+I_Div1_Equil=-4000;					%+4000;     %-4000;         %+xx00;     (HIGH FOR +delta, LOW FOR -delta)
 I_Div2_Equil=+0000;                 %+0000;     %+0000;         %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
