@@ -31,11 +31,11 @@ NumThreads = maxNumCompThreads(NumThreads);
 %%%%%%%%%%%%%%%%%%%  DEFINE DATA OUTPUT PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%%
 
 %Define figure colourmap and extension
-global colourmap; colourmap = Plasma();     %'Plasma()','Gamma_II()'
+global colourmap; colourmap = Plasma();   %'Plasma()','Gamma_II()'
 FigExt = '.png';                            %'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S2-000016';		%Define global project name
+ProjectName = 'S2-000017+d';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -128,10 +128,10 @@ global BEarth; BEarth = 1.0E-4;  % Earth's B-Field (Def 5e-5)	[T]
 
 %Define initial operating conditions (primarily used for Topeol2)
 Te = 250;			% Electron Temperature [eV]
-Ti = Te*0.10;		% Ion Temperature      [eV]
+Ti = Te*0.30;		% Ion Temperature      [eV]
 BT = 0.3;			% Toroidal B-Field     [T] (Defined at Rgeo)
 Ip = 100e3;			% Plasma current       [A]
-RGeo = 0.420;		% Geometrical Radius   [m] (~0.420)
+RGeo = 0.460;		% Geometrical Radius   [m] (~0.420)
 ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
 RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
 rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.250)
@@ -151,16 +151,16 @@ S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %delta = (deltaUp+deltaLo)/2.0;            % Triangularity            [-]
 %betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        % Normalised Beta          [%] 
 %betaT = (betaN/a*(Ip*1e-6))/BT;           % Beta toroidal            [%]
-betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; 	% Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    		% Vertical field [T]
+betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa;  % Beta Poloidal  [%]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);         % Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.420;					% Geometrical Radius	[m] (Default 0.420) ::
+RGeo_efit = 0.460;					% Geometrical Radius	[m] (Default 0.420) ::
 ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
 Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
-delta_efit = 0.00;					% Triangularity			[-] (-1.00-> +0.00 -> +1.00) ::
+delta_efit = +1.00;					% Triangularity			[-] (-1.00-> +0.00 -> +1.00) ::
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -207,23 +207,28 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-                                    %TauR1=12ms %TauR1=15ms     %TauR1=15ms
+                                    %TauR1=15ms %TauR1=15ms     %TauR1=15ms    17ms??
                                     %RGeo=0.42  %RGeo=0.42      %RGeo=0.46
 %Solenoid coil currents [kA]		%Phase2     %Phase2NegTri   %Phase2PosTri
-I_Sol_Null=+3500;					%+3500;     %+4000;         %+4500;
+I_Sol_Null=+5000;					%+4000;     %+4500;         %+4500;
 I_Sol_MidRamp=+0000;				%+0000;     %+0000;         %+0000;
-I_Sol_Equil=-0300;                  %-0300;     %-0800;         %-0500;                 Ti=Te*0.25 = 0700
-I_Sol_EndEquil=-0700;           	%-0700;     %-1200;         %-0900;                 Ti=Te*0.25 = 1100
+I_Sol_Equil=-0500;                  %-0300;     %-0800;         %-0500;-1400;-0600
+I_Sol_EndEquil=-0900;           	%-0700;     %-1200;         %-0900;-1800;-1000
+
+%TO DO: GET POSITIVE TRIANGULARITY WORKING, CRASHES ON EDDY... NEEDS FIDDLES. 
+%CAN GO UP TO 5KA SOL_NULL, BUT WILL NEED TO MAKE TauR1 = 17ms, ALSO NO SAFETY.
+%FIDDLE WITH IDIV1 UNTIL IT WORKS... AS USUAL...
+%ISOL_EQUIL IS A LITTLE LOW (Ip IS A LITTLE LOW)
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-1100;					%-1100;     %-1100;         %-1100;
 I_PF2_Equil=-1100;					%-1100;     %-1100;         %-1100;     (NEG FOR +delta, POS FOR -delta) 
-I_Div1_Equil=+1000;					%+1000;     %-3500;         %+2500;     (HIGH FOR +delta, LOW FOR -delta)
+I_Div1_Equil=+2500;					%+1000;     %-3500;         %+2500;     (HIGH FOR +delta, LOW FOR -delta)
 I_Div2_Equil=+0000;                 %+0000;     %+0000;         %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
 TauN  = 0.020;			% Null-Field Timescale      [s] Determines null-field decay timescale
-TauR1 = 0.012;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
+TauR1 = 0.015;			% Breakdown Ramp Timescale  [s] Determines max loop voltage
 TauR2 = 0.020;			% PF & Div Ramp Timescale   [s] Determines max PF/Div current ramp
 TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s] 
 TauP  = 0.100;			% Pulse Timescale      		[s] Determines flat-top timescale
@@ -585,7 +590,7 @@ PlotEquilibrium({logBpolData_Null},Title,CbarLabel,SaveString);
 
 %Plot figure showing dynamic coil currents
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1)
+subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, I_PF_output/1000, 'LineWidth',2);
 title(gca,'SMART Coil Current Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -595,7 +600,7 @@ ylabel(gca,'Coil Current I [kA]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2)
+subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000,Delta_IPFoutput/1000, 'LineWidth',2)
 title(gca,'SMART Delta Coil Current Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -612,7 +617,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %Plot figure showing dynamic coil currents
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1)
+subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, V_PF_output/1000, 'LineWidth',2);
 title(gca,'SMART Coil Voltage Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -622,7 +627,7 @@ ylabel(gca,'Coil Voltage V [kV]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2)
+subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000,Delta_VPFoutput/1000, 'LineWidth',2)
 title(gca,'SMART Delta Coil Voltage Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -639,7 +644,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %Plot plasma current over full timescale
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1); hold on; grid on;
+subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, Ip_output/1000, 'LineWidth',2)
 title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'I_{p}', 'FontSize',16); legend boxoff;
@@ -648,7 +653,7 @@ ylabel(gca,'Plasma Current I_{p} (kA)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2); hold on; grid on;
+subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000, Delta_Ip_output/1000, 'LineWidth',2)
 title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'dI_{p}/dt', 'FontSize',16); legend boxoff;
@@ -667,7 +672,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 Net_IPassive = sum(I_Passive,2);
 %Plot net passive current density over full timescale
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 plot(time_adaptive*1000, Net_IPassive/1000, 'LineWidth',2)
 title(gca,'Net SMART Eddy Current iter(0)');
 legend(gca,'Net Eddy Current'); legend boxoff;
@@ -688,7 +693,7 @@ RR = get(ftmp(:),'r'); %dim 1*number of filaments
 ZZ = get(ftmp(:),'z'); %dim 1*number of filaments
 %Plot eddy currents within a cross-section of the vessel
 close all
-figure; hold on; axis equal;
+figure; hold on; grid on; box on; axis equal;
 plot(coilset);
 scatter3(RR,ZZ,VesselEddyCurrents/1000,100,VesselEddyCurrents/1000,'filled');
 title('SMART Vessel Eddy Currents iter(0)');
@@ -713,7 +718,7 @@ RR = get(ftmp(:),'r'); %dim 1*number of filaments
 ZZ = get(ftmp(:),'z'); %dim 1*number of filaments
 %Plot eddy currents within a cross-section of the vessel
 close all
-figure; hold on; axis equal;
+figure; hold on; grid on; box on; axis equal;
 plot(coilset);
 scatter3(RR,ZZ,VesselEddyCurrentsNull/1000,100,VesselEddyCurrentsNull/1000,'filled');
 title('SMART Vessel Null Eddy Currents iter(0)');
@@ -733,7 +738,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %Plot figure showing vessel eddy stresses
 close all
-figure; hold on; axis equal;
+figure; hold on; grid on; box on; axis equal;
 plot(coilset);
 %plot(vessel);
 quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','on');
@@ -767,7 +772,7 @@ for i=1:length(PressureArray)
 end
 
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 title(gca,'SMART Paschen Breakdown');
 LegendString = {'Paschen Curve','Max E_{loop}'};
 plot(PressureArray,PaschenCurve, 'k', 'LineWidth',2)
@@ -839,7 +844,7 @@ close('all')
 %%%%%%%%%%%%%%%%%%%%%% PLOT VERTICAL GROWTH RATES  %%%%%%%%%%%%%%%%%%%%%%
 
 %Plot the vertical growth rates as calculated by RZIp and manually
-figure('units','inch','position',[12 12 8 8]); hold on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 plot(Gamma,'LineWidth',2);
 plot(ones(length(Gamma)),'k--','LineWidth',1.5);
 title('SMART Vertical Growth Rates');
@@ -1046,7 +1051,7 @@ for i=1:length(PressureArray)
 end
 
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 title(gca,'SMART Paschen Breakdown');
 LegendString = {'Paschen Curve','Max E_{loop}'};
 plot(PressureArray,PaschenCurve_Passive, 'k', 'LineWidth',2)
@@ -2817,7 +2822,7 @@ function fig=PlotEquilibrium(Arrays,Title,CbarLabel,SaveString)
 
     %Initiate figure, axes and aspect ratio (fixed for now)
     close all
-    figure; hold on; axis equal;
+    figure; hold on; box on; axis equal;
     
     %for each supplied sub-array (Arrays{i})
     for i=1:length(Arrays);
@@ -2871,7 +2876,7 @@ function fig=PlotVesselOverview(Title,SaveString)
 
     %Initiate figure, axes and aspect ratio (fixed for now)
     figure('Renderer', 'painters', 'Position', [1,1, 700 1100], 'visible', 'off');
-    axes; grid on; AspectRatio = [1,2,1];
+    axes; hold on; box on; AspectRatio = [1,2,1];
     title(gca,Title);
     
     %Plot Vessel and Coilset
@@ -2900,7 +2905,7 @@ function fig=PlotVesselOverview(Title,SaveString)
     %Plot a zoomed image of the upper inboard side. 
     %Zoom location fixed for now, ideally would be togglable.
     %{
-    figure; axes;
+    figure; axes; hold on; box on;
     set(gca, 'DataAspectRatio', [1,1,1], 'NextPlot', 'add')
     
     %Plot Vessel and Coilset
@@ -2948,12 +2953,12 @@ function cm_data=Gamma_II(m)
         cm_data = colormap(map);
      else
         map = interp1(x/255,T, linspace(0,1,m));
+        cm_data = colormap(map);
+        
+        %Test figure: Color bar limits form 0 to 1.0 (black to white)
+        I = linspace(0, 1.0, 255);
+        imagesc( I(ones(1,10),:)' );
      end
-     cm_data = colormap(map);
-     
-     %Test figure: Color bar limits form 0 to 1.0 (black to white)
-     I = linspace(0, 1.0, 255);
-     imagesc( I(ones(1,10),:)' );
 end
 
 
@@ -3229,11 +3234,11 @@ cm =  [[  5.03832136e-02,   2.98028976e-02,   5.27974883e-01],
         cm_data = interp1( linspace(0,1,size(cm,1)),hsv,linspace(0,1,m) );
         cm_data(cm_data(:,1)>1,1) = cm_data(cm_data(:,1)>1,1)-1;
         cm_data = hsv2rgb(cm_data);
+        
+         %Test figure: Color bar limits form 0 to 1.0 (black to white)
+         I = linspace(0, 1.0, length(cm_data)); colormap(cm_data);
+         imagesc( I(ones(1,10),:)' );
     end
-
-     %Test figure: Color bar limits form 0 to 1.0 (black to white)
-     I = linspace(0, 1.0, length(cm_data)); colormap(cm_data);
-     imagesc( I(ones(1,10),:)' );
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
