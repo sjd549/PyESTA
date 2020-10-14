@@ -20,9 +20,10 @@ close all
 
 %Add FIESTA trunk path, include path to any extra functions.
 FIESTATrunk = "~/Postdoc Seville/FIESTA/Source Code/FIESTA V8.8";
-FunctionsLocal = "Functions";
-FunctionsRemote = "../../Functions";
-addpath(genpath(FIESTATrunk),genpath(FunctionsLocal),genpath(FunctionsRemote));
+addpath(genpath(FIESTATrunk));
+%FunctionsLocal = "Functions";
+%FunctionsRemote = "../../Functions";
+%addpath(genpath(FIESTATrunk),genpath(FunctionsLocal),genpath(FunctionsRemote));
 
 %Set maximum number of concurrent CPU threads in use
 NumThreads = 2;
@@ -30,11 +31,12 @@ NumThreads = maxNumCompThreads(NumThreads);
 
 %%%%%%%%%%%%%%%%%%%  DEFINE DATA OUTPUT PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%%
 
-%Define figure extension
-FigExt = '.png'; 		%'.png','.eps','.pdf'
+%Define figure colourmap and extension
+global colourmap; colourmap = Plasma();     %'Plasma()','Gamma_II()'
+FigExt = '.png';                            %'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S3-000003-d';		%Define global project name
+ProjectName = 'S3-000003';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -127,10 +129,10 @@ global BEarth; BEarth = 1.0E-4;  % Earth's B-Field (Def 5e-5)	[T]
 
 %Define initial operating conditions (primarily used for Topeol2)
 Te = 250;			% Electron Temperature [eV]
-Ti = Te*0.1;		% Ion Temperature      [eV]
-BT = 1.0;			% Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 500e3;         % Plasma current       [A]
-RGeo = 0.420;		% Geometrical Radius   [m] (~0.420)
+Ti = Te*0.30;		% Ion Temperature      [eV]
+BT = +1.0;			% Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = +500e3;		% Plasma current       [A]
+RGeo = 0.420;		% Geometrical Radius   [m] (~0.420 - 0.480)
 ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
 RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
 rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.250)
@@ -142,7 +144,7 @@ li2 = 1;			% Inductance	       [-]
 %Compute further operating conditions (primarily used for Topeol2)
 Gr_Limit = 1e20*(Ip*1e-6/(pi*Kappa*rGeo^2));     % Greenwald Limit    [m-3]
 Gr_Frac = 0.70;                            % Greenwald Fraction       [-]
-ne = Gr_Limit*Gr_Frac;                     % Electron Density         [m-3]
+ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %deltaUp = (RGe-Rup)/a;                    % Upper-Triangularity      [-]
@@ -150,16 +152,16 @@ S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %delta = (deltaUp+deltaLo)/2.0;            % Triangularity            [-]
 %betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        % Normalised Beta          [%] 
 %betaT = (betaN/a*(Ip*1e-6))/BT;           % Beta toroidal            [%]
-betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa; 	% Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);    		% Vertical field [T]
+betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa;  % Beta Poloidal  [%]
+BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);         % Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.420;					% Geometrical Radius	[m] (Default 0.420) ::
+RGeo_efit = 0.420;					% Geometrical Radius	[m] (0.42 --> 0.48) ::
 ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
 Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
-delta_efit = -1.00;					% Triangularity			[-] (-1.00-> +0.00 -> +1.00) ::
+delta_efit = 0.00;					% Triangularity			[-] (-1.00 -> +0.00 -> +1.00) ::
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -173,7 +175,7 @@ PertGeometry_Init = [deltaRGeo,deltaZGeo,deltaAspect,deltaKappa,deltadelta];
 %Define Coil density, temperature and resistivity
 coil_density = 1;                       % Relative Coil Density      [Arb]
 coil_temp = 293.0;                      % Initial Coil Temperature   [K]
-resistivity = copper_resistivity_at_temperature(coil_temp);
+resistivity = InterpMaterialResistivity(coil_temp);
 
 %Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV) https://www.webelements.com/argon/atoms.html
 %H discharge, Z_eff increased to 2 to allow for impurities in the plasma (Carbon wall tiles)
@@ -206,19 +208,19 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(3)-->time(5) lasts timescale TauR (Solenoid Ramp-Down TimeScale)
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
-                                    %TauR1=40ms %TauR=40ms      %TauR=40ms
-                                    %RGeo=0.42  %RGeo=0.42      %RGeo=0.xx
-%Solenoid coil currents [kA]		%Phase3     %Phase3NegTri   %Phase3PosTri
-I_Sol_Null=+13000;					%+12000;    %+13000;        %+xx000;
-I_Sol_MidRamp=+0000;				%+00000;    %+00000;        %+00000;
-I_Sol_Equil=-03500;                 %-01200;    %-03500;        %-xx000;
-I_Sol_EndEquil=-13000;           	%-10000;    %-13000;        %-xx000;
+                                    %TauR1=40ms  %TauR=40ms     %TauR=40ms
+                                    %RGeo=0.42   %RGeo=0.42     %RGeo=0.xx
+%Solenoid coil currents [kA]        %Phase3      %Phase3NegTri  %Phase3PosTri
+I_Sol_Null=+13000;					%+12000;     %+13000;       %+xx000;
+I_Sol_MidRamp=+0000;				%+00000;     %+00000;       %+00000;
+I_Sol_Equil=-03500;                 %-01200;     %-03500;       %-xx000;
+I_Sol_EndEquil=-13000;           	%-10000;     %-13000;       %-xx000;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-4000;					%-4000;     %-4000;         %-xx00;
-I_PF2_Equil=-4000;					%-4000;     %-4000;         %-xx00;     (NEG FOR +delta, POS FOR -delta) 
-I_Div1_Equil=-4000;					%+4000;     %-4000;         %+xx00;     (HIGH FOR +delta, LOW FOR -delta)
-I_Div2_Equil=+0000;                 %+0000;     %+0000;         %+0000;
+I_PF1_Equil=-4000;					%-4000;      %-4000;        %-xx00;
+I_PF2_Equil=-4000;					%-4000;      %-4000;        %-xx00;     (NEG FOR +delta, POS FOR -delta) 
+I_Div1_Equil=-4000;					%+4000;      %-4000;        %+xx00;     (HIGH FOR +delta, LOW FOR -delta)
+I_Div2_Equil=+0000;                 %+0000;      %+0000;        %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
 TauN  = 0.025;			% Null-Field Timescale      [s] Determines null-field decay timescale
@@ -230,10 +232,11 @@ TauP  = 0.500;			% Pulse Timescale      		[s] Determines flat-top timescale
 time =  [-4*TauN   -TauN      0.0           TauR1        TauR         TauR+TauP    TauR+TauP+(4*TauN)];
 nTime = length(time);	% Coil Waveform Timesteps	[-]
 
-%Fit any dynamic coil currents, set with 'linear', {pre-ramp, mid-ramp, end-ramp}
-%I_Sol_MidRamp = FitSolenoidRamp({I_Sol_Null,I_Sol_MidRamp,I_Sol_Equil},time);
+%Fits linear midpoint to any current defined as 'linear' between times: {pre-ramp, mid-ramp, end-ramp}
+I_Sol_MidRamp = FitSolenoidRamp({I_Sol_Null,I_Sol_MidRamp,I_Sol_Equil},time);
 
-%Construct Sol, PF/Div coil current waveforms vertices
+%Construct Sol, PF/Div coil current waveforms by specifying current at temporal vertices
+%Entries containing 'NaN' will be calculated via RZIp to minimise BpolNull
 %					              %!Null-Field! %!Breakdown!   %!Efit Icoil!
 %Time   	     [1,  2,          3,            4,             5,             6,             7];
 ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null,   I_Sol_MidRamp, I_Sol_Equil,   I_Sol_EndEquil,0];
@@ -326,7 +329,7 @@ FilamentArea = 1.50e-4; %(2.5e-4 > A > 1.5e-4 or RZIp M,R matrices fail)   %[m^2
 
 %Construct passive vessel components and arrange into a vessel object
 %Resistivity and density are set for stainless steel
-VesselResistivity = 6.9e-7;  VesselDensity = 7.8e3;	 %[Ohm]; [Kg/m3]; Stainless Steel (GRADE)
+VesselResistivity = 6.9e-7;  VesselDensity = 7.8e3;	 %[Ohm]; [Kg/m3]; Stainless Steel (AISI 316 L)
 global passive; passive = fiesta_passive('STVesselPas',vessel_filament,'g',VesselResistivity,VesselDensity);
 global vessel; vessel = fiesta_vessel( 'STVessel',passive);
 
@@ -373,29 +376,32 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%% TO DO %%%
 
-%%%   GET ALL VESSEL, COIL AND CURRENT WAVEFORM DATA UPDATED ON SMART REPO
-%%%   GET ALL FIGURES INTO FUNCTIONS - MAKE VESSEL/COIL SUB-FUNCTION
-%%%   MIGRATE THE CreateSMARTCoilCircuit FUCTION TO THIS VERSION OF CODE
-%%%   FINISH COMMENTS ON THE NEW CreateSMARTSolenoidCircuit FUNCTION
-%%%   FINISH COMMENTS ON ALL NEW FUNCTIONS
+%%%   SORT OUT FIGURE SIZING, SET FIXED SIZE AND ENLARGE FONT SIZE
+%%%   PUT VESSEL PLOTTING ROUTINES INTO FUNCTION, WITH ZOOM OPTION
+%%%   FINISH COMMENTS ON ALL FUNCTIONS
+%%%   WRITE MANUAL
 
-%%%   ARCHIVE ALL NEW BIBLO AND ADD TO MENDELEY ASAP
-
-%%%   ENABLE TOGGLEABLE UPPER AND LOWER SINGLE NULL CONFIGURATION 
-
-%%%   GET THE FEEDBACK SYSTEM WORKING FOR VERTICAL AND HORIZONTAL STABILITY
-
+%%%   TOGGLEABLE UPPER AND LOWER SINGLE NULL CONFIGURATION IN CreatSMARTCoilCircuit
+%%%   FEEDBACK SYSTEM WORKING FOR VERTICAL AND HORIZONTAL STABILITY
 %%%   FIX THE CORNER OF THE DIFF VESSEL WALLS (LAST FILAMENT IS LARGER)
 
 %%%   GET RZIP ABLE TO TAKE BOTH COIL AND VESSEL FILAMENTS
 %%%   findboundary.m function contains rules for LCFS boundary
 
+%%%   IMPLIMENT THESE
+        %fieldnames(Equil)
+        %Current =  reshape(get(get(Equil,'I'),'data'),GridCells_Z,GridCells_R);
+        %CurrentDensity =  reshape(get(get(Equil,'J'),'data'),GridCells_Z,GridCells_R);
+        %PlotEquilibrium({Current},'Title','CbarLabel','Current.png')
+        %PlotEquilibrium({CurrentDensity},'Title','CbarLabel','CurrentDensity.png')
 
-
-
-
-
-
+        
+        
+        
+        
+        
+        
+        
 
 
 %%
@@ -432,6 +438,8 @@ global config; [Equil,EquilParams,CoilWaveforms,efitGeometry,config] = ...
 CoilCurrentsEfit = transpose(CoilWaveforms(:,TimeIndex_Discharge));
 icoil_efit = fiesta_icoil(coilset, CoilCurrentsEfit);
 
+%%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
+
 %Initiate virtual B-field sensors centered on Rgeo
 sensor_btheta = InitiateBSensors(EquilParams.r0_geom,EquilParams.z0_geom,R_Null);
 
@@ -440,10 +448,7 @@ sensor_btheta = InitiateBSensors(EquilParams.r0_geom,EquilParams.z0_geom,R_Null)
 %Outputs curlyM and curlyR are used to compute the plasma and eddy currents
 rzip_config = fiesta_rzip_configuration( 'RZIP', config, vessel, {sensor_btheta} );
 [A, B, C, D, curlyM, curlyR, Gamma, plasma_parameters, index, label_index, state] = ...
-    response(rzip_config, Equil, 'rp', PlasmaResistPerp);            
-
-
-%%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
+    response(rzip_config, Equil, 'rp', PlasmaResistPerp);   
 
 %Update CoilWaveforms array with null-field values (Using NaN Mask)
 RZIP_C = C;
@@ -457,30 +462,6 @@ icoil_Null = fiesta_icoil(coilset, CoilCurrentsNull);
 Equil_Null = fiesta_equilibrium('SMART-Null', config, Irod, icoil_Null );
 EquilParams_Null = parameters(Equil_Null);
 
-
-%%%%%%%%%%%%%%%%%%  COMPUTE BREAKDOWN FOR NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%
-
-%Extract the null poloidal and toroidal B-field vector arrays
-[BrData_Null,BzData_Null,BPhiData_Null,BpolData_Null,BtorData_Null] = ExtractBField(Equil_Null);
-
-%Average null poloidal and toroidal fields over region of area R_null^2
-[BpolAvg_Null,BtorAvg_Null] = ExtractNullBMin(EquilParams,BpolData_Null,BtorData_Null,R_Null);
-
-%Compute the average connection length within the null-field sensor region
-%InnerVesselDimensions=[VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner]
-%Lc = ConnectionLength(EquilParams,InnerVesselDimensions);             % NOTE :: Issue with inbuilt connection length functions
-a_eff = min([abs(EquilParams.r0_geom-VesselRMinInner),abs(EquilParams.r0_geom-VesselRMaxInner)]);
-Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
-
-%Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop,Eloop,DeltaPhiSol] = LoopVoltage(CoilWaveforms,time,RSolCentreWinding,ZMaxSol,ZMinSol,EquilParams.rin); 
-Eloop_eff = abs(Eloop)*(BtorAvg_Null/BpolAvg_Null); %[V/m]   %Rough estimate threshold Eloop condition for breakdown
-%Generally Eloop_eff > 100 [V/m] for startup with ECRH      (An2015)
-%Generally Eloop_eff > 1000 [V/m] for solenoid only startup (Lloyd1991)
-
-%Compute breakdown (avalanche) timescale at given pressure (!!! NEEDS TESTING !!!)
-Pressure = EquilParams.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
-[TauAvalanche,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,ne,1.0,true);
 
 %%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
 
@@ -500,53 +481,69 @@ MinDelta_Ipoutput = min(Delta_Ip_output); MaxDelta_Ipoutput = max(Delta_Ip_outpu
 MinDelta_IPFoutput = min(Delta_IPFoutput); MaxDelta_VPFoutput = max(Delta_VPFoutput);  %[A/ms]
 MinDelta_VPFoutput = min(Delta_VPFoutput); MaxDelta_IPFoutput = max(Delta_IPFoutput);  %[V/ms]
 
+%Extract Vessel Eddy Currents during discharge and null-field (time='false' for absolute max)
+VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_Discharge));
+VesselEddyCurrentsNull = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_NullField));
+% ISSUE :: EDDY CURRENTS CHANGE OVER THE AVALANCHE TIMESCALE, TimeIndex_NullField IS SIMPLIFICATION
+%       :: NEED A METHOD TO EXAMINE NULL-FIELD EVOLUTION OVER AVALANCHE TIMESCALE 
+
+%Compute vessel eddy current stress magnitude and direction for each vessel filament
+[StressR,StressZ,StressR_max,StressZ_max] = ...
+    VesselStresses(Equil,VesselEddyCurrents,FilamentArea);
+
+
+%%%%%%%%%%%%%%%%%%%%%  COMPUTE BREAKDOWN CRITERIA  %%%%%%%%%%%%%%%%%%%%%%%
+
+%Extract the null poloidal and toroidal B-field vector arrays
+[BrData_Null,BzData_Null,BPhiData_Null,BpolData_Null,BtorData_Null] = ExtractBField(Equil_Null);
+
+%Average null poloidal and toroidal fields over region of area R_null^2
+[BpolAvg_Null,BtorAvg_Null] = ExtractNullBMin(EquilParams,BpolData_Null,BtorData_Null,R_Null);
+
+%Compute the average connection length within the null-field sensor region
+%InnerVesselDimensions=[VesselRMaxInner,VesselRMinInner,VesselZMaxInner,VesselZMinInner]
+%Lc = ConnectionLength(EquilParams,InnerVesselDimensions);             % NOTE :: Issue with inbuilt connection length functions
+a_eff = min([abs(EquilParams.r0_geom-VesselRMinInner),abs(EquilParams.r0_geom-VesselRMaxInner)]);
+Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
+
+%Compute maximum loop voltage and E-field during solenoid ramp-down
+[Vloop,Eloop,DeltaPhiSol,VloopArray,EloopArray,DeltaPhiSolArray]=...
+    LoopVoltage(I_PF_output,time_adaptive,RSolCentreWinding,ZMaxSol,ZMinSol,EquilParams.rin);
+Eloop_eff = abs(Eloop)*(BtorAvg_Null/BpolAvg_Null); %[V/m]   %Rough estimate threshold Eloop condition for breakdown
+%Generally Eloop_eff > 100 [V/m] for startup with ECRH      (An2015)
+%Generally Eloop_eff > 1000 [V/m] for solenoid only startup (Lloyd1991)
+
+%Compute breakdown (avalanche) timescale at given pressure
+Pressure = EquilParams.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
+[TauBD,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,ne,1.0,true);
+
 %Compute solenoid OH flux swing employing the Ejima-Wesley coefficient
 Cew = 0.40*EquilParams.aspectratio;                           %[-]      (Gryaznevich2006)
 DeltaPhiSolew = Cew*mu0*EquilParams.r0_geom*max(Ip_output);   %[Vs]     (Menard2016 pg36)
 
-%Extract Vessel Eddy Currents during discharge and null-field (time='false' for absolute max)
-VesselEddyCurrents = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_Discharge));
-VesselEddyCurrentsNull = ExtractPassiveCurrents(I_Passive,time_adaptive,time(TimeIndex_NullField));
-% ISSUE :: EDDY CURRENTS CHANGE OVER THE AVALANCHE TIMESCALE - TAKING THEM AT TimeIndex_NullField IS SLIGHTLY WRONG
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%%%%%%%%%%%%%%% PLOT VESSEL AND COIL FILAMENT OVERVIEW %%%%%%%%%%%%%%%%%% 
 
-figure; axes;
-set(gca, 'DataAspectRatio', [1,1,1], 'NextPlot', 'add')
-coil = plot(coilset);
-fil = plot(vessel);
-set(fil, 'EdgeColor', 'k')
-set(coil, 'EdgeColor', 'k')
-tau=get(vessel, 'tau');
-r=get(vessel, 'r'); z=get(vessel, 'z');
-%set(line(r(i), z(i)), 'LineStyle', 'none', 'marker' , '*', 'markersize', 10);
-%set(line(r(j), z(j)), 'LineStyle', 'none', 'marker' , 'o', 'markersize', 10);
-set(gca,'XLim',[0.00 1.1]);
-set(gca,'YLim',[-1.1 1.1]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
-xlabel(gca,'R (m)');
-ylabel(gca,'Z (m)');
+
+
+
+
+
+
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%           PLOT ITER(0) EQUIL, COIL, EDDY AND STRESS FIGURES             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%% PLOT VESSEL AND COIL FILAMENT OVERVIEW %%%%%%%%%%%%%%%%%%%% 
+
+%Plot vessel and coil filaments overview
+Title = {'SMART Vessel and Coil Filaments',' '};
 Filename = '_VesselFilaments';
-saveas(gcf, strcat(ProjectName,Filename,FigExt));
-
-figure; axes;
-set(gca, 'DataAspectRatio', [1,1,1], 'NextPlot', 'add')
-coil = plot(coilset);
-fil = plot(vessel);
-set(fil, 'EdgeColor', 'k')
-set(coil, 'EdgeColor', 'k')
-tau=get(vessel, 'tau');
-r=get(vessel, 'r'); z=get(vessel, 'z');
-%set(line(r(i), z(i)), 'LineStyle', 'none', 'marker' , '*', 'markersize', 10);
-%set(line(r(j), z(j)), 'LineStyle', 'none', 'marker' , 'o', 'markersize', 10);
-set(gca,'XLim',[0.05 0.45]);
-set(gca,'YLim',[0.45 1.00]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
-xlabel(gca,'R (m)');
-ylabel(gca,'Z (m)');
-Filename = '_VesselFilaments_Closeup';
-saveas(gcf, strcat(ProjectName,Filename,FigExt));
+SaveString = strcat(ProjectName,Filename,FigExt);
+PlotVesselOverview(Title,SaveString);
 
 %%%%%%%%%%%%%%%%%%%%%%%% PLOT TARGET EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -555,7 +552,7 @@ Title = {'SMART Target Equilibrium iter(0)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_TargetEquilibrium';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({Equil},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({Equil},Title,CbarLabel,SaveString);
 
 %%%%%%%%%%%%%%%%  PLOT VIRTUAL SENSORS ONTO EQUILIBRIUM  %%%%%%%%%%%%%%%%%
 
@@ -563,7 +560,7 @@ Title = {'SMART Virtual Sensors',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_VirtualBSensors';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({Equil,sensor_btheta},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({Equil,sensor_btheta},Title,CbarLabel,SaveString);
 
 %%%%%%%%%%%%%%%%%%%%  PLOT NULL-FIELD PHI SURFACES  %%%%%%%%%%%%%%%%%%%%%
 
@@ -572,7 +569,7 @@ Title = {'SMART Null-field Equilibrium iter(0)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({Equil_Null},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({Equil_Null},Title,CbarLabel,SaveString);
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT NULL-FIELD BPOL  %%%%%%%%%%%%%%%%%%%%%
 
@@ -584,13 +581,13 @@ Title = {'SMART Null-field iter(0)',' '};
 CbarLabel = 'Null-field B_{\theta} log_{10}([T])';
 Filename = '_NullBpol';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({logBpolData_Null},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({logBpolData_Null},Title,CbarLabel,SaveString);
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT COIL CURRENT WAVEFORMS %%%%%%%%%%%%%%%%%%%%%%%% 
 
 %Plot figure showing dynamic coil currents
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1)
+subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, I_PF_output/1000, 'LineWidth',2);
 title(gca,'SMART Coil Current Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -598,9 +595,9 @@ legend(gca,LegendString); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Coil Current I [kA]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2)
+subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000,Delta_IPFoutput/1000, 'LineWidth',2)
 title(gca,'SMART Delta Coil Current Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -608,7 +605,7 @@ legend(gca,LegendString); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Delta Coil Current \Delta I (kA ms^{-1})');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
 Filename = '_CurrentWaveforms';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
@@ -617,7 +614,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %Plot figure showing dynamic coil currents
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1)
+subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, V_PF_output/1000, 'LineWidth',2);
 title(gca,'SMART Coil Voltage Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -625,9 +622,9 @@ legend(gca,LegendString); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Coil Voltage V [kV]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2)
+subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000,Delta_VPFoutput/1000, 'LineWidth',2)
 title(gca,'SMART Delta Coil Voltage Waveforms');
 LegendString = {'Sol','PF1','PF2','Div1','Div2'};
@@ -635,7 +632,7 @@ legend(gca,LegendString); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Delta Coil Voltage \Delta V (kV ms^{-1})');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
 Filename = '_VoltageWaveforms';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
@@ -644,16 +641,16 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %Plot plasma current over full timescale
 figure('units','inch','position',[10 10 12 12]);
-subplot(2,1,1); hold on; grid on;
+subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, Ip_output/1000, 'LineWidth',2)
 title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'I_{p}', 'FontSize',16); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Plasma Current I_{p} (kA)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
-subplot(2,1,2); hold on; grid on;
+subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000, Delta_Ip_output/1000, 'LineWidth',2)
 title(gca,'SMART Plasma Current iter(0)');
 legend(gca,'dI_{p}/dt', 'FontSize',16); legend boxoff;
@@ -661,7 +658,7 @@ xlabel(gca,'Time (ms)');
 ylabel(gca,'Delta Plasma Current (kA/ms)');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 %set(gca,'XLim',[time(3)*1e3, time(5)*1e3]);        %Breakdown Ramp Closeup
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
 Filename = '_PlasmaCurrent';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
@@ -672,7 +669,7 @@ saveas(gcf, strcat(ProjectName,Filename,FigExt));
 Net_IPassive = sum(I_Passive,2);
 %Plot net passive current density over full timescale
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 plot(time_adaptive*1000, Net_IPassive/1000, 'LineWidth',2)
 title(gca,'Net SMART Eddy Current iter(0)');
 legend(gca,'Net Eddy Current'); legend boxoff;
@@ -680,7 +677,7 @@ xlabel(gca,'Time (ms)');
 ylabel(gca,'Net Vessel Current I_{Eddy} [kA]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
 set(gca,'YLim',[min(Net_IPassive/1000)*1.15 max(Net_IPassive/1000)*1.20]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 Filename = '_1DEddyCurrent';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
@@ -693,12 +690,12 @@ RR = get(ftmp(:),'r'); %dim 1*number of filaments
 ZZ = get(ftmp(:),'z'); %dim 1*number of filaments
 %Plot eddy currents within a cross-section of the vessel
 close all
-figure; hold on; axis equal;
+figure; hold on; grid on; box on; axis equal;
 plot(coilset);
 scatter3(RR,ZZ,VesselEddyCurrents/1000,100,VesselEddyCurrents/1000,'filled');
 title('SMART Vessel Eddy Currents iter(0)');
 view(2) %2D view
-colormap(plasma);
+colormap(colourmap);
 cbar = colorbar;
 cbar.Label.String = 'Eddy-Current I_{eddy} [kA]';
 set(gca,'XLim',[0 1.1]);
@@ -718,12 +715,12 @@ RR = get(ftmp(:),'r'); %dim 1*number of filaments
 ZZ = get(ftmp(:),'z'); %dim 1*number of filaments
 %Plot eddy currents within a cross-section of the vessel
 close all
-figure; hold on; axis equal;
+figure; hold on; grid on; box on; axis equal;
 plot(coilset);
 scatter3(RR,ZZ,VesselEddyCurrentsNull/1000,100,VesselEddyCurrentsNull/1000,'filled');
 title('SMART Vessel Null Eddy Currents iter(0)');
 view(2) %2D view
-colormap(plasma);
+colormap(colourmap);
 cbar = colorbar;
 cbar.Label.String = 'Eddy-Current I_{eddy} [kA]';
 set(gca,'XLim',[0 1.1]);
@@ -734,6 +731,25 @@ ylabel(gca,'Z (m)');
 Filename = '_EddyCurrentNull';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
+%%%%%%%%%%%%%%%%%%%%%% PLOT VESSEL EDDY STRESSES %%%%%%%%%%%%%%%%%%%%%%%%
+
+%Plot figure showing vessel eddy stresses
+close all
+figure; hold on; grid on; box on; axis equal;
+plot(coilset);
+%plot(vessel);
+quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','on');
+title('SMART Vessel Eddy-Stresses iter(1)');
+view(2) %2D view
+legend(gca,'hide');
+set(gca,'XLim',[0 1.1]);
+set(gca,'YLim',[-1.1 1.1]);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
+xlabel(gca,'R (m)');
+ylabel(gca,'Z (m)');
+Filename = '_EddyStresses';
+saveas(gcf, strcat(ProjectName,Filename,FigExt));
+close('all')
 
 %%%%%%%%%%%%%%%%%%%%%%  PLOT PASCHEN CURVES  %%%%%%%%%%%%%%%%%%%%%
 
@@ -753,7 +769,7 @@ for i=1:length(PressureArray)
 end
 
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 title(gca,'SMART Paschen Breakdown');
 LegendString = {'Paschen Curve','Max E_{loop}'};
 plot(PressureArray,PaschenCurve, 'k', 'LineWidth',2)
@@ -765,88 +781,15 @@ set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 set(gca,'XLim',[2.5e-6 1e-3]);
 set(gca,'YLim',[0.1 100]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 Filename = '_PaschenBreakdown';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                  DETERMINE FORCES UPON THE VESSEL                     %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%Obtain the equilibrium B-field in R,Z and Phi
-[BrData,BzData,BPhiData,BpolData,BtorData] = ExtractBField(Equil);
-
-%Interpolate the B-fields onto a grid that aligns with the vessel grid 
-%These are the values of the B-field at the vessel grid points
-%Br_interp aligns with the vessel filament cells (RR, ZZ) from before
-Br_interp = @(r,z) interpn(zGrid,rGrid,BrData,z,r);
-Bz_interp = @(r,z) interpn(zGrid,rGrid,BzData,z,r);
-Bphi_interp = @(r,z) interpn(zGrid,rGrid,BPhiData,z,r);
-
-%Extract B-field at vessel walls - meshes are aligned so indexes are the same
-Br_vessel=Br_interp(RR,ZZ);
-Bz_vessel=Bz_interp(RR,ZZ);
-Bphi_vessel=Bphi_interp(RR,ZZ);
-
-%Combine Bfield values in [R,Phi,Z] into a single array for the vessel
-%size(number of filaments*3), each row is the vector field on one filament
-B_vessel=[Br_vessel' Bphi_vessel' Bz_vessel']; 
-%The maximum current on each vessel filament is I_Passive_fil (size 1*number of filaments)
-%Current vector is in the phi direction so only take magnitude [0, 1*I_Passive(phi), 0]
-VesselEddyCurrentVec=VesselEddyCurrents'*[0 1 0]; 		%size [number of filaments*3]
-
-%The force upon all the filament would be 2piR*Force_fil_cross. R is stores
-%in RR, which contains all the R values in a vector form with number of fil components. 
-%Force_fil_cross is a vector of 3 components. It would be difficult to
-%multiply them, but we do not need to, right now, because to obtain the
-%pressure R cancles out, since the areas are 2piR*anchura (or altura). We
-%assimilate the 3D filament as a 2D filament, so that it has no width in
-%the R axis, s that its surface is 2piR*altura
-
-%Compute J X B force acting on each filament (J X B computed for all directions) 
-Force_fil=cross(VesselEddyCurrentVec,B_vessel);	%[N] %size [number of filaments*3]
-%Take magntude of all forces as some will be negative (only care about the maximum force)
-[Force_max, index]=max(abs(Force_fil));			%[N] %Also obtain index of each force
-
-%Pressure acting on vessel wall is force over unit filiment area
-%These are absolute numbers - don't include any directionality
-PressureR=abs(Force_max(1))/(FilamentArea);	%[Pa]
-PressureZ=abs(Force_max(3))/(FilamentArea);	%[Pa]
-
-%Stress acting on vessel wall is the combined force divided by the unit filiment area
-%These are directional, some are negative and some are positive
-StressR=(Force_fil(:,1))/(FilamentArea);	%[Pa]
-StressZ=(Force_fil(:,3))/(FilamentArea);	%[Pa]
-%Obtain maximum radial and axial stresses - either positive or negative
-StressR_max=max(abs(StressR));				%[Pa]
-StressZ_max=max(abs(StressZ));				%[Pa]
 
 
-%%%%%%%%%%%%%%%%%%%%%% PLOT VESSEL EDDY STRESSES %%%%%%%%%%%%%%%%%%%%%%%%
-
-%Plot figure showing vessel eddy stresses
-close all
-figure; hold on; axis equal;
-plot(coilset);
-%plot(vessel);
-quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','on');
-title('SMART Vessel Eddy-Stresses iter(1)');
-view(2) %2D view
-legend(gca,'hide');
-set(gca,'XLim',[0 1.1]);
-set(gca,'YLim',[-1.1 1.1]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
-xlabel(gca,'R (m)');
-ylabel(gca,'Z (m)');
-Filename = '_EddyStresses';
-saveas(gcf, strcat(ProjectName,Filename,FigExt));
-close('all')
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%
@@ -892,19 +835,19 @@ Title = {'SMART Perturbed Equilibrium \Psi(R,Z)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_PerturbedEquilibrium';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({Equil_Pert},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({Equil_Pert},Title,CbarLabel,SaveString);
 close('all')
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT VERTICAL GROWTH RATES  %%%%%%%%%%%%%%%%%%%%%%
 
 %Plot the vertical growth rates as calculated by RZIp and manually
-figure('units','inch','position',[12 12 8 8]); hold on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 plot(Gamma,'LineWidth',2);
 plot(ones(length(Gamma)),'k--','LineWidth',1.5);
 title('SMART Vertical Growth Rates');
 LegendString = {strcat('RZIp Gamma: ',string(Gamma_Real),' s^{-1}')};
 legend(LegendString);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 xlabel(gca,'Eigenvalue (Sorted) [-]');
 ylabel(gca,'Growth Rate \gamma [s^{-1}]');
 Filename = '_VerticalGrowthRates';
@@ -931,10 +874,10 @@ close('all')
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%% ADDING EDDIES TO DISCHARGE EQUIL %%%%%%%%%%%%%%%%%%%%%
+%                    ADDING EDDIES TO DISCHARGE EQUIL                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%  RECOMPUTE DISCHARGE EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%  RE-COMPUTE DISCHARGE EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%
 
 %Book-keeping for the start of each loop
 close all
@@ -965,17 +908,18 @@ sensor_btheta_passive = InitiateBSensors(EquilParams_Passive.r0_geom,EquilParams
 %ISSUE :: CV = greens(coilset, vessel) returns NaNs, likely because the vessel filaments are overlapping the vessel 'coils' in Equil_Passive
 %      :: Equil_Passive contains vessel filament 'coils', while RZIP is being fed 'vessel' filaments, both of which have the same coordinates
 %      :: SET RZIP UP WITH ONLY PF COILS FOR ALL FILAMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%  COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%  RE-COMPUTE OPTIMISED NULL-FIELD  %%%%%%%%%%%%%%%%%%%%
 
 %Update CoilWaveforms array with null-field values (Using NaN Mask)
-%   RZIP_C = C;
+%   RZIP_C = C_Passive;
 %   CoilWaveforms = NullFieldWaveforms(CoilWaveforms_Passive, RZIP_C, sensor_btheta_passive, TimeIndex_NullField);
 %ISSUE  :: RZIP_C is computed from RZIP - Need recomputed RZIP with eddy currents
 %NOTE   :: REMEMBER THAT NULLFIELDWAVEFORMS EXPECTS NaN VALUES FOR COILS TO BE UPDATED
 
 %Extract previously calculated efit coil currents without eddys
-CoilCurrentsNull = transpose(CoilWaveforms_Passive(:,TimeIndex_NullField)); %Null-field coil currents without eddys
+CoilCurrentsNull = transpose(CoilWaveforms_Passive(:,TimeIndex_NullField)); %Null-field coil currents from efit (with eddys)
 CoilAndVesselCurrents = [CoilCurrentsNull, VesselEddyCurrentsNull];         %n=5+n_fil; coil + vessel filaments
 icoil_Null_Passive = fiesta_icoil(coilset, CoilAndVesselCurrents);
 %NOTE :: CoilWaveforms_Passive here does NOT have the re-optimised coil currents!
@@ -988,7 +932,7 @@ EquilParams_Null_Passive = parameters(Equil_Null_Passive);
 icoil_Null_Passive = get(Equil_Null_Passive,'icoil'); 
 CoilCurrentsNull_Passive = get(icoil_Null_Passive,'currents');
 
-%%%%%%%%%%%%%%%%%%  COMPUTE BREAKDOWN FOR NULL-FIELD  %%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%  RE-COMPUTE BREAKDOWN FOR NULL-FIELD  %%%%%%%%%%%%%%%%%%%
 
 %Extract the null poloidal and toroidal B-field vector arrays
 [BrData_Null_Passive,BzData_Null_Passive,BPhiData_Null_Passive,BpolData_Null_Passive,BtorData_Null_Passive] = ...
@@ -1006,18 +950,19 @@ a_eff = min([abs(EquilParams_Passive.r0_geom-VesselRMinInner),abs(EquilParams_Pa
 Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop_Passive,Eloop_Passive,DeltaPhiSol_Passive] = LoopVoltage(CoilWaveforms_Passive,time,RSolCentreWinding,ZMaxSol,ZMinSol,EquilParams_Passive.rin);
+[Vloop_Passive,Eloop_Passive,DeltaPhiSol_Passive,VloopArray_Passive,EloopArray_Passive,DeltaPhiSolArray_Passive]=...
+    LoopVoltage(I_PF_output,time_adaptive,RSolCentreWinding,ZMaxSol,ZMinSol,EquilParams_Passive.rin);
 Eloop_eff_Passive = abs(Eloop_Passive)*(BtorAvg_Null_Passive/BpolAvg_Null_Passive); %[V/m]   %Rough estimate threshold Eloop condition for breakdown
 %Generally Eloop_eff > 100 [V/m] for startup with ECRH      (An2015)
 %Generally Eloop_eff > 1000 [V/m] for solenoid only startup (Lloyd1991)
 
 %Compute breakdown (avalanche) timescale at given pressure (!!! NEEDS TESTING !!!)
 Pressure_Passive = EquilParams_Passive.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
-[TauAvalanche_Passive,Pressure_Passive,Alpha_Passive,Vde_Passive] = ...
+[TauBD_Passive,Pressure_Passive,Alpha_Passive,Vde_Passive] = ...
     AvalancheTimescale(Pressure_Passive,Eloop_Passive,Lc_Passive,ne,1.0,true);
 
 
-%%%%%%%%%%%%%%%  COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%  RE-COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%
 
 %Recompute dynamic plasma and vessel eddy currents with new coil waveforms
 %ISSUE :: curlyM and curlyR are computed from RZIP - Need recomputed RZIP with eddy currents
@@ -1057,7 +1002,7 @@ Title = {'SMART Target Equilibrium iter(1)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_TargetEquilibrium_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({Equil_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({Equil_Passive},Title,CbarLabel,SaveString);
 
 CoilCurrentsEfit(1:nPF)
 CoilCurrentsEfit_Passive(1:nPF)
@@ -1069,7 +1014,7 @@ Title = {'SMART Null-field Equilibrium iter(1)',' '};
 CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({Equil_Null_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({Equil_Null_Passive},Title,CbarLabel,SaveString);
 
 CoilCurrentsNull(1:nPF)
 CoilCurrentsNull_Passive(1:nPF)
@@ -1084,7 +1029,7 @@ Title = {'SMART Null-field iter(1)',' '};
 CbarLabel = 'Null-field B_{\theta} log_{10}([T])';
 Filename = '_NullBpol_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
-PlotEquilibrium({logBpolData_Null_Passive},{rGrid,zGrid},Title,CbarLabel,SaveString);
+PlotEquilibrium({logBpolData_Null_Passive},Title,CbarLabel,SaveString);
 
 %%%%%%%%%%%%%%%%%%%%%%  PLOT PASCHEN CURVES  %%%%%%%%%%%%%%%%%%%%%
 
@@ -1104,7 +1049,7 @@ for i=1:length(PressureArray)
 end
 
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on;
+figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 title(gca,'SMART Paschen Breakdown');
 LegendString = {'Paschen Curve','Max E_{loop}'};
 plot(PressureArray,PaschenCurve_Passive, 'k', 'LineWidth',2)
@@ -1116,13 +1061,14 @@ set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 set(gca,'XLim',[2.5e-6 1e-3]);
 set(gca,'YLim',[0.1 100]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 Filename = '_PaschenBreakdown_Passive';
 saveas(gcf, strcat(ProjectName,Filename,FigExt));
 close all
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
+
 
 
 
@@ -1159,7 +1105,9 @@ BpolAvg_Null_Passive = BpolAvg_Null; BtorAvg_Null_Passive = BtorAvg_Null;
 EquilDir = strcat(ASCIIDir,'Equil_Data/'); mkdir(EquilDir);
 
 %Write 2D, 1D and 0D equilibrium values to text files once per iteration
+[fileID] = WriteEquilibrium(Equil, config, EquilDir, '_iter0', false);
 [fileID] = WriteEquilibrium(Equil_Passive, config_passive, EquilDir, '', false);
+[fileID] = WriteEquilibrium(Equil_Null, config, EquilDir, '_iter0', true);
 [fileID] = WriteEquilibrium(Equil_Null_Passive, config_passive, EquilDir, '', true);
 [fileID] = WriteEquilibrium(Equil_Pert, config, EquilDir, '_Pert', false);
 
@@ -1181,6 +1129,11 @@ fprintf(fileID,'%s %0.5f %0.5f\r\n', 'PF1 ',R_PF1,Z_PF1);
 fprintf(fileID,'%s %0.5f %0.5f\r\n', 'PF2 ',R_PF2,Z_PF2);
 fprintf(fileID,'%s %0.5f %0.5f\r\n', 'Div1',R_Div1,Z_Div1);
 fprintf(fileID,'%s %0.5f %0.5f\r\n', 'Div2',R_Div2,Z_Div2);
+
+Filename = strcat(icoilDir,'IRod.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s\r\n', 'IRod [A]');
+fprintf(fileID,'%1.12f\r\n', EquilParams_Passive.irod');
 
 Filename = strcat(icoilDir,'Init_icoil.txt');
 fileID=fopen(Filename,'w');
@@ -1263,22 +1216,30 @@ fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MinDelta_VPFoutput(1)'; MinD
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
 %Create subdirectory for dynamic current data (RZIP)
-RZIPDir = strcat(ASCIIDir,'RZIP_Data/'); mkdir(RZIPDir);
+DynamicDir = strcat(ASCIIDir,'Dynamic_Data/'); mkdir(DynamicDir);
 
-Filename = strcat(RZIPDir,'time.txt');
+Filename = strcat(DynamicDir,'Time.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s\r\n','time_adaptive [ms]');
-fprintf(fileID,'%1.12f\r\n',time_adaptive'*1000);
+fprintf(fileID,'%s\r\n', 'time_adaptive [ms]');
+fprintf(fileID,'%1.12f\r\n', time_adaptive'*1000);
 
-Filename = strcat(RZIPDir,'Ip.txt');
+Filename = strcat(DynamicDir,'IPlasma.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Ip_output [A]');
-fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'*1000; Ip_output']);
+fprintf(fileID,'%1.12f %1.12f\r\n', [time_adaptive'*1000; Ip_output']);
 
-Filename = strcat(RZIPDir,'IPass.txt');
+Filename = strcat(DynamicDir,'IPassive1D.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Net_I_Passive [A]');
-fprintf(fileID,'%1.12f %1.12f\r\n',[time_adaptive'*1000; Net_IPassive']);
+fprintf(fileID,'%1.12f %1.12f\r\n', [time_adaptive'*1000; Net_IPassive']);
+
+Filename = strcat(DynamicDir,'IPassive2D.txt');
+[fileID] = WriteMatrixCVS(I_Passive,Filename);
+
+Filename = strcat(DynamicDir,'VLoop.txt');
+fileID=fopen(Filename,'w');
+fprintf(fileID,'%s %s %s %s\r\n', 'time_adaptive [ms]','Vloop [V]','Eloop [V/m]','DeltaPhi [Vs]');
+fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', [time_adaptive'*1000, VloopArray_Passive', EloopArray_Passive', DeltaPhiSolArray_Passive']);
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
@@ -1294,11 +1255,6 @@ fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s\r\n', 'Null_Bpol [T]', 'Null_Btor [T]');
 fprintf(fileID,'%1.12f %1.12f\r\n', BpolAvg_Null_Passive', BtorAvg_Null_Passive');
 
-Filename = strcat(ASCIIDir,'IRod.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s\r\n', 'IRod [A]');
-fprintf(fileID,'%1.12f\r\n', EquilParams_Passive.irod');
-
 Filename = strcat(ASCIIDir,'TauVessel.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s\r\n', 'TauVessel [ms]');
@@ -1309,20 +1265,10 @@ fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s\r\n', 'betaP [%]', 'betaP_Pert [%]');
 fprintf(fileID,'%1.12f %1.12f\r\n', EquilParams_Passive.betap', EquilParams_Pert.betap');
 
-Filename = strcat(ASCIIDir,'TauAvalanche.txt');
+Filename = strcat(ASCIIDir,'BreakdownMetrics.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s\r\n', 'TauAvalanche [ms]');
-fprintf(fileID,'%1.12f\r\n', TauAvalanche_Passive*1000');
-
-Filename = strcat(ASCIIDir,'Lc.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s \r\n', 'Lc [m]');
-fprintf(fileID,'%1.12f\r\n', Lc_Passive');
-
-Filename = strcat(ASCIIDir,'VLoop.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s\r\n', 'Vloop [V]', '     DeltaPhi [Vs]', ' Eloop [V/m]  ', ' Eloop_eff [V/m]');
-fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', Vloop_Passive', DeltaPhiSol_Passive', Eloop_Passive', Eloop_eff_Passive');
+fprintf(fileID,'%s %s %s\r\n', 'Lc [m]', 'TauBD [ms]', 'Eloop_eff [V/m]');
+fprintf(fileID,'%1.12f %1.12f %1.12f\r\n', Lc_Passive, TauBD_Passive*1000', Eloop_eff_Passive');
 
 Filename = strcat(ASCIIDir,'MaxStress.txt');
 fileID=fopen(Filename,'w');
@@ -1356,56 +1302,43 @@ disp([ 'Done!' ]);
 
 
 
+
+
+
+
+
+
+
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%      FUNCTIONS      %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-%AVALANCHE FUNCTION TESTING AREA
-%NOTES ::
-%IF AVALANCHE APPROACHES FROM NEGATIVE -- THEN ALPHA^{-1} < Lc AND BREAKDOWN IS NOT POSSIBLE
-%   IN THIS CASE, TAUAVALANCHE WILL CROSS THE X-AXIS AT ne0 = BreakdownFrac*ne
-%   NOTABLY, THE GROWTH RATE IS NEGATIVE, SO TAUAVALANCHE INCREASES WITH ne0 
-%   THIS DATA IS MOSTLY USELESS, SAVE TO SAY THAT THERE IS NO 'REAL' AVALANCHE TIMESCALE
-%IF AVALANCHE APPROACHES FROM POSITIVE -- THEN ALPHA^{-1} > Lc AND BREAKDOWN IS ACHIEVED
-%   IN THIS CASE, TAUAVALANCHE WILL APPROACH 0 WITH INCREASING ne0
-%   NOTABLY, THE GROWTH RATE IS POSITIVE, SO TAUAVALANCHE DECREASES WITH ne0
-%   THIS DATA CAN BE USED TO SET A LIMIT FOR TAUR1 FOR A GIVEN PRE-IONISATION DENSITY
 %{
 %%
-ne0 = linspace(1e0,1e18,10000);                 %ne = 1.1772e18 [m-3] Phase1
-DashedLine = transpose(zeros(length(ne0),1));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TESTING ZONE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-for i=1:length(ne0)
-    %Compute breakdown (avalanche) timescale at given pressure (!!! NEEDS TESTING !!!)
-    Pressure = EquilParams.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
-    Pressure = 1.0e-4;
-    [TauAvalanche,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,ne,ne0(i),false);
-    TauAvalancheArray(i) = TauAvalanche;
-end
+%Transpose initial coil currents
+CoilCurrents = transpose(CoilWaveforms_Init(:,5));
+icoil = fiesta_icoil(coilset, CoilCurrents); 
 
-for i=1:length(ne0)
-    %Compute breakdown (avalanche) timescale at given pressure (!!! NEEDS TESTING !!!)
-    Pressure_Passive = EquilParams_Passive.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
-    [TauAvalanche_Passive,Pressure_Passive,Alpha_Passive,Vde_Passive] = ...
-        AvalancheTimescale(Pressure_Passive,Eloop_Passive,Lc_Passive,ne,ne0(i),false);
-    TauAvalancheArray_Passive(i) = TauAvalanche_Passive;
-end
+%Efit outputs coil currents resulting from the supplied jprofile, icoil and geometry
+%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
+config = fiesta_configuration('SMART_config', Grid, coilset);
+control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-4, 'boundary_method',2);
+[efit_config, signals, weights, index] = efit_shape_controller(config, efitCoils, efitGeometry_Init);
 
-figure; hold on;
-plot(ne0,TauAvalancheArray*1000, 'k-', 'LineWidth',2)
-plot(ne0,TauAvalancheArray_Passive*1000, 'r-', 'LineWidth',2)
-plot(ne0,DashedLine, 'k--', 'LineWidth',1)
-LegendString = {'No Eddys', 'With Eddys'};
-legend(gca,LegendString); legend boxoff;
-xlabel(gca,'Pre-Ionisation Density (m^{-3})');
-ylabel(gca,'Avalanche Timescale [ms]');
-set(gca, 'xScale', 'log')
-%set(gca,'YLim',[-0.5,10]);
-set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+%Inverse equilibrium, outputs coil currents resulting in the supplied jprofile and icoil config
+Equilibrium = fiesta_equilibrium('SMART', config, -Irod, jprofile, control, efit_config, icoil, signals, weights);
+EquilParams = parameters(Equilibrium)
+
+plot(Equilibrium)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%} 
+%}
 
 
 
@@ -1511,7 +1444,7 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     Vp_long = NaN(size(Time_Linear));           %Sets Vp_long to 'NaN' array (Current Driven)
 
     %Compute dynamic coil currents employing Current Driven Ip
-	%CurlyM and CurlyR are large inductance and resistance matrices.
+	%CurlyM and CurlyR are the vessel and coil inductance and resistance matrices.
     [V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, Time_Adaptive ] = ...
         state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names',coil_names, 'show_plot',false, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
     
@@ -1519,7 +1452,7 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     %!!! NEED Time_Breakdown TO INCLUDE BREAKDOWN AND BURNTHROUGH TIME !!!
     Time_Breakdown = 0;                                          %Set time for plasma breakdown (default 0)
     Time_Plasma = Time_Adaptive > Time_Breakdown;                %Set times for which plasma exists
-    Vp_output(Time_Plasma) = 0;                                  %Set voltage to zero when plasma exists
+    Vp_output(Time_Plasma) = 0;                                  %Set voltage to zero following breakdown
     Vp_long = interp1(Time_Adaptive, Vp_output, Time_Linear);    %Sets Vp_long = 0 when Time_Linear > 0.
     Ip_long = NaN*Vp_long;                                       %Sets Ip_long to 'NaN' array (Voltage Driven)
     
@@ -1557,7 +1490,7 @@ function [CoilWaveformsOutput]=NullFieldWaveforms(CoilWaveformsInput,RZIP_C,sens
     D1_Div2 = C_temp(:,iDiv2); %Elements of C_temp(Cn) for Div2 coil
     
     %Determine if Div1 is in series with solenoid or not and optimise null-field accordingly
-    if isnan(CoilWaveformsInput(iDiv1,TimeIndex)) == true                   %If Div1 NOT in series Sol
+    if isnan(CoilWaveformsInput(iDiv1,TimeIndex)) == true                   %If Div1 IS NOT in series with Sol
         %Scale ALL null-field coil currents relative to Solenoid current
         D1=[D1_PF1, D1_PF2, D1_Div1, D1_Div2];                              %Optimise for PF1,2 & Div1,2
         ISolNullField = CoilWaveformsInput(iSol,TimeIndex);                 %Extract Solenoid Current 
@@ -1679,6 +1612,75 @@ function VesselEddyCurrents=ExtractPassiveCurrents(I_Passive,time_adaptive,Disch
     end
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function [StressR,StressZ,StressR_max,StressZ_max] = ...
+    VesselStresses(Equilibrium,VesselFilaments,FilamentArea)
+
+    %Obtain required global variables
+    global Grid;
+    global vessel;
+    
+    %Extract grid sizes and number of filaments in R and Z
+    rGrid=get(Grid,'r'); zGrid=get(Grid,'z');
+    ptmp = get(vessel,'passives'); ftmp = get(ptmp,'filaments');
+    RFil = get(ftmp(:),'r'); %dim 1*number of filaments
+    ZFil = get(ftmp(:),'z'); %dim 1*number of filaments
+    
+    %Obtain the equilibrium B-field in R,Z and Phi
+    [BrData,BzData,BPhiData,BpolData,BtorData] = ExtractBField(Equilibrium);
+
+    %Interpolate the B-fields onto a grid that aligns with the vessel grid 
+    %These are the values of the B-field at the vessel grid points
+    %Br_interp aligns with the vessel filament cells (RR, ZZ) from before
+    Br_interp = @(r,z) interpn(zGrid,rGrid,BrData,ZFil,RFil);
+    Bz_interp = @(r,z) interpn(zGrid,rGrid,BzData,ZFil,RFil);
+    Bphi_interp = @(r,z) interpn(zGrid,rGrid,BPhiData,ZFil,RFil);
+
+    %Extract B-field at vessel walls - meshes are aligned so indexes are the same
+    Br_vessel = Br_interp(RFil,ZFil);
+    Bz_vessel = Bz_interp(RFil,ZFil);
+    Bphi_vessel = Bphi_interp(RFil,ZFil);
+
+    %Combine Bfield values in [R,Phi,Z] into a single array for the vessel
+    %size(number of filaments*3), each row is the vector field on one filament
+    B_vessel=[Br_vessel' Bphi_vessel' Bz_vessel']; 
+    %The maximum current on each vessel filament is I_Passive_fil (size 1*number of filaments)
+    %Current vector is in the phi direction so only take magnitude [0, 1*I_Passive(phi), 0]
+    VesselEddyCurrentVec=VesselFilaments'*[0 1 0]; 		%size [number of filaments*3]
+
+    %The force upon all the filament would be 2piR*Force_fil_cross. R is stores
+    %in RR, which contains all the R values in a vector form with number of fil components. 
+    %Force_fil_cross is a vector of 3 components. It would be difficult to
+    %multiply them, but we do not need to, right now, because to obtain the
+    %pressure R cancles out, since the areas are 2piR*anchura (or altura). We
+    %assimilate the 3D filament as a 2D filament, so that it has no width in
+    %the R axis, s that its surface is 2piR*altura
+
+    %Compute J X B force acting on each filament (J X B computed for all directions) 
+    Force_fil=cross(VesselEddyCurrentVec,B_vessel);	%[N] %size [number of filaments*3]
+    %Take magntude of all forces as some will be negative (only care about the maximum force)
+    [Force_max, index]=max(abs(Force_fil));			%[N] %Also obtain index of each force
+
+    %Pressure acting on vessel wall is force over unit filiment area
+    %These are absolute numbers - don't include any directionality
+    PressureR = abs(Force_max(1))/(FilamentArea);	%[Pa]
+    PressureZ = abs(Force_max(3))/(FilamentArea);	%[Pa]
+
+    %Stress acting on vessel wall is the combined force divided by the unit filiment area
+    %These are directional, some are negative and some are positive
+    StressR = (Force_fil(:,1))/(FilamentArea);      %[Pa]
+    StressZ = (Force_fil(:,3))/(FilamentArea);      %[Pa]
+    %Obtain maximum radial and axial stresses - either positive or negative
+    StressR_max = max(abs(StressR));				%[Pa]
+    StressZ_max = max(abs(StressZ));				%[Pa]
+    
+    %Clean up before returning to main code
+    close all
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1787,9 +1789,78 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Function requires commenting and editing, but seems to work fine.
+function [Coil_Circuit]=...
+CreateSMARTCoilCircuit(label,Rc,Zc,DR,DZ,nt,nZ,nR,symmetry,coil_temperature, resistivity,density)
+	% createVestPFCircuit(Rc,Zc,W,H,nt)
+	% Rc, Zc          coordinates of coil center
+	% DR, DZ          coil width and height
+	% nt              number of turns
+	% nv, nh          coils are distributed in an array of nv x nh coils
+
+	if rem(nt, nZ*nR) > 0
+		warning('number of turns is not a multiple of nZ*nR');
+		Coil_Circuit = false;
+		return
+	end
+
+	c1 = create_coil( Rc,Zc,DR,DZ,nt, nZ, nR, coil_temperature, resistivity, density);
+	c1 = set(c1,'label','unique');
+	if symmetry
+		c2 = create_coil( Rc,-Zc,DR,DZ,nt, nZ, nR, coil_temperature, resistivity, density);
+		c1 = set(c1,'label','up');
+		c2 = set(c2,'label','down');
+		Coil_Circuit = fiesta_circuit(label,[1 1],[c1 c2]);
+	else
+		Coil_Circuit = fiesta_circuit(label,[1],[c1]);    
+	end
+
+end
+
+function c=create_coil(Rc,Zc,DR,DZ,nt, nZ, nR, coil_temperature, resistivity, density)
+
+    %Determine size of each coil filament from the number of turns
+	turnsPerCoil = nt/(nZ*nR); 
+	[Zcoils,dz] = divideIntoIntervals( Zc-0.5*DZ, Zc+0.5*DZ, nZ);
+	[Rcoils,dr] = divideIntoIntervals( Rc-0.5*DR, Rc+0.5*DR, nR);
+	nFilament = nZ*nR;
+	for i=nZ:-1:1
+		for j=nR:-1:1
+		    filament( nFilament) = fiesta_filament(Rcoils(j),Zcoils(i), dr, dz, turnsPerCoil, 0, 0);
+		    nFilament = nFilament - 1 ;
+		end
+    end
+	c = fiesta_coil('',filament, 'Blue', resistivity, density );
+end
+
+function [x,dx] = divideIntoIntervals(xi,xf,n)
+	% divide the interval [xi,xf] in n parts
+	% output: centers and width of the intervals
+	x = linspace(xi,xf,2*n+1);
+	dx = x(3)-x(1);
+	x = x(2:2:end);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Function could be expanded to include other materials if required
+function [Resistivity]=InterpMaterialResistivity(InputTemperature) 
+%   Resistivity [Ohm m]
+%	InputTemperature [K]
+
+    CopperTemperatures  = [20.0                    25.0                   30.0                   35.0                  40.0                  45.0                  50.0                  55.0                  60.0                  70.0                 80.0                 90.0                 100.0                125.0                150.0                175.0                200.0               225.0               250.0               273.150             293.0               300.0               350.0               400.0               500.0               600.0               700.0               800.0               900.0               1000.0              1100.0              1200.0              1300.0              1357.60         ];
+    CopperResistivities = [0.000798000000000000    0.00249000000000000    0.00628000000000000    0.0127000000000000    0.0219000000000000    0.0338000000000000    0.0498000000000000    0.0707000000000000    0.0951000000000000    0.152000000000000    0.213000000000000    0.279000000000000    0.346000000000000    0.520000000000000    0.697000000000000    0.872000000000000    1.04400000000000    1.21500000000000    1.38500000000000    1.54100000000000    1.67600000000000    1.72300000000000    2.06100000000000    2.40000000000000    3.08800000000000    3.79000000000000    4.51200000000000    5.26000000000000    6.03900000000000    6.85600000000000    7.71500000000000    8.62400000000000    9.59000000000000    10.1690000000000] * 1.0e-8;
+
+    Resistivity = interp1( CopperTemperatures, CopperResistivities, InputTemperature );
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %Function is a little dodgy at the moment - SolTurnsR > 1 requires CoilWaveforms Modifications
 function [Sol_Circuit]=...
-    CreateSMARTSolenoidCircuit(SolName,RMaxSol,RMinSol,ZMaxSol,ZMinSol,SolTurnsZ,SolTurnsR,SolTemp,SolResistivity,SolDensity)
+CreateSMARTSolenoidCircuit(SolName,RMaxSol,RMinSol,ZMaxSol,ZMinSol,SolTurnsZ,SolTurnsR,SolTemp,SolResistivity,SolDensity)
 
     %SolTurnsZ :: Solenoid axial windings (true solenoid turns)
     %SolTurnsR :: Solenoid radial windings (proxy for radial resolution)
@@ -1946,48 +2017,69 @@ end
 
 %Induced loop voltage and E-field calculator 
 %Assumes induced field arises purely from solenoid ramp-down
-function [Vloop,Eloop,DeltaPhi]=LoopVoltage(CoilWaveforms,time,RSol,ZMaxSol,ZMinSol,RGeo)
+function [Vloop,Eloop,DeltaPhi,VloopArray,EloopArray,DeltaPhiArray]=...
+    LoopVoltage(CoilCurrents,AdaptiveTime,RSol,ZMaxSol,ZMinSol,RLoop)
 
     %Obtain required global variables
     global coilturns; global iSol;
     global mu0;
     
-    %Compute the maximum average change in Sol current over the full discharge
-    for i=2:length(time)
-        dI = CoilWaveforms(iSol,i)-CoilWaveforms(iSol,i-1);
-        dt = time(i)-time(i-1);
-        dIdt_Array(i-1) = abs(dI/dt);       %Direction of loop current is arbitary
-    end
-    [dIdt,index] = max(dIdt_Array);                     %Maximum Sol current ramp [A/t]
-    dt = time(index+1)-time(index);                     %Timescale of max current ramp [s]
-    
     %Compute current surface area and voltage loop path length 
-    IAreaLoop = pi*RSol^2;          %Current surface area set by outer sol radius
-    VLengthLoop = 2*pi*RGeo;        %Voltage loop path length set by RGeo
-    SolLength = ZMaxSol-ZMinSol;    %Solenoid length
+    IAreaLoop = pi*RSol^2;          %Solenoid cross-sectional area      [m^2]
+    VLoopLength = 2*pi*RLoop;       %Voltage loop toroidal path length  [m]
+    SolLength = ZMaxSol-ZMinSol;    %Solenoid axial length              [m]
     
-    %Compute induced voltage during solenoid ramp-down and associated E-field at RGeo
-    Vloop = IAreaLoop*((mu0*dIdt*coilturns(iSol))/SolLength);  %Loop voltage from solenoid [V] 
-    Eloop = Vloop/VLengthLoop;                                 %E-field at plasma centre [V/m]
-
-    %Compute average solenoid magnetic flux swing during ramp-down
-    DeltaPhi = Vloop*dt;                                       %Solenoid flux swing [Vs]
+    %Initiate arrays
+    dIdtArray = zeros(1,length(AdaptiveTime));
+    VloopArray = zeros(1,length(AdaptiveTime));
+    EloopArray = zeros(1,length(AdaptiveTime));
+    DeltaPhiArray = zeros(1,length(AdaptiveTime));
+    
+    %Compute the maximum average change in Sol current over the full discharge
+    for i=2:length(AdaptiveTime)
+        dI = CoilCurrents(i,iSol)-CoilCurrents(i-1,iSol);       %Change in solenoid current [A]
+        dt = AdaptiveTime(i)-AdaptiveTime(i-1);                 %Change in adaptive time [s]
+        dIdtArray(i-1) = dI/dt;                                 %Delta solenoid current [A/s]
+        
+        %Compute induced voltage during solenoid ramp-down and associated E-field at RLoop
+        VloopArray(i-1) = IAreaLoop*((mu0*dIdtArray(i-1)*coilturns(iSol))/SolLength);   %Solenoid induced loop voltage [V] 
+        EloopArray(i-1) = VloopArray(i-1)/VLoopLength;                                  %Solenoid induced toroidal E-field [V/m]
+        DeltaPhiArray(i-1) = VloopArray(i-1)*dt;                                        %Solenoid magnetic flux [Vs]
+    end
+    VloopArray = transpose(VloopArray);
+    EloopArray = transpose(EloopArray);
+    DeltaPhiArray = transpose(DeltaPhiArray);
+    
+    %Extract maximum loop voltage, toroidal E-field and solenoid magnetic flux during solenoid ramp-down
+    [dIdt,Index] = min(dIdtArray);          %Maximum negative Sol current ramp [A/t]
+    Vloop = VloopArray(Index);              %Loop voltage at maximum negative solenoid ramp [V]
+    Eloop = EloopArray(Index);              %Loop E-field at maximum negative solenoid ramp [V/m]
+    DeltaPhi = DeltaPhiArray(Index);        %Solenoid flux swing [Vs]
     
     %NOTE :: MAXIMUM POSSIBLE SOLENOID MAGNETIC FLUX
     %(mu0*pi*ncoil*RSol^2)/(HeightSol*2*MaxISol)               %Assume one linear ramp [Vs]
-    %(((mu0*pi*230*RSolCentreWinding^2)/(ZMaxSol*2))*2*12500)  %Sanity check ~ 0.252   [Vs]
+    %(((mu0*pi*nSol*RSolCentreWinding^2)/(ZMaxSol*2))*2*12500)  %Sanity check ~ 0.263   [Vs]
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Compute breakdown (avalanche) timescale at given pressure
-%Assumes pre-ionisation electron density and breakdown fraction
-function [TauAvalanche,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,ne,ne0,minimise)
-   
+%Assumes fixed pre-ionisation electron density and breakdown fraction
+function [TauBD,Pressure,Alpha,Vde]=...
+    AvalancheTimescale(Pressure,Eloop,Lc,ne,ne0,minimise)
     %%% Notes ::
+    %If tauBD approaches zero from negative value then Alpha^{-1} [m] < Lc [m] and breakdown is impossible
+    %   In this case, TauBD will cross the X-axis at ne0 = BreakdownFrac*ne
+    %   Notably, the growth rate is negative, so TauBD increases with ne0
+    %If TauBD approaches zero from positive value then Alpha^{-1} [m] > Lc [m] and breakdown is possible
+    %   In this case, TauBd will approach zero with increasing ne0
+    %   Notably, the growth rate is positive, so TauBD decreases with ne0
+    %   This data can be used to set a lower limit for the breakdown timescale (TauR1) for a given pre-ionisation density (ne0)
+    %%%
     %   Lloyd1991, section 9.1, page 2046 has good citations for Paschen/Townsend Coefficients
     %   Lloyd1991, section 9.4, has equations for burnthrough time calculation
+    
     
      %Compute background electron density assuming pre-ionisation
 %    Tau_ECR = 0.005                                    %Pre-ionisation timescale          [s]
@@ -2005,7 +2097,7 @@ function [TauAvalanche,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,
     %Compute expected pressure and avalanche timescale for breakdown
     Vde = (Eta*Eloop)/Pressure;                             %Electron Drift Speed    [m/s]
     Alpha = 510*Pressure*exp((-1.25e4*Pressure)/Eloop);     %First Townsend coeff    [m-1]
-    TauAvalanche = log(neFraction)/(Vde*(Alpha-(1/Lc)) );   %Breakdown time          [s]
+    TauBD = log(neFraction)/(Vde*(Alpha-(1/Lc)) );   %Breakdown time          [s]
 
     %Compute minimum pressure and avalanche timescale for breakdown
     if minimise == true
@@ -2015,13 +2107,13 @@ function [TauAvalanche,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,
         for i=1:length(Pressure_Array)
             Alpha_Array(i) = 510*Pressure_Array(i)*exp((-1.25e4*Pressure_Array(i))/Eloop);
             Vde_Array(i) = (Eta*Eloop)/Pressure_Array(i);
-            TauAvalanche_Array(i) = log(neFraction)/(Vde_Array(i)*(Alpha_Array(i)-(1/Lc)) );
+            TauBD_Array(i) = log(neFraction)/(Vde_Array(i)*(Alpha_Array(i)-(1/Lc)) );
         end
         %Take minimum values of Vde, Pres, Tau :: corresponding to the maximum townsend coefficient
         Alpha = max(Alpha_Array);                                 %Townsend Coeff          [m-1]
         Vde = Vde_Array( Alpha_Array==Alpha );                    %Electron Drift Speed    [m/s]
         Pressure = Pressure_Array( Alpha_Array==Alpha );          %Townsend coeff          [m-1]
-        TauAvalanche = TauAvalanche_Array( Alpha_Array==Alpha );  %Breakdown time          [s]
+        TauBD = TauBD_Array( Alpha_Array==Alpha );                %Breakdown time          [s]
     end
 end
 
@@ -2091,7 +2183,7 @@ function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,EquilName,VacuumF
             ExtractBField(Equilibrium);
         
         %Write Null Bpol as 2D array
-        Filename = strcat(EquilDir,'Null_Bpol.txt');
+        Filename = strcat(EquilDir,'Null_Bpol',EquilName,'.txt');
         fileID=fopen(Filename,'w');
         fprintf(fileID,'%s %s %s \n', '     Bpol_Null', string(length(rGrid)), string(length(zGrid)));
         for i = 1:size(BpolData_Null,1)
@@ -2100,7 +2192,7 @@ function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,EquilName,VacuumF
         end
         
         %Write Null Btor as 2D array
-        Filename = strcat(EquilDir,'Null_Bpol.txt');
+        Filename = strcat(EquilDir,'Null_Btor',EquilName,'.txt');
         fileID=fopen(Filename,'w');
         fprintf(fileID,'%s %s %s \n', '     Btor_Null', string(length(rGrid)), string(length(zGrid)));
         for i = 1:size(BtorData_Null,1)
@@ -2129,6 +2221,30 @@ function [fileID]=WriteGeometry(Geometry,EquilDir,Filename)
     fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f %1.12f\r\n',[RGeo'; ZGeo'; rGeo'; kappa'; delta']);
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function [fileID]=WriteMatrixCVS(Matrix,Filename)
+
+    %Open file with requested filename
+    fileID = fopen(Filename,'w');
+    Variable = 'Fil ';              %(hardcoded for now)
+    Unit = ' [A]';                  %(hardcoded for now)
+
+    %Write column headers in first row
+    for i = 1:length(Matrix(1,:))
+          fprintf(fileID,'%s ', strcat(Variable,string(i),Unit) );
+    end
+    
+    %Write data row-wise, containing one data point from each column
+    for i = 1:length(Matrix(1,:))        %Length of columns
+        for j = 1:length(Matrix)         %Length of data within each column
+            fprintf(fileID,'%1.12f ', Matrix(j,i) );
+        end
+        fprintf(fileID,'\n');            %New line after each row
+    end
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2139,19 +2255,25 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTTING FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function fig=PlotEquilibrium(Arrays,Grid,Title,CbarLabel,SaveString)
+function fig=PlotEquilibrium(Arrays,Title,CbarLabel,SaveString)
 
     %USEFUL FIESTA CLASSES
     %class(sensor_btheta) = 'fiesta_sensor_btheta'
     %class(equil) = 'fiesta_equilibrium'
     
     %Obtain required global variables
-    global vessel; Vessel = vessel;
-    global coilset; Coilset = coilset;
+    global colourmap; cmap = colourmap;
+    global Grid; global vessel;
+    global coilset;
+    
+    %Extract grid sizes in R and Z
+    rGrid=get(Grid,'r'); zGrid=get(Grid,'z');
+    GridCells_R = length(rGrid); Rlim = max(rGrid);
+    GridCells_Z = length(zGrid); Zlim = max(zGrid);
 
-    %Initiate a Clean Figure
+    %Initiate figure, axes and aspect ratio (fixed for now)
     close all
-    figure; hold on; axis equal;
+    figure; hold on; box on; axis equal;
     
     %for each supplied sub-array (Arrays{i})
     for i=1:length(Arrays);
@@ -2162,16 +2284,16 @@ function fig=PlotEquilibrium(Arrays,Grid,Title,CbarLabel,SaveString)
             plot(Arrays{i});
         %Else plot as a regular contour plot using the supplied grid
         else
-            contourf(Grid{1},Grid{2},Arrays{i});
+            contourf(rGrid,zGrid,Arrays{i});
         end
     end
     
     %Plot Vessel and Coilset
-    plot(Vessel);
-    plot(Coilset);
+    plot(vessel);
+    plot(coilset);
     
     %Colourmap
-    colormap(plasma);
+    colormap(cmap);
     cbar = colorbar;
     cbar.Label.String = CbarLabel;
     
@@ -2191,8 +2313,111 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function cm_data=plasma(m)
-cm = [[  5.03832136e-02,   2.98028976e-02,   5.27974883e-01],
+function fig=PlotVesselOverview(Title,SaveString)
+
+    %Obtain required global variables
+    global colourmap; cmap = colourmap;
+    global Grid; global vessel;
+    global coilset;
+    
+    %Extract grid sizes in R and Z
+    rGrid=get(Grid,'r'); zGrid=get(Grid,'z');
+    GridCells_R = length(rGrid); Rlim = max(rGrid);
+    GridCells_Z = length(zGrid); Zlim = max(zGrid);
+
+    %Initiate figure, axes and aspect ratio (fixed for now)
+    figure('Renderer', 'painters', 'Position', [1,1, 700 1100], 'visible', 'off');
+    axes; hold on; box on; AspectRatio = [1,2,1];
+    title(gca,Title);
+    
+    %Plot Vessel and Coilset
+    ax1 = gca;
+    coil = plot(coilset); set(coil, 'EdgeColor', 'k')
+    fil = plot(vessel); set(fil, 'EdgeColor', 'k')
+    %%%%%
+    pbaspect(ax1,AspectRatio)
+    set(ax1,'XLim',[0.00 1.0]);     %0 to Rlim
+    set(ax1,'YLim',[-1.0 1.0]);     %-Zlim to Zlim
+    set(ax1, 'FontSize', 20, 'LineWidth', 0.75);
+    xlabel(ax1,'R (m)');
+    ylabel(ax1,'Z (m)');
+    grid(ax1,'minor')
+    %%%%%
+    ax2 = axes('Position',ax1.Position,'XAxisLocation','top','YAxisLocation','right','Color','none');
+    pbaspect(ax2,AspectRatio)
+    set(ax2,'XLim',[0.00 GridCells_R]);
+    set(ax2,'YLim',[0.00 GridCells_Z]); 
+    set(ax2, 'FontSize', 20, 'LineWidth', 0.75);
+    xlabel(ax2,'R_{Grid} (Cells)');
+    ylabel(ax2,'Z_{Grid} (Cells)');
+    %%%%%
+    saveas(gcf, SaveString);
+
+    %Plot a zoomed image of the upper inboard side. 
+    %Zoom location fixed for now, ideally would be togglable.
+    %{
+    figure; axes; hold on; box on;
+    set(gca, 'DataAspectRatio', [1,1,1], 'NextPlot', 'add')
+    
+    %Plot Vessel and Coilset
+    coil = plot(coilset); set(coil, 'EdgeColor', 'k');
+    fil = plot(vessel); set(fil, 'EdgeColor', 'k');
+    %%%%%
+    tau=get(vessel, 'tau');
+    r=get(vessel, 'r'); z=get(vessel, 'z');
+    set(gca,'XLim',[0.05 0.45]);
+    set(gca,'YLim',[0.45 1.00]);
+    set(gca, 'FontSize', 13, 'LineWidth', 0.75);
+    xlabel(gca,'R (m)');
+    ylabel(gca,'Z (m)');
+    Filename = '_VesselFilaments_Closeup';
+    %%%%%
+    saveas(gcf, strcat(SaveString,'_Zoomed'));   
+%   ISSUE :: need to remove extension first
+    %}
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Custom colour map: IDL Gamma-II colormap (PSFT group map)
+% INPUTS:
+%    - m: Number of points to define the color scale (default = 256)
+function cm_data=Gamma_II(m)
+
+    %Base colours in 8 bit format
+    T = [0,   0,   0                %// black
+         0,   0,   255              %// blue
+         255, 0,   0                %// red
+         255, 255, 0                %// yellow
+         255, 255, 255]./255;       %// white
+     %Setting color intervals length
+     x = [0                         %// black
+         70                         %// blue
+         130                        %// red
+         200                        %// yellow
+         255];                      %// white
+
+     %Interpolation between colors
+     if nargin < 1
+        map = interp1(x/255,T, linspace(0,1,255));
+        cm_data = colormap(map);
+     else
+        map = interp1(x/255,T, linspace(0,1,m));
+        cm_data = colormap(map);
+        
+        %Test figure: Color bar limits form 0 to 1.0 (black to white)
+        I = linspace(0, 1.0, 255);
+        imagesc( I(ones(1,10),:)' );
+     end
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Custom colour map: Python plasma colourmap (SJDoyle's colourmap)
+function cm_data=Plasma(m)
+cm =  [[  5.03832136e-02,   2.98028976e-02,   5.27974883e-01],
        [  6.35363639e-02,   2.84259729e-02,   5.33123681e-01],
        [  7.53531234e-02,   2.72063728e-02,   5.38007001e-01],
        [  8.62217979e-02,   2.61253206e-02,   5.42657691e-01],
@@ -2448,18 +2673,1011 @@ cm = [[  5.03832136e-02,   2.98028976e-02,   5.27974883e-01],
        [  9.44151742e-01,   9.61916487e-01,   1.46860789e-01],
        [  9.41896120e-01,   9.68589814e-01,   1.40955606e-01],
        [  9.40015097e-01,   9.75158357e-01,   1.31325517e-01]];
-   
-if nargin < 1
-    cm_data = cm;
-else
-    hsv=rgb2hsv(cm);
-    hsv(153:end,1)=hsv(153:end,1)+1; % hardcoded
-    cm_data=interp1(linspace(0,1,size(cm,1)),hsv,linspace(0,1,m));
-    cm_data(cm_data(:,1)>1,1)=cm_data(cm_data(:,1)>1,1)-1;
-    cm_data=hsv2rgb(cm_data);
-  
-end
+
+    %If no user input, use pre-defined colourmap
+    if nargin < 1
+        cm_data = cm;
+    %User input (integer) determines colour gradient 'spacing' 
+    %higher input number --> higher gradients between colours
+    else
+        hsv = rgb2hsv(cm);
+        hsv(153:end,1) = hsv(153:end,1)+1; % hardcoded
+        cm_data = interp1( linspace(0,1,size(cm,1)),hsv,linspace(0,1,m) );
+        cm_data(cm_data(:,1)>1,1) = cm_data(cm_data(:,1)>1,1)-1;
+        cm_data = hsv2rgb(cm_data);
+        
+         %Test figure: Color bar limits form 0 to 1.0 (black to white)
+         I = linspace(0, 1.0, length(cm_data)); colormap(cm_data);
+         imagesc( I(ones(1,10),:)' );
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% END OF FILE %
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% 
+%%%%%%%%%%%   L calc by field line integration    %%%%%%%%%%%
+%{ 
+         %Lazarus paper 1998, they compute connective length by avergaing on
+            %9 lines, the line with Bpol min, and the 8 surroundings. 
+         %However can compute the lines in all the VV
+      
+   IntMethod='Lp';   %Lp faster, Phi for debug!!!      % ''Phi'or 'Lp' to switch the integration mode 
+
+        %Grid
+        %I redefine the grid to compute the connection length, for less computer
+        %demands (time). Will label it with an L at the end!
+
+        n_pnts_insideL=20;          %100 is the ideal to have good plots of the fields, but the L int failures. 
+                %30 gives relative resol of 3.2% (anterior value)
+                %20 gives 5.2%, good enough
+                
+        r_inside_VVL=linspace(VesselRMinInner,VesselRMaxInner,n_pnts_insideL); 
+        z_inside_VVL=linspace(VesselZMinInner,VesselZMaxInner,n_pnts_insideL);
+        
+        %Resolution
+        Resol_R=(r_inside_VVL(2)-r_inside_VVL(1))   %[m] R resolution  
+        Resol_Z=(z_inside_VVL(2)-z_inside_VVL(1))   %[m] Z resolution        
+        
+        %Make new mesh
+        %Resolution relative to VV size
+        Resol_rel_R=Resol_R/(VesselRMaxInner-VesselRMinInner)*100  %[%] relative R resolution
+        Resol_rel_Z=Resol_Z/(VesselZMaxInner-VesselZMinInner)*100  %[%] relative Z resolution
+        
+         %Lets do a meshgrid, will be needed
+        [r_ins_VVL,z_ins_VVL]=meshgrid(r_inside_VVL,z_inside_VVL);
+        
+        %Plot
+            figure;
+            plot(r_ins_VVL,z_ins_VVL,'r.')
+            hold on
+            plot(vessel)
+            axis equal
+            xlabel('R (m)')
+            ylabel('Z (m)')
+            title(sprintf('meshgrid for the integration with %d^2 points',n_pnts_insideL))
+
+        %To remove the points at the VV:
+         %r_inside_VVL=r_inside_VVL(2:end-1);
+         %z_inside_VVL=z_inside_VVL(2:end-1); 
+        
+       %Now, if the coils are inside, the grid points there have to be removed because ode 'se raya', and spent too long time
+       global Rin_coils Rout_coils Zdown_coils Zup_coils
+       
+       %Identifying the coil sets for removal (how removed?)
+       Rin_coils=[R_PF2 R_Div1 R_Div2]-[width_PF2 width_Div1 width_Div2]/2; %[m] inner R of coilset (no SOl and PF1 (outside))
+       Rout_coils=[R_PF2 R_Div1 R_Div2]+[width_PF2 width_Div1 width_Div2]/2;   %[m]outer R of coilset (no SOl and PF1 (outside))
+       Zdown_coils=[Z_PF2 Z_Div1 Z_Div2]-[height_PF2 height_Div1 height_Div2]/2;   %[m]lowerZ of coilset (no SOl and PF1 (outside))
+       Zup_coils=[Z_PF2 Z_Div1 Z_Div2]+[height_PF2 height_Div1 height_Div2]/2;    %[m]higher Z of coilset (no SOl and PF1 (outside))    
+            %They are good
+        
+       %Lets rehape the meshgrid to do the loop to remove points
+       r_ins_VVL=reshape(r_ins_VVL,length(r_ins_VVL)^2,1);
+       z_ins_VVL=reshape(z_ins_VVL,length(z_ins_VVL)^2,1);
+       
+    
+        for co=1:length(Rin_coils) %at each iter, removes the grid points inside the coils
+              StoreRZ=[0 0]; %initialization of stored grid points
+            for i=1:length(r_ins_VVL) %Have to check each point
+                Point=[r_ins_VVL(i) z_ins_VVL(i)]; %grid point to test            
+                
+                switch sign(Point(2)) %First lets check if Z><0
+                    
+                    case 1 %z>0
+                
+                    if Point(1)<Rin_coils(co) | Point(1)>Rout_coils(co) %R out of the coil
+                                                                                                   %All Z are good
+                               StoreRZ=[StoreRZ; Point]; %store of good points                                                                                           
+                    
+                    elseif  Point(1)>Rin_coils(co) | Point(1)<Rout_coils(co) %R inside of the coil
+                            if Point(2)<Zdown_coils(co) | Point(2)>Zup_coils(co)  %Z out coil
+                                StoreRZ=[StoreRZ; Point]; %store of good points
+                            end
+                    end
+                        
+                    case -1 %z<0
+                
+                    if Point(1)<Rin_coils(co) | Point(1)>Rout_coils(co) %R out of the coil
+                                                                                                   %All Z are good
+                               StoreRZ=[StoreRZ; Point]; %store of good points                                                                                        
+                    
+                    elseif  Point(1)>Rin_coils(co) | Point(1)<Rout_coils(co) %R inside of the coil
+                            if Point(2)>-Zdown_coils(co) | Point(2)<-Zup_coils(co)  %Z out coil
+                                StoreRZ=[StoreRZ; Point]; %store of good points
+                            end
+                    end  
+                        
+                end             
+            end  
+            StoreRZ=StoreRZ(2:end,:); %remove first row, the initialization one
+            r_ins_VVL=StoreRZ(:,1); %to use the grid created on the following coil loop
+            z_ins_VVL=StoreRZ(:,2); %to use the grid created on the following coil loop          
+        end             
+     
+     %Lets reshape it again to do the contour plots later (both are
+     %vectors)
+     r_ins_VVL_contour=reshape(r_ins_VVL,floor(length(r_ins_VVL)/2),[]); %arbitrary reshape
+     z_ins_VVL_contour=reshape(z_ins_VVL,floor(length(z_ins_VVL)/2),[]); %arbitrary reshape
+                
+        %Plot
+                figure;
+                subplot(1,2,1)
+                plot(StoreRZ(:,1),StoreRZ(:,2),'r.')
+                hold on
+                plot(vessel)
+                axis equal
+                title(sprintf('iter %d',co))   
+                subplot(1,2,2)
+                plot(StoreRZ(:,1),StoreRZ(:,2),'r.')
+                hold on
+                plot(vessel)
+                plot(coilset)
+                axis equal
+                title(sprintf('iter %d',co))    
+ 
+    %%%End grid
+    
+    %%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%         Begin integration         %%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    L_max=10000;                             %[m] max L value for the integration; when L achieves
+                                             %this value, the integration stops. 
+                                             %Iter 55,85,86,81 achieves about 10,000, spending 4h
+                                     
+    event_colission=@(t,y) Colission(t,y,VesselRMaxInner,...
+            VesselRMinInner,VesselZMaxInner,VesselZMinInner,L_max);   
+   
+     options = odeset('OutputFcn',@ode_progress_bar,'Events',event_colission,'AbsTol',1e-10,'RelTol',1e-6); 
+     %I include a Fiesta funciton to show the progress of the ode
+                               
+   %Both integrators are programmed, so to swich between them will use a switch (xD)
+   tic          %to measure time the intergration takes
+    switch IntMethod %switch for the starting points (change the number of inputs)
+            
+         case  'Lp' %Phi as integration method
+              %1) Starting points y0
+                 y0=[0 0 0 0 0];                    %(r0,z0,L0,phi0,U0) starting points
+                    %note it has to be r z L for using the same event function
+
+                    for i=1:length(r_ins_VVL)        
+                         points=[r_ins_VVL(i) z_ins_VVL(i) 0 0 0];      %r z L phi U        
+                            %U(0)=0 (arbitrary)  
+                         y0=[ y0; points];                          
+                    end 
+                %I have the additional point 0 0 0 form the begining, that i can remove
+                %easily with
+                y0=y0(2:end,:);
+                
+               %2)Independt variable values, t0
+                 t_values=1000; %1000            %Max value of the independent variable
+                 n_iter_t=300000000; %3000000 on s1-14                 %Integer, number of values for tSpan
+                 tSpan=linspace(0,t_values,n_iter_t);            %the range of values of independant variable
+                    %TOO LITTLE FOR s1-19, MOST LINES DO NOT COLLIDE NOR
+                    %ACHIEVE LMAX
+                    
+                %3)Odefun
+                [FieldsBreak, FieldsBreakNoEarth]=fields(Equil_Passive); %Extraction of the fields (Earth's field included)!
+                odefun= @(Lp, rzLphiU) Field_LineIntegrator_Lp(Lp,rzLphiU,FieldsBreak.interpn.Br,...
+                    FieldsBreak.interpn.Bz, FieldsBreak.interpn.Bphi);                
+                
+                %4) Integration
+                        %%%%%%SINGLE FIELD LINE TRACER and plotter
+
+                        %need to find i for the chosen R,Z value in r0_z0_L0_U0.
+                        %I= 85 for a line inside, 49 for a max L outside, 152 for the
+                        %outward arm (Z>0). 135 for the outward Z<0 line. 64 for the upper
+                        %arm
+        
+                        i=73%652 %looked in the y0
+                        [t_fieldline, y_fieldline]=ode45(odefun,tSpan,y0(i,:),options);    
+    
+                        %To save the last values of R,Z,L
+                        L_single=y_fieldline(end,3);         %L      
+        
+                        %Plot of one of the line
+                            figure;
+                            plot3(y0(i,1)*cos(y0(i,4)),y0(i,1)*sin(y0(i,4)),y0(i,2),'k*','LineWidth',3)
+                            hold on;
+                            plot3(vessel);
+                            plot3(coilset);
+                            plot3(y_fieldline(:,1).*cos(y_fieldline(:,4)),y_fieldline(:,1).*sin(y_fieldline(:,4)),...
+                                y_fieldline(:,2),'r.','LineWidth',3)
+                                xlabel('x (m)');ylabel('y (m)');zlabel('z (m)');  
+                            plot3(y_fieldline(end,1).*cos(y_fieldline(end,4)),y_fieldline(end,1).*sin(y_fieldline(end,4)),...
+                                y_fieldline(end,2),'g*','LineWidth',3)
+                            title(sprintf('Field line starting at (R=%2.2f,Z=%2.2f)m, L=%3.2fm ',y0(i,1),y0(i,2),L_single))
+                            set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+                            %legend('Starting point (Point with less Bpol)','Field line',...
+                        %%%END ONE LINE TRACER
+                          
+                        for i=1:length(y0)
+                            fprintf('Iter %d de %d',i,length(y0))
+                            [t_fieldline, y_fieldline]=ode45(odefun,tSpan,y0(i,:),options);        %ode15s Carlos
+    
+                            %To save the last values of the dependants variables
+                            %y_end = 5 columns containing R, Z, Lc, Phi and U
+                            y_end(i,1)=y_fieldline(end,1);           %R
+                            y_end(i,2)=y_fieldline(end,2);           %Z
+                            y_end(i,3)=y_fieldline(end,3);           %Lc           
+                            y_end(i,4)=y_fieldline(end,4);           %Phi
+                            y_end(i,5)=y_fieldline(end,5);           %U
+                        end                 
+                        U_int=reshape(y_end(:,5),size(r_ins_VVL_contour,1),size(r_ins_VVL_contour,2));            
+        
+        case 'Phi' %Lp as integration method
+              %1) Starting points y0
+                y0=[0 0 0 0]; %r0,z0,L0,U0
+                %note it has to be r z fro using the same event function
+
+                for i=1:length(r_ins_VVL)        
+                        points=[r_ins_VVL(i) z_ins_VVL(i) 0 0];  %r z L phi U        
+                            %U(0)=0 (arbitrary)  
+                        y0=[ y0; points];                          
+                end
+                %I have the additional point 0 0 0 form the begining, that i can remove
+                %easily with
+                y0=y0(2:end,:);
+            
+               %2)Independt variable values, t0
+                 t_values=10000; %10 for debug                           %Cycles(toroidal turns)
+                 n_iter_t=3000000;         %3000                         %Integer, number of values for tSpan
+                 tSpan=linspace(0,2*pi*t_values,n_iter_t);    %the range of values of independant variable
+               
+               %3)Odefun 
+                 odefun= @(phi, rzLU) Field_LineIntegrator(phi,rzLU,FieldsBreak.interpn.Br,...
+                    FieldsBreak.interpn.Bz,FieldsBreak.interpn.Bphi);               
+                %4) Integration
+                        %%%%%%%%SINGLE FIELD LINE TRACER and plotter
+
+                        %need to find i for the chosen R,Z value in r0_z0_L0_U0.
+                        %I= 85 for a line inside, 49 for a max L outside, 152 for the
+                        %outward arm (Z>0). 135 for the outward Z<0 line. 64 for the upper
+                        %arm
+        
+                        i=472 %looked in the y0
+                                    %652 line collides with lower PF2
+                                    %672 for collision upper PF2
+                                    %116 for colission with upper Div1
+                                    %472 for coliision with lower wall (VV)
+                        [t_fieldline, y_fieldline t_event y_event]=ode45(odefun,tSpan,y0(i,:),options);    
+    
+                        %To save the last values of R,Z,L
+                        L_single=y_fieldline(end,3);         %L      
+        
+                        %Plot of one of the line
+                        figure;
+                        plot3(y0(i,1)*cos(t_fieldline(1)),y0(i,1)*sin(t_fieldline(1)),y0(i,2),'k*','LineWidth',3)
+                        hold on;
+                        plot3(vessel);
+                        plot3(coilset);
+                        plot3(y_fieldline(:,1).*cos(t_fieldline(:)),y_fieldline(:,1).*sin(t_fieldline(:)),...
+                            y_fieldline(:,2),'r.','LineWidth',3)
+                        xlabel('x (m)');ylabel('y (m)');zlabel('z (m)');  
+                        plot3(y_fieldline(end,1).*cos(t_fieldline(end)),y_fieldline(end,1).*sin(t_fieldline(end)),...
+                            y_fieldline(end,2),'g*','LineWidth',3)
+                        title(sprintf('Single field line integration phi, L=%3.2f m ',L_single))
+                        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+                        %%%END ONE LINE TRACER
+                
+                        for i=1:length(y0)
+                            fprintf('Iter %d de %d',i,length(y0))
+                            [t_fieldline, y_fieldline]=ode45(odefun,tSpan,y0(i,:),options);        %ode15s Carlos
+    
+                            %To save the last values of the dependants variables
+                            y_end(i,1)=y_fieldline(end,1);           %R
+                            y_end(i,2)=y_fieldline(end,2);           %Z
+                            y_end(i,3)=y_fieldline(end,3);           %L           
+                            y_end(i,4)=y_fieldline(end,4);           %U
+                        end 
+                        U_int=reshape(y_end(:,4),size(r_ins_VVL_contour,1),size(r_ins_VVL_contour,2));
+        
+    end         
+   Time_Run_Integrator=toc     %Time spent by the integrator
+   
+   L_int=reshape(y_end(:,3),size(r_ins_VVL_contour,1),size(r_ins_VVL_contour,2));
+    
+   %Calc of average L on the null region
+        index= y0(:,1)<=max(get(sensor_btheta,'r')) & y0(:,1)>=min(get(sensor_btheta,'r')) &...
+            y0(:,2)<=max(get(sensor_btheta,'z')) & y0(:,2)>=min(get(sensor_btheta,'z')); 
+                    %Index of R,Z inside null
+        L_int_row=y_end(:,3); %[m] L in row form
+        L_int_null=mean(L_int_row(index))
+        
+   %%%Storing of the non colliding starting points
+        %1) Non colliding with the VV
+            %To store start points that do not collide: first I get the index of both R
+            %and Z, but together, since they do not collide if oth R and Z are greater
+            %than the min value, and lower than the greatest value
+    
+            RZ_store_index=y_end(:,1)<VesselRMaxInner & ...
+                y_end(:,1)>VesselRMinInner & y_end(:,2)<VesselZMaxInner...
+                & y_end(:,2)>VesselZMinInner; %100*5==> error, has to ve vector,, not matrix!!!
+                        
+            RZ_no_collide=[y0(RZ_store_index,1) y0(RZ_store_index,2)];    
+            
+       %2) Colliding with the VV
+            RZ_no_collide_end=[y_end(RZ_store_index,1) y_end(RZ_store_index,2)];
+                                %y_end of points that do not collide with
+                                %the VV. Same size as RZ_no_collide
+               %Those points have to be tested.
+                R_no_collide_end=RZ_no_collide_end(:,1); %R of y_end
+                Z_no_collide_end=RZ_no_collide_end(:,2); %Z of y_end
+                
+                %The corresponding starting points are
+                R_no_collide=RZ_no_collide(:,1); % R of y0
+                Z_no_collide=RZ_no_collide(:,2); % Z of y0
+                
+        for co=1:length(Rin_coils)              %at each iter, removes the colliding points
+              StoreRZ_y0=[0 0];                        %initialization of stored start points
+              StoreRZ_end=[0 0]; %initialization of stored ending points DEBUG!!!
+              
+            for i=1:length(R_no_collide_end)         %Have to check each ending point
+                        %this points will be renewed as the coils are
+                        %checked, so that it removes progressively the
+                        %points
+                Point=[R_no_collide_end(i) Z_no_collide_end(i)];        %ending point to test            
+                Point_y0=[R_no_collide(i) Z_no_collide(i)];                 %corresponding starting point
+                
+                switch sign(Point(2)) %First lets check if Z><0
+                    
+                    case 1 %z>0
+                
+                    if Point(1)<Rin_coils(co) | Point(1)>Rout_coils(co) %R out of the coil
+                                                                                                   %All Z are good
+                               StoreRZ_y0=[StoreRZ_y0; Point_y0]; %store of good start points                                                                                           
+                               StoreRZ_end=[StoreRZ_end; Point]; %store of good end points DEBUG!!  
+                               
+                    elseif  Point(1)>Rin_coils(co) | Point(1)<Rout_coils(co) %R inside of the coil
+                            if Point(2)<Zdown_coils(co) | Point(2)>Zup_coils(co)  %Z out coil
+                                
+                                StoreRZ_y0=[StoreRZ_y0; Point_y0]; %store of good start points
+                                StoreRZ_end=[StoreRZ_end; Point]; %store of good end points DEBUG!! 
+                            end
+                    end
+                        
+                    case -1 %z<0
+                
+                    if Point(1)<Rin_coils(co) | Point(1)>Rout_coils(co) %R out of the coil
+                                                                                                   %All Z are good
+                               StoreRZ_y0=[StoreRZ_y0; Point_y0]; %store of good start points                                                                                        
+                               StoreRZ_end=[StoreRZ_end; Point]; %store of good end points DEBUG!! 
+                               
+                    elseif  Point(1)>Rin_coils(co) | Point(1)<Rout_coils(co) %R inside of the coil
+                            if Point(2)>-Zdown_coils(co) | Point(2)<-Zup_coils(co)  %Z out coil
+                                                              
+                                StoreRZ_y0=[StoreRZ_y0; Point_y0]; %store of good start points
+                                StoreRZ_end=[StoreRZ_end; Point]; %store of good end points DEBUG!! 
+                            end
+                    end  
+                        
+                end             
+            end
+            %y0_points
+            StoreRZ_y0=StoreRZ_y0(2:end,:); %remove first row, the initialization one
+            R_no_collide=StoreRZ_y0(:,1); %to store R of y0 whose yend do not collide with coil 
+            Z_no_collide=StoreRZ_y0(:,2); %to store  Z of y0 whose yend do not collide with coil 
+            %y_end points
+            StoreRZ_end=StoreRZ_end(2:end,:); %remove first row, the initialization one
+            R_no_collide_end=StoreRZ_end(:,1); %to store R of yend that do not collide with coil 
+            Z_no_collide_end=StoreRZ_end(:,2); %to store  Z of yend that do not collide with coil            
+            %Note that after the last loop, this values will be the final
+            %values!!!
+        end                     
+           RZ_no_collide=[R_no_collide Z_no_collide];
+   
+           
+            %However, this is not perfect, when including in the grid the points in the wall,
+            %something extrange happens, some of them are store in the non colliding points
+            %thought they do not collide since the starting point is also the ending points
+            %(you get like some stars just in the VV, but not all, only some of them)
+            %To remove it:
+            Index=RZ_no_collide(:,1)<VesselRMaxInner & ...
+                RZ_no_collide(:,1)>VesselRMinInner & RZ_no_collide(:,2)<VesselZMaxInner...
+                & RZ_no_collide(:,2)>VesselZMinInner;
+            RZ_no_collide=[RZ_no_collide(Index,1) RZ_no_collide(Index,2)];                
+
+     %%
+     %%%Contour plots
+      %1) L
+        figure;
+        contourf(r_ins_VVL_contour,z_ins_VVL_contour,L_int,'ShowText','On')
+        %surf(r_ins_VVL_contour,z_ins_VVL_contour,L_int,'EdgeColor','none'), shading('interp')
+        view(2)
+        hold on
+        plot([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],'g.--','LineWidth', 2)
+        plot(RZ_no_collide(:,1),RZ_no_collide(:,2),'m*')
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        hh=plot(coilset);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        colormap(Gamma_II)
+        c=colorbar; %colorbar
+        axis equal
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        ylabel(c, 'L(m)');
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %legend('L','Field null region','Non colliding points')
+        %title(sprintf('L  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))   
+        %title(sprintf('L at t=%dms for simu %d',time_loop(loop)*1e3,sen))
+        title(sprintf('L at t=%d ms ph1',time_loop(loop)*1e3))        
+        Filename = 'L_cont';
+        %Filename= sprintf('%s_simu_%d',Filename,sen);     
+        saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt));        
+
+        %1D to 2D plot
+        figure;
+        tri = delaunay(y0(:,1),y0(:,2));
+        plot(y0(:,1),y0(:,2),'.')
+        [r,c] = size(tri); %number of triangles there
+        trisurf(tri, y0(:,1), y0(:,2),y_end(:,3),'FaceAlpha',1,'EdgeColor','none'), shading('interp');
+        view(2)
+        colorbar
+        hold on                     %this is to make the transition between values continuous,                                                        %instedad of discontinuously between pixels
+        colormap(Gamma_II)
+        %colormap(plasma)
+        plot3([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],...
+            ones(1,5)*max(y_end(:,3)),'g.--','LineWidth', 2)
+        plot3(RZ_no_collide(:,1),RZ_no_collide(:,2),max(y_end(:,3))*ones(length(RZ_no_collide(:,2)),1),'m*')
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        hh=plot(coilset);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        c=colorbar; %colorbar
+        %axis equal
+        set(gca,'XLim',[0.1 1]);    
+        set(gca,'YLim',[-0.9 0.9]);    
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        ylabel(c, 'L(m)');
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %legend('L','Field null region','Non colliding points')
+        %title(sprintf('L  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))   
+        %title(sprintf('L at t=%dms for simu %d',time_loop(loop)*1e3,sen))
+        title(sprintf('L at t=%d ms ph1',time_loop(loop)*1e3))   
+        Filename = 'L';        
+        saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt));   
+        print(gcf,strcat(FigDir,ProjectName,Filename,'.eps'),'-depsc2') 
+        
+        figure;
+        plot([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],'g.--','LineWidth', 2)
+        hold on
+        grid on
+        plot(RZ_no_collide(:,1),RZ_no_collide(:,2),'m*')  %non colliding points
+        plot(StoreRZ(:,1),StoreRZ(:,2),'r.') %grid points
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        hh=plot(coilset);        
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');      
+        %axis equal
+        set(gca,'XLim',[0.1 1]);    %To plot upper side of the VV
+        set(gca,'YLim',[-0.9 0.9]);    %To plot upper side of the VV
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %legend('Field null region','Non colliding points')
+        %title(sprintf('L  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))   
+        %title(sprintf('L at t=%dms for simu %d',time_loop(loop)*1e3,sen))
+        %title(sprintf('Non colliding at t=%d ms ph1',time_loop(loop)*1e3))   
+        title('Cross-section')
+        Filename = 'Grid_tracing';                
+        saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt));   
+        print(gcf,strcat(FigDir,ProjectName,Filename,'.eps'),'-depsc2')
+        
+      %2) Pseudo potential U/Vloop
+        figure;
+        contourf(r_ins_VVL_contour,z_ins_VVL_contour,U_int,10)
+        %surf(r_insVV_noLimit,z_insVV_noLimit,U_int), shading('interp')
+        hold on
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        hh=plot(coilset);
+        set(hh, 'EdgeColor', 'k')
+        colormap(Gamma_II)
+        c=colorbar; %colorbar
+        ylabel(c, 'U/Vloop');
+        view(2) %2D view
+        plot([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],'g.--','LineWidth', 2)
+        axis equal
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %title(sprintf('Pseudo potential  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))          
+        %title(sprintf('Pseudo potential at t=%dms for simu %d',time_loop(loop)*1e3,sen))
+        title(sprintf('Pseudo potential at t=%d ms ph1',time_loop(loop)*1e3)) 
+        Filename = 'Pseudo_contour';
+        %Filename= sprintf('%s_simu_%d',Filename,sen);     
+        saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt)); 
+        print(gcf,strcat(FigDir,ProjectName,Filename,'.eps'),'-depsc2')
+        %1D to 2D plot
+                %1D to 2D plot
+        figure;
+        tri = delaunay(y0(:,1),y0(:,2));
+        plot(y0(:,1),y0(:,2),'.')
+        [r,c] = size(tri); %number of triangles there
+        
+        switch IntMethod
+            
+            case 'Phi'
+                trisurf(tri, y0(:,1), y0(:,2),y_end(:,4),'FaceAlpha',1,'EdgeColor','none'), shading('interp');
+            
+            case 'Lp'
+                trisurf(tri, y0(:,1), y0(:,2),y_end(:,5),'FaceAlpha',1,'EdgeColor','none'), shading('interp');
+        end
+        view(2)
+        colorbar
+        hold on                     %this is to make the transition between values continuous,                                                        %instedad of discontinuously between pixels
+        colormap(Gamma_II)
+        plot3([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],...
+            ones(1,5)*max(y_end(:,3)),'g.--','LineWidth', 2)
+        plot3(RZ_no_collide(:,1),RZ_no_collide(:,2),max(y_end(:,3))*ones(length(RZ_no_collide(:,2)),1),'m*')
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        hh=plot(coilset);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        colormap(Gamma_II)
+        c=colorbar; %colorbar
+        %axis equal
+        set(gca,'XLim',[0.1 1]);    %To plot upper side of the VV
+        set(gca,'YLim',[-0.9 0.9]);    %To plot upper side of the VV
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        ylabel(c, 'U/V');
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %legend('U/Vloop','Field null region','Non colliding points')
+        %title(sprintf('Pseudo potential  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))          
+        %title(sprintf('Pseudo potential at t=%dms for simu %d',time_loop(loop)*1e3,sen))
+        title(sprintf('U/V_{loop} at t=%d ms ph1',time_loop(loop)*1e3))
+        Filename = 'Pseudo';        
+        saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt));   
+        print(gcf,strcat(FigDir,ProjectName,Filename,'.eps'),'-depsc2')         
+        
+      %%%3)[Experimental] E_rel plot, to predict where the gas breaks down
+        
+        p_test=1*10^-4; %Tor
+        E_RZmin=C_2(1)*p_test./(log(C_1(1)*p_test*L_int)); %E min, Paschen, but 2D        
+        E_RZmin(E_RZmin<0)=NaN; %when Emin<0, there is no breakdwon, so NaN not
+                    %to plot it
+        
+        figure;
+        contourf(r_ins_VVL_contour,z_ins_VVL_contour,U_int./L_int*V_loop./E_RZmin)
+        %surf(r_insVV_noLimit,z_insVV_noLimit,U_int), shading('interp')
+        hold on
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        hh=plot(coilset);
+        set(hh, 'EdgeColor', 'k')
+        colormap(Gamma_II)
+        c=colorbar; %colorbar
+        ylabel(c, 'E_{rel}');
+        view(2) %2D view
+        plot([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],'g.--','LineWidth', 2)
+        axis equal
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %title(sprintf('Pseudo potential  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))          
+        title(sprintf('E_{rel} at t=%dms for p= %1.2d Tor',time_loop(loop)*1e3,p_test))
+        Filename = 'U_L_contour';
+        %Filename= sprintf('%s_simu_%d',Filename,sen);   
+        saveas(gcf, strcat(FigDir,ProjectName,Filename,FigExt)); 
+        print(gcf,strcat(FigDir,ProjectName,Filename,'.eps'),'-depsc2')
+        %1D to 2D plot
+        
+                p_test=1*10^-4; %Tor
+        E_RZmin=C_2(1)*p_test./(log(C_1(1)*p_test*y_end(:,3))); %E min, Paschen, but 2D        
+        E_RZmin(E_RZmin<0)=NaN; %when Emin<0, there is no breakdwon, so NaN not
+                    %to plot it
+          figure;
+        tri = delaunay(y0(:,1),y0(:,2));
+        plot(y0(:,1),y0(:,2),'.')
+        [r,c] = size(tri); %number of triangles there        
+                switch IntMethod
+            
+            case 'Phi'
+                trisurf(tri, y0(:,1), y0(:,2),y_end(:,4)./y_end(:,3)*V_loop./E_RZmin,'FaceAlpha',1,'EdgeColor','none'), shading('interp');
+            
+            case 'Lp'
+                trisurf(tri, y0(:,1), y0(:,2),y_end(:,5)./y_end(:,3)*V_loop./E_RZmin,'FaceAlpha',1,'EdgeColor','none'), shading('interp');
+                end                         
+        view(2)
+        colorbar
+        hold on                     %this is to make the transition between values continuous,                                                        %instedad of discontinuously between pixels
+        colormap(Gamma_II)
+        %colormap(plasma)
+        plot3([min(r_sensors) min(r_sensors) max(r_sensors) max(r_sensors) min(r_sensors)],...
+            [min(z_sensors) max(z_sensors) max(z_sensors) min(z_sensors) min(z_sensors)],...
+            ones(1,5)*max(y_end(:,3)),'g.--','LineWidth', 2)
+        hh=plot(vessel);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        hh=plot(coilset);
+        set(hh, 'EdgeColor', 'k')
+        set(hh,'HandleVisibility','off');
+        c=colorbar; %colorbar
+        %axis equal
+        set(gca,'XLim',[0.1 1]);    %To plot upper side of the VV
+        set(gca,'YLim',[-0.9 0.9]);    %To plot upper side of the VV
+        set(gca, 'FontSize', 13, 'LineWidth', 0.75); %<- Set properties TFG
+        ylabel(c, 'E_{rel}');
+        xlabel('R (m)')
+        ylabel('Z (m)')
+        %legend('L','Field null region','Non colliding points')
+        %title(sprintf('L  at t=%d ms (iter %d/%d)',time_loop(loop)*1e3,loop,length(time_loop)))   
+        %title(sprintf('L at t=%dms for simu %d',time_loop(loop)*1e3,sen))
+        title(sprintf('E_{rel} at t=%d ms ph1',time_loop(loop)*1e3))   
+        Filename = 'U_L';        
+%}
+%%
+
+
+% Daniel's Functions Pertaining To The Field Line Integrator
+%%
+%{
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%@@@@@@Extraction of the fields@@@@
+%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+%1)Field of things
+function [Field_Earth Field_NoEarth]=fields(equil)
+%function [Field_grid, Field_VV, Field_interpol, Field_sensor]=fields(equil)
+    %beware of the sensors, where they are not defined (yet), its field must not
+    %be called!
+    %Will add the Earths field! Will be useful when the fields are low, for
+    %example at breakdown.
+    
+    global R_in Z_in R_sensor Z_sensor %to obtain global variables
+
+    %Fiesta fields:
+    Br=get(equil,'Br'); 
+    Bz=get(equil,'Bz'); 
+    Bphi=get(equil,'Bphi_vac'); %not alwais
+    
+    %Fields data (data in all the grid)
+    Br_data = get(get(equil,'Br'),'data');     %Note this is 200*251, GridR*GridZ dimension
+    Bz_data = get(get(equil,'Bz'),'data');
+    Bphi_data = get(get(equil,'Bphi_vac'),'data');
+            %Was Bphi, not always is vac, although the plasma field is
+            %negligible in comparison to TF coils field.
+
+    %%2D reshape of the data, to interpolate things
+    
+    rGrid = get(get(get(equil,'Br'),'grid'),'r');
+    zGrid = get(get(get(equil,'Br'),'grid'),'z');
+    
+    Br_data = reshape( Br_data, length(zGrid), length(rGrid)); %251*200
+    Bz_data = reshape( Bz_data, length(zGrid), length(rGrid)); %251*200
+    Bphi_data = reshape( Bphi_data, length(zGrid), length(rGrid)); %251*200
+    Bpol_data=sqrt(Br_data.^2+Bz_data.^2);
+   
+    
+    %Interpolation vectors
+    Br_interp = @(r,z) interpn(zGrid,rGrid,Br_data,z,r,'mikama');
+    Bz_interp = @(r,z) interpn(zGrid,rGrid,Bz_data,z,r,'mikama');
+    Bphi_interp = @(r,z) interpn(zGrid,rGrid,Bphi_data,z,r,'mikama');
+    
+    %Finally, the fields inside the vessel are
+    Br_VV=Br_interp(R_in,Z_in);
+    Bz_VV=Bz_interp(R_in,Z_in);
+    Bphi_VV=Bphi_interp(R_in,Z_in);
+    Bpol_VV=sqrt(Br_VV.^2+Bz_VV.^2);
+    
+    %And inside the sensor region:
+    Br_sens=Br_interp(R_sensor,Z_sensor);
+    Bz_sens=Bz_interp(R_sensor,Z_sensor);
+    Bphi_sens=Bphi_interp(R_sensor,Z_sensor);
+    Bpol_sens=sqrt(Br_sens.^2+Bz_sens.^2);
+    
+    %To store them, will create several structures, one for the data, other
+    %for the VV data and other for the sensor data
+    
+    Field_grid.Br=Br_data;
+    Field_grid.Bz=Bz_data;
+    Field_grid.Bphi=Bphi_data;
+    
+    Field_VV.Br=Br_VV;
+    Field_VV.Bz=Bz_VV;
+    Field_VV.Bphi=Bphi_VV;
+    Field_VV.Bpol=Bpol_VV;    
+
+    Field_sensor.Br=Br_sens;
+    Field_sensor.Bz=Bz_sens;
+    Field_sensor.Bphi=Bphi_sens;
+    Field_sensor.Bpol=Bpol_sens;
+    
+    Field_interpol.Br=Br_interp;
+    Field_interpol.Bz=Bz_interp;
+    Field_interpol.Bphi=Bphi_interp;
+    
+    %Final structure englobating all
+    Field_NoEarth.grid=Field_grid;
+    Field_NoEarth.VV= Field_VV;
+    Field_NoEarth.sensor= Field_sensor;    
+    Field_NoEarth.interpn=Field_interpol;
+    
+        %%%%%Earths field%%%%%%%%%%%%%
+    
+    %In seville, with coordinates 37º23'N 5°59′00″W (Wikipedia, spanish)=
+    %37+23/60ºN 5+59/60º W=37.3833ºN 5.9833ºW, the components are
+    
+    X_Earth=27316.6e-9;                 %[T] N-S component, >0 for N, <0 for S
+    Y_Earth=-423.4e-9;                      %[T] E-W component, <0 for W, >0 for E
+    Z_Earth=33833.4e-9;                 %[T] vertical component, <0 for U, >0 for D
+    
+    %To create the vectors, I have problems for the r and phi directions, since its
+    %magnitude vary when moving the toroidal angle, because Fiesta considers
+    %axysymmetry, but Earths field is not axysymmetric. What I will do as an
+    %approximation is take the average value of the field over all the phi angles. 
+    %This value, the mean, will be used for the r and phi components. 
+    %THe z components is norproblematic
+    
+        BrEarth=0; %initialization
+        BphiEarth=0; %initialization
+        ang_Earth=linspace(0,2*pi,100);
+        
+        for i=1:length(ang_Earth)
+            %Addition at each step (debug)
+            add_Br(i)=X_Earth*cos(ang_Earth(i))+(-Y_Earth)*sin(ang_Earth(i));       
+            add_Bphi(i)=-X_Earth*sin(ang_Earth(i))+(-Y_Earth)*cos(ang_Earth(i));
+                                                %-Y because Seville is in the West (W)
+            BrEarth=BrEarth+add_Br(i);
+            BphiEarth=BphiEarth+add_Bphi(i);
+            
+        end
+         
+        %The r and phi components are the mean:       
+        BrEarth=BrEarth/length(ang_Earth); %mean
+        BphiEarth=BphiEarth/length(ang_Earth); %mean      
+        
+        %The vertical component is
+        BzEarth=-Z_Earth;
+        BpolEarth=sqrt(BrEarth^2+ BzEarth^2);
+    
+        %Now lets create the a grid with this constant field values;
+       
+        BzEarth=BzEarth*ones(length(zGrid), length(rGrid));        
+        BrEarth= BrEarth*ones(length(zGrid), length(rGrid));
+        BphiEarth=BphiEarth*ones(length(zGrid), length(rGrid));    
+        BpolEarth=sqrt(BrEarth.^2+ BzEarth.^2);
+    
+        
+    %%%%%%%%END EARTHS FIELD%%%%%%%%
+    %Now will create the same as above but with Earths field
+    
+    %Interpolation vectors 
+    Br_interp = @(r,z) interpn(zGrid,rGrid,Br_data+BrEarth,z,r,'mikama');
+    Bz_interp = @(r,z) interpn(zGrid,rGrid,Bz_data+BzEarth,z,r,'mikama');
+    Bphi_interp = @(r,z) interpn(zGrid,rGrid,Bphi_data+BphiEarth,z,r,'mikama');
+    
+    %Finally, the fields inside the vessel are
+    Br_VV=Br_interp(R_in,Z_in);
+    Bz_VV=Bz_interp(R_in,Z_in);
+    Bphi_VV=Bphi_interp(R_in,Z_in);
+    Bpol_VV=sqrt(Br_VV.^2+Bz_VV.^2);
+    
+    %And inside the sensor region:
+    Br_sens=Br_interp(R_sensor,Z_sensor);
+    Bz_sens=Bz_interp(R_sensor,Z_sensor);
+    Bphi_sens=Bphi_interp(R_sensor,Z_sensor);
+    Bpol_sens=sqrt(Br_sens.^2+Bz_sens.^2);
+    
+    %To store them, will create several structures, one for the data, other
+    %for the VV data and other for the sensor data
+    
+    Field_grid.Br=Br_data;
+    Field_grid.Bz=Bz_data;
+    Field_grid.Bphi=Bphi_data;
+    
+    Field_VV.Br=Br_VV;
+    Field_VV.Bz=Bz_VV;
+    Field_VV.Bphi=Bphi_VV;
+    Field_VV.Bpol=Bpol_VV;    
+
+    Field_sensor.Br=Br_sens;
+    Field_sensor.Bz=Bz_sens;
+    Field_sensor.Bphi=Bphi_sens;
+    Field_sensor.Bpol=Bpol_sens;
+    
+    Field_interpol.Br=Br_interp;
+    Field_interpol.Bz=Bz_interp;
+    Field_interpol.Bphi=Bphi_interp;
+    
+        %Final structure englobating all
+    Field_Earth.grid=Field_grid;
+    Field_Earth.VV= Field_VV;
+    Field_Earth.sensor= Field_sensor;    
+    Field_Earth.interpn=Field_interpol;
+    
+    %Yes, everything is all right, you are not rewritting things
+end
+
+
+%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%@@@@@@Odefun for field line tracing LP@@@@
+%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+%Field line integrator function with Lp
+     %this solves the field line eq, using Lp (poloidal length) 
+         %as an independent variable
+     %way more faster than with phi (5 min when Lmax=3000m, 15 inside points)
+        
+    function [results]=Field_LineIntegrator_Lp(Lp,rzLphiU,Br_interpn,Bz_interpn,Bphi_interpn)
+    %rzphiLU=[r z phi L U]
+    %Lp= poloidal length (have to write capital L so it not apperas as
+    %internsity I). just tchange the variables in the phi equations
+    
+    %First, the field needs to be evaluated at the point (r,phi,z):
+    
+    Br_eval=Br_interpn(rzLphiU(1),rzLphiU(2));
+    Bphi_eval=Bphi_interpn(rzLphiU(1),rzLphiU(2));
+    Bz_eval=Bz_interpn(rzLphiU(1),rzLphiU(2)); 
+    Bpol_eval=sqrt(Br_eval^2+Bz_eval^2);
+    
+    %With the field, the eq to solve is:
+    
+    dr_dLp=Br_eval/Bpol_eval;
+    dphi_dLp=rzLphiU(1)*Bphi_eval/Bpol_eval;
+    dz_dLp=Bz_eval/Bpol_eval;
+    dlength_dLp=sqrt(1+(Bphi_eval/Bpol_eval)^2);
+    dU_Vloop_dLp=1/(2*pi*rzLphiU(1))*dlength_dLp; %pseudo potential U/V_loop
+    
+    results=zeros(5,1); %column vector to group the results
+    results(1)=dr_dLp;
+    results(4)=dphi_dLp;
+    results(2)=dz_dLp;
+    results(3)=dlength_dLp;
+    results(5)=dU_Vloop_dLp;
+    
+    end
+    
+%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%@@@@@@Odefun for field line tracing PHI@@@@
+%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    
+     function [results]=Field_LineIntegrator(phi,rzLU,Br_interpn,Bz_interpn,Bphi_interpn)
+    %rzL=[r z L U]
+   
+    %First, the field needs to be evaluated at the point (r,phi,z):
+    
+    Br_eval=Br_interpn(rzLU(1),rzLU(2));
+    Bphi_eval=Bphi_interpn(rzLU(1),rzLU(2));
+    Bz_eval=Bz_interpn(rzLU(1),rzLU(2));    
+    Bpol_eval=sqrt(Br_eval^2+Bz_eval^2);
+    
+    %With the field, the eq to solve is:
+    
+    dr_dphi=rzLU(1)*Br_eval/Bphi_eval;
+    dz_dphi=rzLU(1)*Bz_eval/Bphi_eval;
+    length=rzLU(1)*sqrt(Bphi_eval^2+Bpol_eval^2)/Bphi_eval;
+    U_Vloop=1/(2*pi*rzLU(1)); %pseudo potential U/V_loop
+    
+    results=zeros(4,1); %column vector to group the results
+    results(1)=dr_dphi;
+    results(2)=dz_dphi;
+    results(3)=length;
+    results(4)=U_Vloop;
+    
+  end	
+    
+%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%@@@@@@Event function for the ode@@@@
+%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   %Only one function can be introduced into ode, so this event has to have
+   %all the conditions
+   
+   function [rz_value isterminal direction]=Colission(phi,rzL,...
+       VesselRMaxPoint,VesselRMinPoint,VesselZMaxPoint,VesselZMinPoint,L_max) 
+   
+    global Rin_coils Rout_coils Zdown_coils Zup_coils %limits of coils inside VV
+   
+    %when rz_value is zero, stop the integration. There are two possibles
+    %coliisions, with the VV and with the coils
+   
+    %1) Wall colission
+   
+        %To implement the 4
+        %possible colission, we could do like the product of each, since when one of
+        %them is zero, the product will be zero, and also to define row vectors
+        %for isterminal, direction, and rz_value. Will do this second option
+      
+        up_colission=rzL(2)-VesselZMaxPoint;            %colission with upper wall
+        down_colission=rzL(2)-VesselZMinPoint;      %colission with lower vall
+        out_colission=rzL(1)-VesselRMaxPoint;           %colission with outer
+        in_colission=rzL(1)-VesselRMinPoint;            %colission with inner
+   
+        %Max condition of L, to stop the integration  
+        L_lim=rzL(3)-L_max;                                                  %[m] Maximum L value
+   
+        rz_value_VV=[up_colission down_colission out_colission in_colission L_lim];
+   
+        %Have checked that if I dont use the minR condition, it will impige 
+        %in the upper wall, which was was happens at the beggining, when
+        %I dont have the inner wall condition
+    
+    %2) Colission with the coils
+               Point=[rzL(1) rzL(2)]; %point of the line
+          for coo=1:length(Rin_coils)   %Iter for the coils
+            switch sign(Point(2)) %z><0
+                
+                case 1 %z>0
+                    rz_value_Coil(coo)= Point(1)>=Rin_coils(coo) & Point(1)<=Rout_coils(coo) & Point(2)>=Zdown_coils(coo) & Point(2)<=Zup_coils(coo); 
+                                    %this value is 0 if the point is inside
+                                    %the coil
+                                    
+                case -1        %z< 0
+                    rz_value_Coil(coo)= Point(1)>=Rin_coils(coo) & Point(1)<=Rout_coils(coo) & Point(2)<=-Zdown_coils(coo) & Point(2)>=-Zup_coils(coo); 
+                                    %this value is 0 if the point is inside
+                                    %the coil
+            end
+          end
+          
+          rz_value=[rz_value_VV rz_value_Coil]; %contain both conditions, VV and coils
+          isterminal=ones(1,length(rz_value));                   %to stop the integration
+          direction=zeros(1,length(rz_value));                    %to not worry about the sloop   
+        %works for coil colliding with lower PF2 (652)
+        %works for coil colliding with upper PF2 (672)
+        %Works for upper Div1(116)
+        %Works for colission with lower VV wall (472) ==>work correctly
+   end
+%}
+%%
+
+
