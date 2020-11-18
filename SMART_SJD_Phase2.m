@@ -19,7 +19,7 @@ close all
 %%%%%%%%%%
 
 %Add FIESTA trunk path, include path to any extra functions.
-FIESTATrunk = "~/Postdoc Seville/FIESTA/Source Code/FIESTA V8.8";
+FIESTATrunk = "~/Postdoc Seville/FIESTA/FIESTA Source/FIESTA V8.8";
 addpath(genpath(FIESTATrunk));
 %FunctionsLocal = "Functions";
 %FunctionsRemote = "../../Functions";
@@ -36,7 +36,7 @@ global colourmap; colourmap = Plasma();     %'Plasma()','Gamma_II()'
 FigExt = '.png';                            %'.png','.eps','.pdf'
 
 %Define project and series names
-ProjectName = 'S2-000017';		%Define global project name
+ProjectName = 'S2-000018';		%Define global project name
 SeriesName = 'Default';         %Define parameter scan series name
 
 %Create global output folders for saved data and figures
@@ -123,32 +123,38 @@ Z_Div2 = 0.700; %Z Position of Div2 (m)	%0.700m     (MINIMUM OF 890mm)         %
 
 %%%%%%%%%%%%%%%%%%%%%%  DEFINE INITIAL PARAMETERS  %%%%%%%%%%%%%%%%%%%%%%%%
 
-%Define any required constants
-global mu0; mu0 = 1.2566e-06;    % Magnetic Moment              [I/m^2]
-global BEarth; BEarth = 1.0E-4;  % Earth's B-Field (Def 5e-5)	[T]       
+%Define global constants
+global epsilon0; epsilon0 = 8.854E-12;      % Vacuum Permissability       [F m^-1]
+global mu0; mu0 = 1.2566e-06;               % Vacuum Permeability         [N/A^2] or [H/m]
+global e; e = 1.906e-19;                    % Fundamental Charge          [C]
+global mass_e; mass_e = 9.109E-31;          % Electron Mass               [kg]
+global kB; kB = 1.3806E-23;                 % Boltzmann's Constant        [m^2 kg s^-2 K-1]
+global eV_K; eV_K = 1/8.621738E-5;          % eV to Kelvin Conversion     [K/eV]
+global BEarth; BEarth = 1.0E-4;             % Earth's B-Field (Max limit) [T]
+
 
 %Define initial operating conditions (primarily used for Topeol2)
 Te = 250;			% Electron Temperature [eV]
 Ti = Te*0.30;		% Ion Temperature      [eV]
 BT = +0.3;			% Toroidal B-Field     [T] (Defined at Rgeo)
 Ip = +100e3;		% Plasma current       [A]
-RGeo = 0.420;		% Geometrical Radius   [m] (~0.420 - 0.480)
-ZGeo = 0.000;		% Geometrical Axis     [m] (~0.000)
-RSep = 0.700;		% Separatrix Radius    [m] (~0.700)
-rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.250)
+RGeo = 0.420;		% Geometrical Radius   [m] (~0.420 --> 0.480)
+ZGeo = 0.000;		% Geometrical Axis     [m] (=0.000)
+RSep = 0.700;		% Separatrix Radius    [m] (=0.700)
+rGeo = RSep-RGeo;	% Minor Radius         [m] (=0.250)
 Aspect = RGeo/rGeo;	% Aspect ratio         [-] (~1.850)
-Kappa = 1.80;		% Elongation           [-] (~1.800)
+Kappa = 1.80;		% Elongation           [-] (~1.70 --> 2.00)
 delta = 0.20;		% Triangularity        [-] (~0.200)
-li2 = 1;			% Inductance	       [-]
+li2 = 1;			% Inductance	       [-] (??????)
 
 %Compute further operating conditions (primarily used for Topeol2)
-Gr_Limit = 1e20*(Ip*1e-6/(pi*Kappa*rGeo^2));     % Greenwald Limit    [m-3]
-Gr_Frac = 0.70;                            % Greenwald Fraction       [-]
+Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2));     % Greenwald Limit          [m-3]
+Gr_Frac = 0.40;                            % Greenwald Fraction       [-]
 ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
-%deltaUp = (RGe-Rup)/a;                    % Upper-Triangularity      [-]
-%deltaLo = (RGe-Rlo)/a;                    % Lower-Triangularity      [-]
+%deltaUp = (ZGeo-Zup)/a;                   % Upper-Triangularity      [-]
+%deltaLo = (ZGeo-Zlo)/a;                   % Lower-Triangularity      [-]
 %delta = (deltaUp+deltaLo)/2.0;            % Triangularity            [-]
 %betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        % Normalised Beta          [%] 
 %betaT = (betaN/a*(Ip*1e-6))/BT;           % Beta toroidal            [%]
@@ -156,12 +162,12 @@ betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa;  % Beta Poloi
 BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);         % Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.420;					% Geometrical Radius	[m] (0.42 --> 0.48) ::
-ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000) ::
-Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
-rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
-Kappa_efit = 1.80;					% Elongation			[-] (Default 1.800) ::
-delta_efit = 0.00;					% Triangularity			[-] (-1.00 -> +0.00 -> +1.00) ::
+RGeo_efit = 0.420;					% Geometrical Radius	[m] (0.420 --> 0.480) ::
+ZGeo_efit = 0.000;					% Geometrical Axis		[m] (Default 0.000)   ::
+Aspect_efit = 1.85;                 % Aspect Ratio          [-] (Default 1.850)   :: RGeo/rGeo
+rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238)   :: RGeo/Aspect
+Kappa_efit = 1.80;					% Elongation			[-] (+1.70 -> +2.00)  :: (Zmax-Zmin)/2rGeo
+delta_efit = 0.00;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define feedback stability perturbations
@@ -177,13 +183,13 @@ coil_density = 1;                       % Relative Coil Density      [Arb]
 coil_temp = 293.0;                      % Initial Coil Temperature   [K]
 resistivity = InterpMaterialResistivity(coil_temp);
 
-%Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV) https://www.webelements.com/argon/atoms.html
-%H discharge, Z_eff increased to 2 to allow for impurities in the plasma (Carbon wall tiles)
-Z_eff = 2.0;                            % Effective Nuclear Charge      %[e-]
-%Calculate perpendicular and parallel plasma resistivity using Spitzer model
-Lambda=(12*pi*((8.854E-12*1.6E-19*Te)^3/(ne*(1.6E-19)^6))^(1/2));
-PlasmaResistPerp=(0.74*1.65E-9*Z_eff*log(Lambda))/((Te*1E-3)^(3/2));    %[Ohms]
-PlasmaResistPara=PlasmaResistPerp/1.96;                                 %[Ohms]
+%Compute parallel and perpendicular plasma resistivities employing Spitzer model with impurities
+%Typical values: H=1, He=2, Ar=11.85 (Te < 280eV) https://www.webelements.com/argon/atoms.html
+%H discharge: Z_eff = 2 allowing for Carbon impurities in the plasma (Wall tiles)
+Z_eff = 2.0;                                            %[e-]
+[EtaPerp,EtaPara] = SpitzerResistivity(ne,Te,Z_eff);    %[Ohm m^-1]
+PlasmaResistPerp = EtaPerp*(2*pi*RGeo);                 %[Ohm]
+PlasmaResistPara = EtaPara*(2*pi*RGeo);                 %[Ohm]
 
 %Define null field region (sensor_btheta) radius
 R_Null = 0.15;                      	% Null field region radius      %[m]
@@ -210,16 +216,16 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %%%%%%%
                                     %TauR1=15ms  %TauR1=15ms    %TauR1=15ms
                                     %RGeo=0.42   %RGeo=0.42     %RGeo=0.475
-%Solenoid coil currents [kA]		%Phase2      %Phase2NegTri  %Phase2PosTri
+%Solenoid coil currents [kA]		%Phase2      %Phase2-d      %Phase2+d
 I_Sol_Null=+4000;					%+4000;      %+4500;        %+5000;
 I_Sol_MidRamp=+0000;				%+0000;      %+0000;        %+0000;
-I_Sol_Equil=-0300;                  %-0300;      %-0800;        %-0800;
-I_Sol_EndEquil=-0700;           	%-0700;      %-1200;        %-1200;
+I_Sol_Equil=-0600;                  %-0600;      %-0900;        %-1500;
+I_Sol_EndEquil=-2200;           	%-2200;      %-2400;        %-3000;
 
 %PF coil currents (At Equilibrium, time(4,5,6))
 I_PF1_Equil=-1100;					%-1100;      %-1100;        %-1100;
-I_PF2_Equil=-1100;					%-1100;      %-1100;        %-1100;     (NEG FOR +delta, POS FOR -delta) 
-I_Div1_Equil=+1000;					%+1000;      %-3500;        %+2500;     (HIGH FOR +delta, LOW FOR -delta)
+I_PF2_Equil=-1100;					%-1100;      %-1100;        %-1100;
+I_Div1_Equil=+1000;					%+1000;      %-3500;        %+2500;     (Pos for +d, Neg for -d)
 I_Div2_Equil=+0000;                 %+0000;      %+0000;        %+0000;
 
 %Define number of time-steps (vertices) in the current waveforms
@@ -279,7 +285,7 @@ disp([ 'Shaping Factor = ' num2str(S) ' [-]' ]);
 
 disp([ ' ' ]);
 disp([ '%===== Initial Coil Currents =====%' ]);
-disp([ 'I_Sol_PrePulse = ' num2str(I_Sol_Null/1000) ' [kA]' ]);
+disp([ 'I_Sol_Null = ' num2str(I_Sol_Null/1000) ' [kA]' ]);
 disp([ 'I_Sol_MidRamp = ' num2str(I_Sol_MidRamp/1000) ' [kA] ']);
 disp([ 'I_Sol_Equil = ' num2str(I_Sol_Equil/1000) ' [kA]' ]);
 disp([ ' ' ]);
@@ -883,15 +889,17 @@ close('all')
 close all
 
 %Apply alterations to efit CoilWaveforms to increase simulation stability
+%Most crahses arise from LCFS in solenoid - findboundary.m function contains rules for LCFS selection
 CoilWaveforms(:,TimeIndex_Discharge) = CoilWaveforms_Init(:,TimeIndex_Discharge);   %Initial discharge guesses are more stable
-CoilWaveforms(iDiv1,TimeIndex_Discharge) = I_Div1_Equil;                            %Slightly increase IDiv1 and retry if required
+%CoilWaveforms(iDiv1,TimeIndex_Discharge) = I_Div1_Equil;                           %Diagnosis: try increasing IDiv1 and retry
+%CoilWaveforms(iSol,TimeIndex_Discharge) = I_Sol_Equil;                             %Diagnosis: try decreasing ISol and retry
 
 %Compute equilibrium (Psi(R,Z)) from the supplied jprofile, icoil and geometry
 %Returns target equilibrium and CoilWaveforms for PF1 and PF2 at requested time_Index
 if isa(coilset,'fiesta_loadassembly') == 0; coilset = fiesta_loadassembly(coilset, vessel); end
 [Equil_Passive,EquilParams_Passive,CoilWaveforms_Passive,efitGeometry_Passive,config_passive] = ...
     efit(jprofile,Irod,'nullconfig',efitGeometry_Init,CoilWaveforms,VesselEddyCurrents,TimeIndex_Discharge);
-%NOTE :: PERHAPS REPLACE CoilWaveforms WITH CoilWaveforms_Init TO REPLACE NAN NULL-FIELD VALUES FOR NullFieldWaveforms FUNCTION?
+%NOTE :: NEED TO REPLACE NAN NULL-FIELD VALUES FOR APPROPRIATE COILS IN COILWAVEFORMS IF EDDY LOOP IS EMPLOYED
 
 %Save discharge coil currents for all coils at TimeIndex_Discharge
 CoilCurrentsEfit_Passive = transpose(CoilWaveforms_Passive(:,TimeIndex_Discharge));
@@ -1004,9 +1012,6 @@ Filename = '_TargetEquilibrium_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({Equil_Passive},Title,CbarLabel,SaveString);
 
-CoilCurrentsEfit(1:nPF)
-CoilCurrentsEfit_Passive(1:nPF)
-
 %%%%%%%%%%%%%%%%%%%%  PLOT NULL-FIELD PHI SURFACES  %%%%%%%%%%%%%%%%%%%%%
 
 %Plot the optimised null-field phi
@@ -1015,9 +1020,6 @@ CbarLabel = 'Flux Surface Function \Psi(R,Z)';
 Filename = '_NullPhi_Passive';
 SaveString = strcat(ProjectName,Filename,FigExt);
 PlotEquilibrium({Equil_Null_Passive},Title,CbarLabel,SaveString);
-
-CoilCurrentsNull(1:nPF)
-CoilCurrentsNull_Passive(1:nPF)
 
 %%%%%%%%%%%%%%%%%%%%%% PLOT NULL-FIELD BPOL  %%%%%%%%%%%%%%%%%%%%%
 
@@ -1247,8 +1249,8 @@ fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', [time_adaptive'*1000, VloopArr
 
 Filename = strcat(ASCIIDir,'Eta.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'Eta_Perp [Ohm]', 'Eta_Para [Ohm]');
-fprintf(fileID,'%1.12f %1.12f\r\n', PlasmaResistPerp', PlasmaResistPara');
+fprintf(fileID,'%s %s\r\n', 'EtaPerp [Ohm m-1]', 'EtaPara [Ohm m-1]');
+fprintf(fileID,'%1.12f %1.12f\r\n', EtaPerp', EtaPara');
 
 Filename = strcat(ASCIIDir,'Bpol.txt');
 fileID=fopen(Filename,'w');
@@ -1839,6 +1841,44 @@ function [x,dx] = divideIntoIntervals(xi,xf,n)
 	x = linspace(xi,xf,2*n+1);
 	dx = x(3)-x(1);
 	x = x(2:2:end);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function [EtaPerp,EtaPara] = SpitzerResistivity(ne,Te,Z_eff)
+%   Calculates perpendicular and parallel Spitzer Resistivities including effective nuclear charge
+%   Citation from: "Self-consistent equilibrium calculation", see definition below eq. 22
+%   http://dx.doi.org/10.1088/0741-3335/42/12/304
+%   Definitions:
+%       ne      :: Electron density             [m^-3]
+%       Te      :: Electron temperature         [eV]
+%       Z_eff   :: Effective Nuclear Charge     [e-]
+%       EtaPerp :: Perpendicular Resistivity    [Ohm m^-1]
+%       EtaPara :: Parallel Resistivity         [Ohm m^-1]
+
+    %Inport any required global variables
+    global e; global mass_e;
+    global epsilon0;
+
+    %Compute Electron-ion and Electron-Electron Colomb Logarithms
+    Lambda_ee = 23.5-log(sqrt(ne)*Te^(-5/4)-sqrt(1e-5+log(Te)-2)^2/16);
+    Lambda_ei = 24.0-log(sqrt(ne)*Te^(-1));
+    
+    %Compute Relative Resistivity Coefficient from Nuclear Charge
+    FZeff = (1.000+1.198*Z_eff+0.222*Z_eff^2)/(1.000+2.966*Z_eff*0.753*Z_eff^2);
+
+    %Compute electron average thermal velocity
+    Vth = sqrt(2*e*Te/mass_e);                          %[m s^-1]
+
+    %Compute average electron-electron and electron ion scattering timescales
+    %Source, National Plasma Formulary page 32-33
+    tau_ee = 12*(pi^(3/2))*(epsilon0^2)*(mass_e^2)*(Vth^3)/(4*ne*(e^4)*Lambda_ee);
+    tau_ei = 12*(pi^(3/2))*(epsilon0^2)*(mass_e^2)*(Vth^3)/(4*ne*(e^4)*Lambda_ei);
+
+    %Compute Perpendicular and parallel Spitzer resistivities
+    EtaPerp = (Z_eff*mass_e)/(ne*e^2*tau_ee);            %[Ohm m^-1]
+    EtaPara = EtaPerp*FZeff;                             %[Ohm m^-1]
 end
 
 
@@ -2738,7 +2778,7 @@ end
 
 %% 
 %%%%%%%%%%%   L calc by field line integration    %%%%%%%%%%%
-%{ 
+%{
          %Lazarus paper 1998, they compute connective length by avergaing on
             %9 lines, the line with Bpol min, and the 8 surroundings. 
          %However can compute the lines in all the VV
