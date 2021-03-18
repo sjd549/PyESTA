@@ -341,7 +341,7 @@ CoilWaveforms = [ISol_Waveform, IPF1_Waveform, IPF2_Waveform, IDiv1_Waveform, ID
 
 #Define FIESTA namelist and project directory names
 FIESTAName = 'SMART_SJD_Phase2.m'	#Define name of FIESTA MatLab script
-ProjectName = 'S1-000019'			#Define Global Project Name (Baseline Equilibrium)
+ProjectName = 'S3-000004'			#Define Global Project Name (Baseline Equilibrium)
 SeriesName = 'Vary Phase' #'auto'	#Parameter scan series name ('auto' for automatic)
 
 #Define simulation name structure
@@ -369,8 +369,8 @@ PaschenPressure = [1E-7,1E-2]		#Operating pressure range in Torr [Min,Max]
 
 #Requested diagnostics and plotting routines.
 savefig_1DEquilProfiles = False		#Plots 1D profiles through equilibrium midplane		#TO DO!!!
-savefig_2DEquilPlots = True			#Plots 2D images of the target equilibria
-savefig_EquilTrends = False			#Plots efit equilibrium geometry trends from Param(equil)
+savefig_2DEquilPlots = False		#Plots 2D images of the target equilibria
+savefig_EquilTrends = True			#Plots efit equilibrium geometry trends from Param(equil)
 
 savefig_CoilCurrentTrends = False	#Plots trends in PF coil currents over all simulations
 savefig_CoilVoltageTrends = False	#Plots trends in PF coil voltages over all simulations
