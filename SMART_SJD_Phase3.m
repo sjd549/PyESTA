@@ -372,7 +372,7 @@ if DivertorConfig == 'USN'
     CoilWaveforms = [ISol_Waveform; ...
         IPF1_Waveform; IPF1_Waveform; ...           %Upper PF11; Lower PF12
         IPF2_Waveform; IPF2_Waveform; ...           %Upper PF21; Lower PF22
-        IDiv1_Waveform; [0,0,0,0,0,0,0]; ...        %Upper Div11; Lower Div12           %0.25.*IDiv1_Waveform
+        IDiv1_Waveform; [0,NaN,NaN,NaN,0,0,0]; ...  %Upper Div11; Lower Div12           %0.25.*IDiv1_Waveform
         IDiv2_Waveform];
     efitCoils = {'PF11','PF12','PF21','PF22'};
     
@@ -393,7 +393,7 @@ elseif DivertorConfig == 'LSN'
     CoilWaveforms = [ISol_Waveform; ...
         IPF1_Waveform; IPF1_Waveform; ...               %Upper PF11; Lower PF12
         IPF2_Waveform; IPF2_Waveform; ...               %Upper PF21; Lower PF22
-        [0,0,0,0,0,0,0]; IDiv1_Waveform; ...            %Upper Div11; Lower Div12        %0.25.*IDiv1_Waveform
+        [0,NaN,NaN,NaN,0,0,0]; IDiv1_Waveform; ...      %Upper Div11; Lower Div12        %0.25.*IDiv1_Waveform
         IDiv2_Waveform];
     efitCoils = {'PF11','PF12','PF21','PF22'};
     
@@ -427,8 +427,7 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%% TO DO %%%
 
-%%%   FIX efit_coils CHOICE FOR USN AND LSN
-%%%   FIX THE NULL-FIELD LOCATION, NEEDS TO BE DYNAMIC FOR USN AND LSN
+%%%   CLEAN efit_coils SMART-CHOICE FOR USN AND LSN
 %%%   CLEAN THE COIL INTEGER NAMING (ISOL=1, IPF1=2, etc...) AS ONLY APPLIES TO DSN CASE
 
 %%%   FINISH COMMENTS ON ALL FUNCTIONS
@@ -873,6 +872,9 @@ CoilCurrentsPert = get(icoil_pert,'currents');
 %Obtain the Real Vertical Growth Rate from RZIp, there should only be one positive rate
 %i.e. Gamma = eig(-curlyM\curlyR), sort for positive value(s) and save.
 if length(Gamma(Gamma>0)) > 0; Gamma_Real = Gamma(Gamma>0); else Gamma_Real = 0; end     %[s-1]
+
+%Extract perturbed discharge B-fields - In particular Bz - to determine stability curvature
+[BrData_Equil,BzData_Equil,BPhiData_Equil,BpolData_Equil,BtorData_Equil] = ExtractBField(Equil);
 
 %If feedback fails, overwrite with default equilibrium. 
 %NOTE: Vertical control and feedback not yet implimented.

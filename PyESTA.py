@@ -113,11 +113,18 @@ ConvDelay = 10	#[s]		#Delay between convergence checks for race condition
 
 
 
+
+
+
+
+
+
+
 #====================================================================#
-					  	#PyESTA NAMELIST FILE#
 #====================================================================#
 
 #Commonly Used Settings:
+
 #### SMART_V3Phase1 ####
 #betaT    = 0.1000		#[%]
 #betaP    = 0.4578		#[%]
@@ -145,221 +152,12 @@ ConvDelay = 10	#[s]		#Delay between convergence checks for race condition
 #B0       = 1.00		#[T]  (0.09 [T] in vacuo)
 #TauPulse = 0.500		#[s]  (Timestep for pulse)
 
-#######################  DEFINE VESSEL GEOMETRY  #######################
-
-#Define global scaling factors
-RScaleVessel=1.00    #Scale all radial vessel dimensions (Relative to 2.0m)
-ZScaleVessel=0.80    #Scale all axial vessel dimensions (Relative to 2.0m)
-RScaleCoil=1.00      #Scale all radial coil positions (Relative to 2.0m)
-ZScaleCoil=0.80      #Scale all axial coil positions (Relative to 2.0m)
-
-#Define Vessel Outer Geometry
-VesselRInnerPoint=0.15*RScaleVessel	# R min position [m]
-VesselROuterPoint=0.8*RScaleVessel	# R max position [m]
-VesselZMinPoint=-1.0*ZScaleVessel	# Z min position [m]
-VesselZMaxPoint=1.0*ZScaleVessel	# Z max position [m]
-
-#Define Solenoid Geometry and Parameters
-nSol=210;     # Solenoid Central Windings  [-]	   	#nSol=210,800
-RSol=0.13;    # R position of the solenoid [m]      #RSol=0.13,0.09
-ZMinSol=-1.0*ZScaleVessel # Min Z position
-ZMaxSol=1.0*ZScaleVessel  # Max Z position
-
-#Number of Radial (R) and axial (Z) coil windings
-nZDiv1=6
-nRDiv1=4
-nZDiv2=6
-nRDiv2=4
-nZPF2=6
-nRPF2=4
-nZPF3=6
-nRPF3=4
-
-#Define coil turn dimensions to enable cross-section calculation
-width_PF=0.042  # Width of a turn (m)
-height_PF=0.035 # Height of a turn (m)
-
-#Define central location of coil sets
-R_PF1 = 0.938  #R position of PF1 (m)	%0.938m     (MINIMUM OF 938mm)
-Z_PF1 = 0.200  #Z Position of PF1 (m)	%0.300m     (MINIMUM OF 308mm)
-R_PF2 = 0.700  #R Position of PF2 (m)	%0.938m     (MINIMUM OF 938mm)
-Z_PF2 = 0.600  #Z Position of PF2 (m)	%0.600m     (MINIMUM OF 608mm)
-R_Div1 = 0.250 #R Position of Div1 (m)	%0.250m     (MINIMUM OF 236mm)
-Z_Div1 = 0.900 #Z Position of Div1 (m)	%0.900m     (MINIMUM OF 890mm)
-R_Div2 = 0.500 #R Position of Div2 (m)	%0.500m     (MINIMUM OF 458mm)
-Z_Div2 = 0.900 #Z Position of Div2 (m)	%0.900m     (MINIMUM OF 890mm)
-
-#######################  DEFINE INITIAL PARAMETERS  #######################
-
-#Define any required constants
-mu0 = 1.2566e-06 # Magnetic Moment      [I/m^2]
-
-#Define Operating Conditions
-Te = 250         # Electron Temperature [eV]
-Ti = Te*0.1      # Ion Temperature      [eV]
-BT = 0.1         # Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = 30e3        # Plasma current       [A]
-RGeo = 0.450     # Geometrical Radius   [m]
-ZGeo = 0.000     # Geometrical Axis     [m]
-RSep = 0.700     # Separatrix Radius    [m]
-a = RSep-RGeo    # Minor Radius         [m] (~0.25)
-A = RGeo/a       # Aspect ratio         [-] (~1.8)
-Kappa = 1.8      # Elongation           [-]
-delta = 0.20     # Triangularity        [-] (~0.2)
-li2 = 1          # Standard Value?      [-]
-#q_cyl = 2.821   # Safety Factor?       [-]
-#betaN = 3.529   # Normalised Beta      [%] (Obtained via VEST Excel - (2X TOO HIGH)
-
-#Define efit Equilibrium Operating Conditions
-RGeo_efit = 0.440					# Geometrical Radius	[m] (Default 0.440) ::
-ZGeo_efit = 0.000					# Geometrical Axis		[m] (Default 0.000) ::
-Aspect_efit = 1.85					# Aspect Ratio          [-] (Default 1.850) :: RGeo/rGeo
-rGeo_efit = RGeo_efit/Aspect_efit  	# Minor Radius	        [m] (Default 0.238) :: RGeo/Aspect
-Kappa_efit = 1.80					# Elongation			[-] (Default 1.800) ::
-delta_efit = 0.20					# Triangularity			[-] (-2.00-> +0.20) ::
-efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit]
-
-#Define feedback stability perturbations
-deltaRGeo = 0.01;	# Small radial perturbation         [m]
-deltaZGeo = 0.00;	# Small axial perturbation          [m]
-deltaAspect = 0.00;	# Small aspect ratio perturbation   [-]
-deltaKappa = 0.00;	# Small elongation perturbation     [-]
-deltadelta = 0.00;	# Small triangiularity perturbation [-]
-
-#Compute Further Operating Conditions
-Gr_Limit = 1e20*(Ip*1e-6/(pi*a**2*Kappa))  # Greenwald Limit          [m-3]
-Gr_Frac = 0.15                             # Greenwald Fraction       [-]
-ne = Gr_Limit*Gr_Frac                      # Electron Density         [m-3]  ~3E19
-Irod = BT*2*pi*RGeo/mu0                    # Central Rod Current      [A]
-S = sqrt( (1.0+Kappa**2)/2.0 )             # Shaping factor           [-]
-#deltaUp = (RGe-Rup)/a                     # Upper-Triangularity      [-]
-#deltaLo = (RGe-Rlo)/a                     # Lower-Triangularity      [-]
-#delta = (deltaUp+deltaLo)/2.0             # Triangularity            [-]
-#betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        # Normalised Beta          [%] 
-#betaT = (betaN/a*(Ip*1e-6))/BT            # Beta toroidal            [%]
-betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*a))**2*2*mu0*1.6e-19*Kappa  # Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*A)+betaP+0.5*li2-3/2)      		 # Vertical field [T]
-
-#Coil density, temperature and resistivity
-coil_density = 1						# Relative Coil Density      [Arb]
-coil_temp = 293.0						# Initial Coil Temperature   [K]
-
-#Gas species analouge - H=1, He=2, Ar=11.85 (for Te < 280eV) https://www.webelements.com/argon/atoms.html
-#H discharge, Z_eff increased to 2 to allow for impurities in the plasma (Carbon wall tiles)
-Z_eff=2.0								# Effective Nuclear Charge   [e-]
-
-#Null field region radius, specifies Sensor_btheta radius
-a_eff=0.10;								# Null field region radius	 [m]
-
-
-###################  DEFINE SOL RAMP & COIL CURRENTS  ###################
-
-#Notes:
-#Negative coil currents attract the plasma, positive repel the plasma
-#Symmetric Solenoid PrePulse and Equil currents aid power supply stability
-
-#Solenoid coil currents [kA]		#Phase1		#Phase2
-I_Sol_Null=+2650					#+0750;		#+2200
-I_Sol_MidRamp='Linear'				#Dynamic    #Dynamic
-I_Sol_Equil=-I_Sol_Null				#-750; 	    #-2900
-I_Sol_EndEquil=-3000				#-725;	    #-2900
-
-#PF coil currents (At Equilibrium, time(4,5,6))
-I_PF1_Equil=-1100;					#-500;		#-1100
-I_PF2_Equil=-1100;					#-500;		#-1700
-I_Div1_Equil=+000;					#ISol;		#+0000
-I_Div2_Equil=+2800;					#+900;		#+3300
-
-#Define number of time-steps (vertices) in the current waveforms
-nTime = 7			# Coil Waveform Timesteps	[-]
-TauB = 0.015		# Buffer Timescale     		[s] Determines tstep for Ip plot
-TauR = 0.050		# Ramp Timescale       		[s]
-TauP = 0.100		# Pulse Timescale      		[s]
-#Time   [Init      PrePulse  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ]
-time =  [-4*TauB,  -2*TauB,  0.0,          TauR/2.0,    TauR,        TauR+TauP,   TauR+TauP+(2*TauB)]
-
-#Construct Sol, PF/Div coil current waveforms vertices
-#											  #!Breakdown!	 #!Efit Icoil!
-#Time   	     [1, 2,           3,          4,             5,             6,              7];
-ISol_Waveform =  [0,  I_Sol_Null, I_Sol_Null, I_Sol_MidRamp, I_Sol_Equil, 	I_Sol_EndEquil, 0]
-IPF1_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF1_Equil,   I_PF1_Equil,    0]
-IPF2_Waveform =  [0,  NaN,        NaN,        NaN,           I_PF2_Equil,   I_PF2_Equil,    0]
-IDiv1_Waveform = ISol_Waveform; 	#IDiv1 in Series with Solenoid
-IDiv2_Waveform = [0,  NaN,        NaN,        NaN,           I_Div2_Equil,  I_Div2_Equil,   0]
-#####
-CoilWaveforms = [ISol_Waveform, IPF1_Waveform, IPF2_Waveform, IDiv1_Waveform, IDiv2_Waveform]
-
-#====================================================================#
-#====================================================================#
-
-
-
-
-
 #====================================================================#
 					  #SWITCHBOARD AND SETTINGS#
 #====================================================================#
 
-#Vessel and Coil Geometry Ranges
-#'R_Div1' [x/100.0 for x in range(12,31,2)]
-#'R_Div2' [x/100.0 for x in range(30,61,2)]
-#'Z_PF1' [x/100.0 for x in range(00,81,2)]
-#'Z_PF2' [x/100.0 for x in range(00,81,2)]
-
-#Common General Parameter Ranges
-#'Ip' [x for x in range(20000,40000,2000)]
-#'Gr_Frac' [x/100.0 for x in range(9,26,3)]
-#'Te' [x for x in range(50,251,50)]
-#'Z_eff' [1.0,2.0,11.85]	#H, H2, Ar8+  (Old Resistivity ~34)
-#'BPolEarth' [x/100000.0 for x in range(1,11,2.5)]
-
-#Common Coil Current Ranges
-#'I_Sol_Null' [x for x in range(500,1001,100)]
-#'I_Sol_Equil' [-x for x in range(200,851,50)]
-#'I_Sol_EndEquil' [-x for x in range(700,951,25)]
-#'I_PF1' [-x for x in range(450,651,25)]
-#'I_PF2' [-x for x in range(450,651,25)]
-#'I_Div1' [x for x in range(000,1501,100)]
-#'I_Div2' [x for x in range(800,1151,50)]
-
-#Coil Pulse Ranges
-#'TauR' [x/1000.0 for x in range(20,61,5)]
-#'TauP' [x/1000.0 for x in range(20,41,5)]
-
-#Equilibrium Stability Ranges
-#'deltaZGeo' #[x/100.0 for x in range(0,21,2)]
-#'deltaRGeo' #[x/100.0 for x in range(0,21,2)]
-
-#Common Efit Geometry Ranges
-#'RGeo_efit' [x/100.0 for x in range(40,50,2)]
-#'ZGeo_efit' [x/100.0 for x in range(0,0,1)]
-#'a_efit' [x/10.0 for x in range(10,20,1)]
-#'Kappa_efit' [x/100.0 for x in range(170,271,10)]
-#'delta_efit' [-x/10.0 for x in range(0,31,2)], [x/10.0 for x in range(0,16,1)]
-
-########################################
-
-#Define FIESTA namelist and project directory names
-FIESTAName = 'SMART_SJD_Phase2.m'	#Define name of FIESTA MatLab script
-ProjectName = 'S3-000004'			#Define Global Project Name (Baseline Equilibrium)
-SeriesName = 'Vary Phase' #'auto'	#Parameter scan series name ('auto' for automatic)
-
-#Define simulation name structure
-SimNameList = ['R_PF2','Z_PF2','R_PF1','Z_PF1','I_Div2_Equil','delta_efit']
-
-#Define if simulations are to be run
-IAutorun = False		#Run requested simulation series
-IParallel = False		#Enable mutli-simulations in parallel
-IVerbose = True			#Verbose terminal output - not compatable with IParallel
-
-#Define paramters to be varied and ranges to be varied over
-ParameterVaried = 'Phase'	#Define parameter to vary - Required for diagnostics
-ParameterRange = []			#Define paramter range to vary over
-
-
-########################################
-#### 	  	 DIAGNOSTICS 		   #####
-########################################
+#Requested simulation series:
+SeriesDirString = "S3-000005"
 
 #Requested Equil Variables
 TrendAxisVariables=''				#Force trend figures to use different variable		[BREAKS!!!]
@@ -370,9 +168,9 @@ PaschenPressure = [1E-7,1E-2]		#Operating pressure range in Torr [Min,Max]
 #Requested diagnostics and plotting routines.
 savefig_1DEquilProfiles = False		#Plots 1D profiles through equilibrium midplane		#TO DO!!!
 savefig_2DEquilPlots = False		#Plots 2D images of the target equilibria
-savefig_EquilTrends = True			#Plots efit equilibrium geometry trends from Param(equil)
+savefig_EquilTrends = False			#Plots efit equilibrium geometry trends from Param(equil)
 
-savefig_CoilCurrentTrends = False	#Plots trends in PF coil currents over all simulations
+savefig_CoilCurrentTrends = True	#Plots trends in PF coil currents over all simulations
 savefig_CoilVoltageTrends = False	#Plots trends in PF coil voltages over all simulations
 savefig_PlasmaCurrent = False		#Plots plasma current trends over all simulations
 savefig_EddyCurrent = False			#Plots vessel net eddy current trends over all simulations
@@ -482,152 +280,6 @@ def Matplotlib_GlobalOptions():
 	return()
 #enddef
 Matplotlib_GlobalOptions()	#MUST BE RUN BEFORE ANY DIAGNOSTICS!!!!
-
-#=========================#
-
-#Checks for any running process that contain given name ProcessName.
-#Takes process name string input (same as process name in top or htop)
-#Returns boolian, true if process is found, false if not
-#By default returns false to allow for softcrash.
-#Example: Bool = CheckIfProcessRunning('MATLAB')
-def CheckIfProcessRunning(QueriedProcess,Bool=False):
-
-	#Initiate required lists
-	ProcessIDList,ProcessNameList = list(),list()
-
-	#Call for all processes in 'top, htop' format and check if exists
-	ProcessCall = ['ps','-A']
-	Processes = subprocess.check_output(ProcessCall)
-	Processes = Processes.split('\n')
-
-	#Split processes into ID and name, and compile lists for later use
-	for i in range(0,len(Processes)):
-		#Check if ProcessID is first or 2nd entry and save
-		try: ProcessIDList.append( float(Processes[i].split(' ')[0]) )
-		except:
-			try: ProcessIDList.append( Processes[i].split(' ')[1] )
-			except: ProcessIDList.append( np.nan )
-		#endtry
-
-		#ProcessName is final entry in 'top' format
-		ProcessNameList.append( Processes[i].split(' ')[-1] )
-	#endfor
-
-	#Check if process in ProcessNamelist
-	for i in range(0,len(ProcessNameList)):
-		if ProcessNameList[i] == QueriedProcess:
-			Bool = True
-			break
-		#endif
-	#endfor
-
-	return(Bool)
-#enddef
-
-#=========================#
-
-
-#Constructs and executes matlab command to run FIESTA
-#Takes FIESTA .m file name and returns nothing
-#Example: RunFIESTA('FIESTA.m')
-def RunFIESTA(FIESTAName,Verbose=False,Parallel=False):
-
-	#Print parallel verbosity warning
-	if Verbose == True and Parallel == True:
-		print ''
-		print 'Warning! Parallel operation not compatable with verbose output'
-		print '                 Setting Parallel = False                     '
-		print ''
-		Parallel = False
-	#endif
-
-	#Construct terminal command to run requested version of FIESTA
-	#Example: matlab -nodisplay -nosplash -nodesktop -r "run('/path/to/FIESTA_Script');exit;"
-	FIESTA_RootDir = os.getcwd()+'/'+FIESTAName
-	FIESTA_Splash = '-nodisplay -nosplash -nodesktop -r '
-	FIESTA_RunCMD = '\"run(\''+FIESTA_RootDir+'\');exit;\"'
-	if Verbose == True or IDebugMode == True:	 FIESTA_Output = ''
-	elif Verbose == False and Parallel == False: FIESTA_Output = ' > Conv.txt'
-	elif Verbose == False and Parallel == True:  FIESTA_Output = ' > Conv.txt &'
-	#####
-	ExecuteFIESTA = 'matlab '+FIESTA_Splash+FIESTA_RunCMD+FIESTA_Output
-
-	#Execute FIESTA script in terminal
-	os.system( ExecuteFIESTA )
-
-	return()
-#enddef
-
-#=========================#
-
-#Takes namelist directory and namelist variable
-#Locates namelist entry for variable and returns value
-#Example: Value,Entry = AlterNamelistVariable(FIESTAName,ParameterVaried)
-def FindNamelistVariable(Namelist_Dir,ParameterVaried):
-
-	#Open namelist file and identify the requested variable name, line index and init value
-	Namelist = open(Namelist_Dir).readlines()
-	NamelistEntry = filter(lambda x:ParameterVaried in x, Namelist)[0]
-	NamelistIndex = Namelist.index(NamelistEntry)
-	try: NamelistValue = float(NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,='))
-	except: NamelistValue = NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,=')
-
-	return(NamelistValue,NamelistEntry)
-#enddef
-
-#=========================#
-
-#Takes namelist directory and namelist variable and value
-#Locates namelist entry for variable and alters to new value
-#Returns modified namelist entry for sanity checking purposes
-#WARNING -- DOESN'T APPEAR TO WORK FOR STATEMENTS INSIDE INDENTED LOOPS!!!
-#Example: Init,Entry = AlterNamelistVariable(FIESTAName,ParameterVaried,VariableValue)
-def AlterNamelistVariable(Namelist_Dir,ParameterVaried,VariableValue,Header=False):
-
-	#Open namelist file and identify the requested variable name, line index and init value
-	Namelist = open(Namelist_Dir).readlines()
-
-	#Set header index if it is to be accounted for, else set header index to zero.
-	if Header == True:
-		HeaderString = 'DEFINE REACTOR GEOMETRY'
-		HeaderLine = filter(lambda x:HeaderString in x, Namelist)[0]
-		HeaderIndex = Namelist.index(HeaderLine)
-	else:
-		HeaderIndex = 0
-	#endif
-
-	#Find requested variable in namelist, extract index and value
-	NamelistMatches = filter(lambda x:ParameterVaried in x, Namelist[HeaderIndex::])
-	for i in range(0,len(NamelistMatches)):
-		if '%' not in NamelistMatches[i][0:3]:			
-			#Take first entry that isn't a comment - Little dodgy... but can't think of better way.
-			NamelistEntry = filter(lambda x:ParameterVaried in x, Namelist[HeaderIndex::])[i]
-			break
-		#endif
-	#endfor
-	NamelistIndex = Namelist.index(NamelistEntry)
-	#Convert value into float if possible, otherwise keep as string
-	try: NamelistValue = float(NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,='))
-	except: NamelistValue = NamelistEntry.partition(';')[0].strip(ParameterVaried+' \t\n\r,=')
-
-	#Seperate variable string into 5 sub-strings of order: 'Variable,Sep2,Value,Sep,Comment'
-	#Assumes single value input terminated by a semi-colon - allows for and retains comments
-	Input, Sep, Comment = NamelistEntry.partition(';')
-	Variable, Sep2, InitValue = Input.partition('=')
-	AlteredNamelistValue = str(VariableValue)
-	#Reconstruct the altered namelist entry with updated init value
-	AlteredNamelistEntry = Variable+Sep2+AlteredNamelistValue+Sep+Comment
-
-	#Replace namelist entry with altered namelist entry
-	Namelist[NamelistIndex] = AlteredNamelistEntry
-
-	#Write reconfigured namelist back into Namelist_Dir
-	with open(Namelist_Dir, 'w') as file:
-		file.writelines( Namelist )
-	#endwith
-
-	return(AlteredNamelistEntry)
-#enddef
 
 #=========================#
 
@@ -760,7 +412,7 @@ def ExtractFIESTAData(SeriesSubDirs,DataFilename,Dimension='2D',Orientation='Ver
 	#For all simulation directories in the requested simulation series
 	for i in range(0,len(SeriesSubDirs)):
 		#cd into the relevent directory and extract the data
-		os.chdir(SeriesSubDirs[i]+'/RawData/')
+		os.chdir(SeriesSubDirs[i])
 		#GlobalDataArray organized as [Folder][Variable][Value]
 		GlobalDataArrays.append(ReadDataFromFile(DataFilename,Dimension,Orientation))
 	#endfor
@@ -1185,9 +837,6 @@ print '---------------------------------------------------------------------'
 print ''
 print 'The following diagnostics were requested:'
 print '-----------------------------------------'
-if IAutorun == True:
-	print'# Simulation Series Autorun'
-	print''
 if True in [savefig_2DEquilPlots,savefig_EquilTrends]:
 	print'# 2D Equilibrium Analysis'
 if True in [savefig_PlasmaCurrent,savefig_EddyCurrent]:
@@ -1204,119 +853,9 @@ print ''
 
 
 
-#====================================================================#
-					  #FIESTA AUTORUN ROUTINE#
-#====================================================================#
-
-#Auto generate series folder name if requested
-if SeriesName == 'auto': SeriesName = 'Vary '+ParameterVaried
-elif SeriesName != 'auto': SeriesDirString = SeriesName
-
-#Autorun simulations over defined paramter range if requested
-if IAutorun == True:
-
-	#Create simulation series folder and obtain folder directories
-	HomeDir = os.getcwd()
-	SeriesDirString = '/'+ProjectName+' '+SeriesName+'/'
-	SeriesDir = CreateNewFolder(HomeDir,SeriesDirString)
-
-	#Ensure varied parameter appears first in SimulationName
-	SimNameList = [SimNameList[i] for i in range(0,len(SimNameList)) if SimNameList[i]!=ParameterVaried]
-	SimNameList = [ParameterVaried]+SimNameList
-
-	#For all requested input parameters
-	for i in range(0,len(ParameterRange)):
-
-		#Create simulation folder for input parameter[i]
-		SimulationString = CreateSimName(SimNameList,ParameterVaried,ParameterRange[i])
-		SimulationDir = CreateNewFolder(SeriesDir,SimulationString)
-		if IVerbose == False: print SimulationString
-
-		#Copy FIESTA.m into simulation folder and cd into directory
-		os.system('cp '+FIESTAName+' '+'\''+SimulationDir+'\'')
-		os.chdir(SimulationDir)
-
-		#Update new FIESTA.m with fixed namelist parameters
-		MatlabProjectString = '\''+ProjectName+'\''
-		MatlabSimulationString = '\''+SimulationString+'\''
-		AlteredEntry = AlterNamelistVariable(FIESTAName,'ProjectName',MatlabProjectString)
-		AlteredEntry = AlterNamelistVariable(FIESTAName,'SimName',MatlabSimulationString)
-		AlteredEntry = AlterNamelistVariable(FIESTAName,'NumThreads',NumThreads)
-
-		#####
-
-		#Update new FIESTA.m with variable namelist parameters for Parameter[i]
-		AlteredEntry = AlterNamelistVariable(FIESTAName,ParameterVaried,ParameterRange[i],Header=True)
-
-		#Run modified FIESTA - Verbosity determines terminal output.
-		#TO IMPLIMENT::: MAXIMUM CONCURRENT RUNS = MaxNumThreads/NumThreads
-		RunFIESTA(FIESTAName,Verbose=IVerbose,Parallel=IParallel)
-
-		#Return to home directory to enable diagnostic processing
-		os.chdir(HomeDir)
-	#endfor
-
-	#=================#
-
-	#If parallel simulations have been requested:
-	if IParallel == True:
-		#Initial delay to allow MATLAB processes to start
-		time.sleep(ConvDelay/2.0)
-		TimeConv = ConvDelay/2.0
-
-		#Parallel Race Condition Checker - Waits for all simulations to finish before analysis
-		while CheckIfProcessRunning('MATLAB') == True:
-			#If MATLAB process is detected, wait ConvDelay seconds and check again
-			time.sleep(ConvDelay)
-			TimeConv += ConvDelay
-			print 'Awaiting Series Convergence:',str(TimeConv)+'[s]'
-		#endwhile
-
-		#Update user of simulation convergence
-		print '------------------------------------------------'
-		print 'Simulation Series Converged:',str(TimeConv)+'[s]'
-		print '------------------------------------------------'
-	#endfor
-#endif
-
-#=====================================================================#
-#=====================================================================#
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#====================================================================#
-					   #ANALYSIS AND DIAGNOSTICS#
-#====================================================================#
-
-#Obtain simulation folder directories for project and requested series
-SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
-SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
-NumFolders = len(SimulationDirs)
-
-
-plt.close('all')
-print'--------------------'
-print'# Starting Analysis:'
-print'--------------------'
-
-#=====================================================================#
-#=====================================================================#
 
 
 
@@ -1336,9 +875,13 @@ print'--------------------'
 				   	   #2D EQUILIBRIUM FIGURES#
 #====================================================================#
 
-
 #Plot 2D equilibria from Equil.txt files
 if savefig_2DEquilPlots == True:
+
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
 
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/Equil.txt'
@@ -1370,7 +913,7 @@ if savefig_2DEquilPlots == True:
 		ax.set_ylim(-1.0, 1.0)
 
 		plt.tight_layout(pad=3.0,h_pad=1.0)
-		plt.savefig(SeriesDirString+'/TargetEquilibrium'+image_extension)
+		plt.savefig('TargetEquilibrium'+image_extension)
 #		plt.show()
 		plt.close('all')
 	#endfor
@@ -1388,12 +931,18 @@ if savefig_2DEquilPlots == True:
 #Plot general equilibrium trends from Param(equil)
 if savefig_EquilTrends == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/EquilParam.txt'
 	ParamEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Quick and dirty removal of most useful trends
@@ -1458,7 +1007,7 @@ if savefig_EquilTrends == True:
 	ax[1,1].tick_params(axis='y', labelsize=20)
 
 	plt.tight_layout(pad=2.0)
-	plt.savefig(SeriesDirString+'/Equil_Trends.png')
+	plt.savefig('Equil_Trends'+image_extension)
 #	plt.show()
 	plt.close('all')
 #endif
@@ -1476,12 +1025,18 @@ savefig_UserEquilTrends = False
 #Plot general equilibrium trends from Param(equil)
 if savefig_UserEquilTrends == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/EquilParam.txt'
 	ParamEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
 	ValueEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[1]
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#List equilibrium parameters by index - !!! CONVERT INTO INDEX LIBRARY !!!
@@ -1523,7 +1078,7 @@ if savefig_UserEquilTrends == True:
 #	ax.set_ylim(0.00,1.00)
 
 	plt.tight_layout()
-	plt.savefig(SeriesDirString+'/Equil_Trends.png')
+	plt.savefig('Equil_Trends'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -1562,6 +1117,11 @@ if savefig_UserEquilTrends == True:
 #Compare optimised plasma current profiles
 if savefig_CoilCurrentTrends == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract absolute coil currents and time axis from series directories
 	Filename = 'icoil_Data/CoilCurrents.txt'
 	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
@@ -1583,6 +1143,7 @@ if savefig_CoilCurrentTrends == True:
 	DeltaIDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale absolute coil currents: [A] to [kA]
@@ -1706,7 +1267,7 @@ if savefig_CoilCurrentTrends == True:
 
 	#Clean up and save figure to home directory
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Coil_CurrentTrends'+image_extension)
+	plt.savefig('Coil_CurrentTrends'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -1729,6 +1290,11 @@ if savefig_CoilCurrentTrends == True:
 #Compare optimised plasma current profiles
 if savefig_CoilVoltageTrends == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract absolute coil voltages and time axis from series directories
 	Filename = 'icoil_Data/CoilVoltages.txt'
 	NumCoils = len(ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical'))-1
@@ -1750,6 +1316,7 @@ if savefig_CoilVoltageTrends == True:
 	DeltaVDiv2_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[5]
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale absolute coil currents: [V] to [kV]
@@ -1873,7 +1440,7 @@ if savefig_CoilVoltageTrends == True:
 
 	#Clean up and save figure to home directory
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Coil_VoltageTrends'+image_extension)
+	plt.savefig('Coil_VoltageTrends'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -1918,6 +1485,11 @@ if savefig_CoilVoltageTrends == True:
 #Compare optimised plasma current profiles
 if savefig_Breakdown == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract relevent data from series directories
 	Lc_Arrays = ExtractFIESTAData(SimulationDirs,'Lc.txt','2D','Vertical',False)
 	EMF_Arrays = ExtractFIESTAData(SimulationDirs,'VLoop.txt','2D','Vertical',False)
@@ -1935,6 +1507,7 @@ if savefig_Breakdown == True:
 	#endfor
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#===================##===================#
@@ -1993,6 +1566,7 @@ if savefig_Breakdown == True:
 	#endfor
 
 	#Create trendaxis from folder names and organize figure labelling variables
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 	if len(TrendAxisVariables) > 0: Parameter = TrendAxisVariables
 	else: Parameter = ParameterVaried
@@ -2026,7 +1600,7 @@ if savefig_Breakdown == True:
 
 	#Clean up and save figure to home directory
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Paschen_Breakdown'+image_extension)
+	plt.savefig('Paschen_Breakdown'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -2078,11 +1652,17 @@ if savefig_Breakdown == True:
 #Compare optimised plasma current profiles
 if savefig_PlasmaCurrent == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract plasma current data from series directories
 	Filename = 'RZIP_Data/Ip.txt'
 	Ip_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale data for plotting: [A] to [kA]
@@ -2125,7 +1705,7 @@ if savefig_PlasmaCurrent == True:
 
 	#Clean up and save figure to home directory
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(os.getcwd()+'/'+SeriesDirString+'/Ip_Trends'+image_extension)
+	plt.savefig('Ip_Trends'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -2158,11 +1738,17 @@ if savefig_PlasmaCurrent == True:
 #Compare vessel eddy current profiles
 if savefig_EddyCurrent == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract plasma current data from series directories
 	Filename = 'RZIP_Data/IPass.txt'
 	IPassive_Arrays = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical',False)
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Rescale data for plotting: [A] to [kA]
@@ -2205,7 +1791,7 @@ if savefig_EddyCurrent == True:
 
 	#Clean up and save figure to home directory
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/PassiveCurrent_Trends'+image_extension)
+	plt.savefig('PassiveCurrent_Trends'+image_extension)
 #	plt.show()
 	plt.close('all')
 
@@ -2257,6 +1843,11 @@ if savefig_EddyCurrent == True:
 
 if savefig_VerticalStability == True:
 
+	#Obtain simulation folder directories for project and requested series
+	SimulationNames = ExtractSubDirs(SeriesDirString,Root=False)
+	SimulationDirs = ExtractSubDirs(SeriesDirString,Root=True)
+	NumFolders = len(SimulationDirs)
+
 	#Extract equilibrium data from series directories
 	Filename = 'Equil_Data/EquilParam.txt'
 	ParamEquil = ExtractFIESTAData(SimulationDirs,Filename,'2D','Vertical')[0]
@@ -2292,6 +1883,7 @@ if savefig_VerticalStability == True:
 	#endfor
 
 	#Create trendaxis from folder names
+	ParameterVaried = 'test'
 	TrendAxis = CreateTrendAxis(SimulationNames,ParameterVaried,TrendAxisVariables)
 
 	#Quick and dirty removal of relevent trends
@@ -2371,7 +1963,7 @@ if savefig_VerticalStability == True:
 #	ax[1].set_ylim(0,1)
 
 	plt.tight_layout(pad=3.0,h_pad=1.0)
-	plt.savefig(SeriesDirString+'/VerticalStability_Trends.png')
+	plt.savefig('VerticalStability_Trends.png')
 #	plt.show()
 	plt.close('all')
 

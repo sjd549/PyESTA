@@ -224,7 +224,7 @@ I_Sol_EndEquil=-125;                %-125;         %-125;          %-125;
 %PF & Div Equilibrium coil currents [A]         (Default equilibrium: time(4,5,6))
 I_PF1_Equil=-0400;					%-0400;        %-0400;         %-0400;
 I_PF2_Equil=-0400;					%-0400;        %-0400;         %-0400;
-I_Div1_Equil=+0500;					%+0500;        %-0500;         %+0950;     (Pos for +d, Neg for -d)
+I_Div1_Equil=+0400;					%+0400;        %-0500;         %+0950;    (Pos for +d, Neg for -d)         
 I_Div2_Equil=+0000;					%+0000;        %+0000;         %+0000;
 
 %Define TimeIndices (vertices) in the Sol, PF & Div coil current waveforms
@@ -236,7 +236,7 @@ TauP  = 0.020;			% Pulse Timescale      		[s] Determines flat-top timescale
 
 %Create time array, containing Sol, PF & Div coil current waveform time vertices
 %Time   [Init      PrePulse   InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
-time =  [-2*TauN   -TauN      0.0           TauR1        TauR         TauR+TauP    TauR+TauP+(2*TauN)];
+time =  [-4*TauN   -TauN      0.0           TauR1        TauR         TauR+TauP    TauR+TauP+(4*TauN)];
 nTime = length(time);	% Total Coil Waveform Timesteps	[-]
 
 %Fits linear midpoint to any current defined as 'linear' between times: {pre-ramp, mid-ramp, end-ramp}
@@ -252,11 +252,10 @@ IPF2_Waveform =  [0,  NaN,        NaN,          NaN,           I_PF2_Equil,   I_
 IDiv1_Waveform = [0,  NaN,        NaN,          NaN,           I_Div1_Equil,  I_Div1_Equil,    0];
 IDiv2_Waveform = [0,  NaN,        NaN,          NaN,           I_Div2_Equil,  I_Div2_Equil,    0];
 %%%%%
-%CoilWaveforms has structure: [CoilNumber][TimeIndex] - both being integers
-CoilWaveforms = [ISol_Waveform; IPF1_Waveform; IPF2_Waveform; IDiv1_Waveform; IDiv2_Waveform];
+DivertorConfig = 'DSN';     %'USN','LSN','DSN'
 
 %Define dynamic coils (i.e. which coil currents are fit by efit)
-global efitCoils; efitCoils = {'PF1','PF2'};                        % Default PF1, PF2
+global efitCoils; efitCoils = {'PF1','PF2'};                        % Default PF1, PF2          -USN and LSN are hardcoded, needs updated
 global feedbackCoils; feedbackCoils = {'Div2'};                     % Default Div2
 
 %Terminal Outputs for sanity checking
@@ -270,6 +269,7 @@ disp([ 'Te = ' num2str(Te) ' [eV]' ]);
 disp([ 'Ti = ' num2str(Ti) ' [eV]' ]);
 disp([ 'Ip = ' num2str(Ip/1000) ' [kA]' ]);
 disp([ 'TauP = ' num2str(TauP*1000) ' [ms]' ]);
+disp([ 'BetaP = ' num2str(betaP) ' [%]' ]);
 disp([ ' ' ]);
 disp([ '%===== Plasma Shaping =====%' ]);
 disp([ 'RGeo = ' num2str(RGeo_efit) ' [m]' ]);
@@ -288,6 +288,8 @@ disp([ 'I_PF1_Equil = ' num2str(I_PF1_Equil/1000) ' [kA]' ]);
 disp([ 'I_PF2_Equil = ' num2str(I_PF2_Equil/1000) ' [kA]' ]);
 disp([ 'I_Div1_Equil = ' num2str(I_Div1_Equil/1000) ' [kA]' ]);
 disp([ 'I_Div2_Equil = ' num2str(I_Div2_Equil/1000) ' [kA]' ]);
+disp([ ' ' ]);
+disp([ 'Divertor Configuration: ' DivertorConfig ]);
 disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -338,6 +340,7 @@ TauVessel = (mu0*max(WallThickness)^2)/VesselResistivity;       %[s]
 %%%%%%%%%%%%%%%%%%%  INITIATE SOL, PF & DIV COILS  %%%%%%%%%%%%%%%%%%%%%%%%
 
 %Define Sol, PF and Div coil sets - Assigning integers to coil structure names.
+global CoilStrings           %Array containing coil string names
 global iSol; iSol = 1;       %Central Inducting Solenoid
 global iPF1; iPF1 = 2;       %Upper Plasma Forming Coil
 global iPF2; iPF2 = 3;       %Lower Plasma Forming Coil
@@ -350,17 +353,68 @@ coilturns(iPF1) = nPF1; coilturns(iPF2) = nPF2;
 coilturns(iDiv1) = nDiv1; coilturns(iDiv2) = nDiv2;
 coilturns(iSol) = nSol; nSolR = 1;
 
-%Create coil set from parameters defined above. (Function made by Carlos Soria)
-%Function createVESTPFCircuit creates two PF coils. One in (R, Z) and another in (R, -Z)
-Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
-PF1  = CreateSMARTCoilCircuit('PF1',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,true);
-PF2  = CreateSMARTCoilCircuit('PF2',R_PF2,Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,CoilTemp,CoilResistivity,CoilDensity,true);
-Div1 = CreateSMARTCoilCircuit('Div1',R_Div1,Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,CoilTemp,CoilResistivity,CoilDensity,true); 
-Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_Div2,height_Div2,coilturns(iDiv2),nZDiv2,nRDiv2,CoilTemp,CoilResistivity,CoilDensity,true);
+%Create solenoid and PF, Div coil sets from input coil geometry and material coefficients.
+%Coils are initiated as individual circuits or as a pair of two PF coils in series.
+%CoilWaveforms are constructed from user inputs, where USN and LSN assume a zero opposite Div1 coil current.
+if DivertorConfig == 'USN'
+    %Create individual coils for PF1, PF2 and Div1, one in (R, Z) and another in (R, -Z)
+    Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
+    PF11  = CreateSMARTCoilCircuit('PF11',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    PF12  = CreateSMARTCoilCircuit('PF12',R_PF1,-Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    PF21  = CreateSMARTCoilCircuit('PF21',R_PF2,Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    PF22  = CreateSMARTCoilCircuit('PF22',R_PF2,-Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    Div11 = CreateSMARTCoilCircuit('Div11',R_Div1,Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    Div12 = CreateSMARTCoilCircuit('Div12',R_Div1,-Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_Div2,height_Div2,coilturns(iDiv2),nZDiv2,nRDiv2,CoilTemp,CoilResistivity,CoilDensity,true,1);
+    CoilStrings = ["Sol" "PF11" "PF12" "PF21" "PF22" "Div11" "Div12" "Div2"];
+    CoilCircuits = [Sol, PF11, PF12, PF21, PF22, Div11, Div12, Div2];
+    %CoilWaveforms has structure: [CoilNumber][TimeIndex] - both being integers
+    CoilWaveforms = [ISol_Waveform; ...
+        IPF1_Waveform; IPF1_Waveform; ...           %Upper PF11; Lower PF12
+        IPF2_Waveform; IPF2_Waveform; ...           %Upper PF21; Lower PF22
+        IDiv1_Waveform; [0,NaN,NaN,NaN,0,0,0]; ...  %Upper Div11; Lower Div12           %0.25.*IDiv1_Waveform
+        IDiv2_Waveform];
+    efitCoils = {'PF11','PF12','PF21','PF22'};
+    
+%Lower Single Null Configuration
+elseif DivertorConfig == 'LSN'
+    %Create individual coils for PF1, PF2 and Div1, one in (R, Z) and another in (R, -Z)
+    Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
+    PF11  = CreateSMARTCoilCircuit('PF11',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    PF12  = CreateSMARTCoilCircuit('PF12',R_PF1,-Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    PF21  = CreateSMARTCoilCircuit('PF21',R_PF2,Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    PF22  = CreateSMARTCoilCircuit('PF22',R_PF2,-Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    Div11 = CreateSMARTCoilCircuit('Div11',R_Div1,Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    Div12 = CreateSMARTCoilCircuit('Div12',R_Div1,-Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,CoilTemp,CoilResistivity,CoilDensity,false,1);
+    Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_Div2,height_Div2,coilturns(iDiv2),nZDiv2,nRDiv2,CoilTemp,CoilResistivity,CoilDensity,true,1);
+    CoilStrings = ["Sol" "PF11" "PF12" "PF21" "PF22" "Div11" "Div12" "Div2"];
+    CoilCircuits = [Sol, PF11, PF12, PF21, PF22, Div11, Div12, Div2];
+    %CoilWaveforms has structure: [CoilNumber][TimeIndex] - both being integers
+    CoilWaveforms = [ISol_Waveform; ...
+        IPF1_Waveform; IPF1_Waveform; ...               %Upper PF11; Lower PF12
+        IPF2_Waveform; IPF2_Waveform; ...               %Upper PF21; Lower PF22
+        [0,NaN,NaN,NaN,0,0,0]; IDiv1_Waveform; ...      %Upper Div11; Lower Div12        %0.25.*IDiv1_Waveform
+        IDiv2_Waveform];
+    efitCoils = {'PF11','PF12','PF21','PF22'};
+    
+%Double Null Configuration
+else
+    %Create series-linked coil sets for PF1, PF2, Div1 and Div2, one in (R, Z) and another in (R, -Z)
+    Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
+    PF1  = CreateSMARTCoilCircuit('PF1',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,true,1);
+    PF2  = CreateSMARTCoilCircuit('PF2',R_PF2,Z_PF2,width_PF2,height_PF2,coilturns(iPF2),nZPF2,nRPF2,CoilTemp,CoilResistivity,CoilDensity,true,1);
+    Div1 = CreateSMARTCoilCircuit('Div1',R_Div1,Z_Div1,width_Div1,height_Div1,coilturns(iDiv1),nZDiv1,nRDiv1,CoilTemp,CoilResistivity,CoilDensity,true,1); 
+    Div2 = CreateSMARTCoilCircuit('Div2',R_Div2,Z_Div2,width_Div2,height_Div2,coilturns(iDiv2),nZDiv2,nRDiv2,CoilTemp,CoilResistivity,CoilDensity,true,1);
+    CoilStrings = ["Sol" "PF1" "PF2" "Div1" "Div2"];
+    CoilCircuits = [Sol, PF1, PF2, Div1, Div2];
+    %CoilWaveforms has structure: [CoilNumber][TimeIndex] - both being integers
+    CoilWaveforms = [ISol_Waveform; IPF1_Waveform; IPF2_Waveform; IDiv1_Waveform; IDiv2_Waveform];
+end
 
-%Collate global coilset containing Solenoid, PF and Div coil circuits (efit expects a row aligned filament array)
-R_Fil_Array = transpose(R_Fil_Array); Z_Fil_Array = transpose(Z_Fil_Array);     
-global coilset; coilset = fiesta_coilset('SMARTcoilset',[Sol,PF1,PF2,Div1,Div2],false,R_Fil_Array',Z_Fil_Array');
+%Collate global coilset containing active Solenoid, PF and Div coil circuits and passive vessel filaments 
+%Vessel R,Z filament arrays are transposed as efit requires a row aligned filament array (i.e. 1 column of 1 length rows)
+R_Fil_Array = transpose(R_Fil_Array); Z_Fil_Array = transpose(Z_Fil_Array);
+global coilset; coilset = fiesta_coilset('SMARTcoilset',CoilCircuits,false,R_Fil_Array',Z_Fil_Array');
 coilset_init = coilset;
 
 %Divide solenoid current by number of radial windings if nested radial solenoid windings are employed
@@ -373,10 +427,12 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 
 %%% TO DO %%%
 
-%%%   FINISH COMMENTS ON ALL FUNCTIONS
-%%%   WRITE MANUAL
+%%%   CLEAN efit_coils SMART-CHOICE FOR USN AND LSN
+%%%   CLEAN THE COIL INTEGER NAMING (ISOL=1, IPF1=2, etc...) AS ONLY APPLIES TO DSN CASE
 
-%%%   TOGGLEABLE UPPER AND LOWER SINGLE NULL (USN, LSN) CONFIGURATION IN CreateSMARTCoilCircuit
+%%%   FINISH COMMENTS ON ALL FUNCTIONS
+%%%   FINISH WRITING THE MANUAL (INPUT NAMELIST)
+
 %%%   FEEDBACK SYSTEM WORKING FOR VERTICAL AND HORIZONTAL STABILITY
 %%%   FIX THE CORNER OF THE DIFF VESSEL WALLS (LAST FILAMENT IS LARGER)
 
@@ -393,7 +449,7 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
         %PlotEquilibrium({CurrentDensity},'Title','CbarLabel','CurrentDensity.png')
 
         
-        
+
         
         
         
@@ -410,16 +466,14 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
 TimeIndex_Discharge = 5;                          %default time(5)  End of Sol Ramp
 TimeIndex_NullField = 3;                          %default time(3)  Prior to Sol Ramp
 
-%Create initial icoil object at requested TimeIndex - icoil represents coil currents fed to efit.
+%Save initial user 'guess' efit input coil waveforms for later reference
+%Save in both array (CoilWaveforms) and object (icoil) formats
 CoilWaveforms_Init = CoilWaveforms;
 global icoil_init; icoil_init = fiesta_icoil(coilset);
-%Assign equilibrium coil currents to icoil object [kA]
-icoil_init.Sol=CoilWaveforms_Init(iSol,TimeIndex_Discharge);   %Solenoid Equilibrium Current
-icoil_init.PF1=CoilWaveforms_Init(iPF1,TimeIndex_Discharge);   %PF1 Equilibrium Current
-icoil_init.PF2=CoilWaveforms_Init(iPF2,TimeIndex_Discharge);   %PF2 Equilibrium Current
-icoil_init.Div1=CoilWaveforms_Init(iDiv1,TimeIndex_Discharge); %Div1 Equilibrium Current
-icoil_init.Div2=CoilWaveforms_Init(iDiv2,TimeIndex_Discharge); %Div2 Equilibrium Current
-
+for i=1:length(CoilCircuits)
+    icoil_init.(CoilStrings(i)) = CoilWaveforms_Init(i,TimeIndex_Discharge);
+end
+%%
 
 %%%%%%%%%%%%%%%%%%%%  COMPUTE DISCHARGE EQUILIBRIUM  %%%%%%%%%%%%%%%%%%%%%%
 
@@ -431,7 +485,7 @@ jprofile = fiesta_jprofile_topeol2( 'Topeol2', betaP, 1, li2, Ip );
 global config; [Equil,EquilParams,CoilWaveforms,efitGeometry,config] = ...
     efit(jprofile,Irod,'config',efitGeometry_Init,CoilWaveforms_Init,[],TimeIndex_Discharge);
 
-%Save discharge coil currents for all coils at TimeIndex_Discharge
+%Save efit altered discharge coil currents for all coils at TimeIndex_Discharge
 CoilCurrentsEfit = transpose(CoilWaveforms(:,TimeIndex_Discharge));
 icoil_efit = fiesta_icoil(coilset, CoilCurrentsEfit);
 
@@ -586,8 +640,8 @@ figure('units','inch','position',[10 10 12 12]);
 subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, I_PF_output/1000, 'LineWidth',2);
 title(gca,'SMART Coil Current Waveforms');
-LegendString = {'Sol','PF1','PF2','Div1','Div2'};
-legend(gca,LegendString); legend boxoff;
+LegendString = CoilStrings;
+legend(gca,LegendString,'NumColumns',2); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Coil Current I [kA]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
@@ -596,8 +650,8 @@ set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000,Delta_IPFoutput/1000, 'LineWidth',2)
 title(gca,'SMART Delta Coil Current Waveforms');
-LegendString = {'Sol','PF1','PF2','Div1','Div2'};
-legend(gca,LegendString); legend boxoff;
+LegendString = CoilStrings;
+legend(gca,LegendString,'NumColumns',2); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Delta Coil Current \Delta I (kA ms^{-1})');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
@@ -605,7 +659,7 @@ set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
 Filename = '_CurrentWaveforms';
 saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
-
+%%
 %%%%%%%%%%%%%%%%%%%%%% PLOT COIL VOLTAGE WAVEFORMS %%%%%%%%%%%%%%%%%%%%%%%% 
 
 %Plot figure showing dynamic coil currents
@@ -613,8 +667,8 @@ figure('units','inch','position',[10 10 12 12]);
 subplot(2,1,1); hold on; grid on; box on;
 plot(time_adaptive*1000, V_PF_output/1000, 'LineWidth',2);
 title(gca,'SMART Coil Voltage Waveforms');
-LegendString = {'Sol','PF1','PF2','Div1','Div2'};
-legend(gca,LegendString); legend boxoff;
+LegendString = CoilStrings;
+legend(gca,LegendString,'NumColumns',2); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Coil Voltage V [kV]');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
@@ -623,8 +677,8 @@ set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 subplot(2,1,2); hold on; grid on; box on;
 plot(time_adaptive(1:end-1)*1000,Delta_VPFoutput/1000, 'LineWidth',2)
 title(gca,'SMART Delta Coil Voltage Waveforms');
-LegendString = {'Sol','PF1','PF2','Div1','Div2'};
-legend(gca,LegendString); legend boxoff;
+LegendString = CoilStrings;
+legend(gca,LegendString,'NumColumns',2); legend boxoff;
 xlabel(gca,'Time (ms)');
 ylabel(gca,'Delta Coil Voltage \Delta V (kV ms^{-1})');
 set(gca,'XLim',[min(time*1e3) max(time*1e3)]);
@@ -819,6 +873,9 @@ CoilCurrentsPert = get(icoil_pert,'currents');
 %i.e. Gamma = eig(-curlyM\curlyR), sort for positive value(s) and save.
 if length(Gamma(Gamma>0)) > 0; Gamma_Real = Gamma(Gamma>0); else Gamma_Real = 0; end     %[s-1]
 
+%Extract perturbed discharge B-fields - In particular Bz - to determine stability curvature
+[BrData_Equil,BzData_Equil,BPhiData_Equil,BpolData_Equil,BtorData_Equil] = ExtractBField(Equil);
+
 %If feedback fails, overwrite with default equilibrium. 
 %NOTE: Vertical control and feedback not yet implimented.
 Equil_Pert = Equil; EquilParams_Pert = EquilParams;
@@ -884,8 +941,8 @@ close all
 %Most crahses arise from LCFS in solenoid - findboundary.m function contains rules for LCFS selection
 %Initial discharge currents (CoilWaveforms_Init) are more numerically stable than efit currents (CoilWaveforms_EFIT)
 CoilWaveforms(:,TimeIndex_Discharge) = CoilWaveforms_Init(:,TimeIndex_Discharge);   
-%CoilWaveforms(iDiv1,TimeIndex_Discharge) = I_Div1_Equil+100;               %Common Trick 1: try increasing IDiv1 and retry
-%CoilWaveforms(iSol,TimeIndex_Discharge) = I_Sol_Equil-100;                 %Common Trick 2: try decreasing ISol and retry
+%CoilWaveforms(iDiv1,TimeIndex_Discharge) = I_Div1+100;               %Common Trick 1: try increasing IDiv1 and retry
+%CoilWaveforms(iSol,TimeIndex_Discharge) = I_Sol_Equil-100;           %Common Trick 2: try decreasing ISol and retry
 
 %Compute equilibrium (Psi(R,Z)) from the supplied jprofile, icoil and geometry
 %Returns target equilibrium and CoilWaveforms for PF1 and PF2 at requested time_Index
@@ -1119,7 +1176,7 @@ EquilDir = strcat(ASCIIDir,'Equil_Data/'); mkdir(EquilDir);
 %Create subdirectory for coil current related data
 icoilDir = strcat(ASCIIDir,'Coil_Data/'); mkdir(icoilDir);
 
-Filename = strcat(icoilDir,'icoil_position.txt');
+Filename = strcat(icoilDir,'icoil_positions.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s %s %s %s\r\n',             'Coil','R [m]  ',   'Z [m]  ',  'dR [m] ',  'dZ [m]'      );
 fprintf(fileID,'%s %0.5f %0.5f %0.5f %0.5f\r\n', 'Sol ', RSolCentre, ZMaxSol,  Width_Sol/2,  Height_Sol    );
@@ -1133,83 +1190,67 @@ fileID=fopen(Filename,'w');
 fprintf(fileID,'%s\r\n', 'IRod [A]');
 fprintf(fileID,'%1.12f\r\n', EquilParams_Passive.irod');
 
+%Write 0D equilibrium icoil initial guesses
 Filename = strcat(icoilDir,'icoil_init.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s\r\n', 'ISol [A]','PF1 [A]','PF2 [A]','Div1 [A]','Div2 [A]');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_init.Sol'; icoil_init.PF1'; icoil_init.PF2'; icoil_init.Div1'; icoil_init.Div2']);
+Units = []; for i=1:length(CoilStrings); Units = [Units; " [A]"]; end
+WriteMatrixCVS(icoil_init,CoilStrings(:),Units,Filename);
 
+%Write 0D equilibrium icoil efit values
 Filename = strcat(icoilDir,'icoil_efit.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s\r\n', 'ISol [A]','PF1 [A]','PF2 [A]','Div1 [A]','Div2 [A]');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_efit_passive.Sol'; icoil_efit_passive.PF1'; icoil_efit_passive.PF2'; icoil_efit_passive.Div1'; icoil_efit_passive.Div2']);
+Units = []; for i=1:length(CoilStrings); Units = [Units; " [A]"]; end
+WriteMatrixCVS(icoil_efit,CoilStrings(:),Units,Filename);
 
+%Write 0D perturbed coil currents
 Filename = strcat(icoilDir,'icoil_pert.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s\r\n', 'ISol [A]','PF1 [A]','PF2 [A]','Div1 [A]','Div2 [A]');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_pert.Sol'; icoil_pert.PF1'; icoil_pert.PF2'; icoil_pert.Div1'; icoil_pert.Div2']);
+Units = []; for i=1:length(CoilStrings); Units = [Units; " [A]"]; end
+WriteMatrixCVS(icoil_pert,CoilStrings(:),Units,Filename);
 
+%Write 0D null-field coil currents
 Filename = strcat(icoilDir,'icoil_null.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s\r\n', 'ISol [A]','PF1 [A]','PF2 [A]','Div1 [A]','Div2 [A]');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[icoil_Null_Passive.Sol'; icoil_Null_Passive.PF1'; icoil_Null_Passive.PF2'; icoil_Null_Passive.Div1'; icoil_Null_Passive.Div2']);
+Units = []; for i=1:length(CoilStrings); Units = [Units; " [A]"]; end
+WriteMatrixCVS(icoil_Null,CoilStrings(:),Units,Filename);
 
-%Extract coil current time-traces
-ISol=I_PF_output(:,1);   %ISol
-IPF1=I_PF_output(:,2);   %IPF1
-IPF2=I_PF_output(:,3);   %IPF2
-IDiv1=I_PF_output(:,4);  %IDiv1
-IDiv2=I_PF_output(:,5);  %IDiv2
+%Write 1D coil current time-traces
 Filename = strcat(icoilDir,'CoilCurrents.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','I_Sol [A]','I_PF1 [A]','I_PF2 [A]','I_Div1 [A]','I_Div2 [A]');
-fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive'*1000; ISol'; IPF1'; IPF2'; IDiv1'; IDiv2']);
+CoilCurrents = [time_adaptive'*1000; I_PF_output'];
+Variables = ["time_adaptive"; strcat("I_",CoilStrings(:))];
+Units = [" [ms]"]; for i=1:length(CoilStrings); Units = [Units; " [A]"]; end
+[fileID] = WriteMatrixCVS(CoilCurrents,Variables,Units,Filename);
 
-%Extract delta coil current time-traces
-dISol=Delta_IPFoutput(:,1);   %ISol
-dIPF1=Delta_IPFoutput(:,2);   %IPF1
-dIPF2=Delta_IPFoutput(:,3);   %IPF2
-dIDiv1=Delta_IPFoutput(:,4);  %IDiv1
-dIDiv2=Delta_IPFoutput(:,5);  %IDiv2
+%Write 1D delta coil current time-traces
 Filename = strcat(icoilDir,'DeltaCoilCurrents.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','Del_I_Sol [A/ms]','Del_I_PF1 [A/ms]','Del_I_PF2 [A/ms]','Del_I_Div1 [A/ms]','Del_I_Div2 [A/ms]');
-fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive(1:end-1)'*1000; dISol'; dIPF1'; dIPF2'; dIDiv1'; dIDiv2']);
+DeltaCoilCurrents = [time_adaptive(1:end-1)'*1000; Delta_IPFoutput'];
+Variables = ["time_adaptive"; strcat("dI_",CoilStrings(:))];
+Units = [" [ms]"]; for i=1:length(CoilStrings); Units = [Units; " [A/ms]"]; end
+[fileID] = WriteMatrixCVS(DeltaCoilCurrents,Variables,Units,Filename);
 
-%Extract coil voltage time-traces
-VSol=V_PF_output(:,1);     %VSol
-VPF1=V_PF_output(:,2);     %VPF1
-VPF2=V_PF_output(:,3);     %VPF2
-VDiv1=V_PF_output(:,4);     %VDiv1
-VDiv2=V_PF_output(:,5);     %VDiv2
+%Write 1D coil voltage time-traces
 Filename = strcat(icoilDir,'CoilVoltages.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','V_Sol [V]','V_PF1 [V]','V_PF2 [V]','V_Div1 [V]','V_Div2 [V]');
-fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive'*1000; VSol'; VPF1'; VPF2'; VDiv1'; VDiv2']);
+CoilVoltages = [time_adaptive'*1000; V_PF_output'];
+Variables = ["time_adaptive"; strcat("V_",CoilStrings(:))];
+Units = [" [ms]"]; for i=1:length(CoilStrings); Units = [Units; " [V]"]; end
+[fileID] = WriteMatrixCVS(CoilVoltages,Variables,Units,Filename);
 
-%Extract delta coil voltage time-traces
-dVSol=Delta_VPFoutput(:,1);   %ISol
-dVPF1=Delta_VPFoutput(:,2);   %IPF1
-dVPF2=Delta_VPFoutput(:,3);   %IPF2
-dVDiv1=Delta_VPFoutput(:,4);  %IDiv1
-dVDiv2=Delta_VPFoutput(:,5);  %IDiv2
+%Write 1D delta coil voltage time-traces
 Filename = strcat(icoilDir,'DeltaCoilVoltages.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s %s\r\n', 'time_adaptive [ms]','Del_V_Sol [V/ms]','Del_V_PF1 [V/ms]','Del_V_PF2 [V/ms]','Del_V_Div1 [V/ms]','Del_V_Div2 [V/ms]');
-fprintf(fileID,'%1.12f %0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[time_adaptive(1:end-1)'*1000; dVSol'; dVPF1'; dVPF2'; dVDiv1'; dVDiv2']);
+DeltaCoilVoltages = [time_adaptive(1:end-1)'*1000; Delta_VPFoutput'];
+Variables = ["time_adaptive"; strcat("dV_",CoilStrings(:))];
+Units = [" [ms]"]; for i=1:length(CoilStrings); Units = [Units; " [V/ms]"]; end
+[fileID] = WriteMatrixCVS(DeltaCoilVoltages,Variables,Units,Filename);
 
-%Extract max/min delta coil currents
+%Write 0D max/min delta coil currents
 Filename = strcat(icoilDir,'Delta_IPF.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s\r\n', 'I_Sol [A/ms]','I_PF1 [A/ms]','I_PF2 [A/ms]','I_Div1 [A/ms]','I_Div2 [A/ms]');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MaxDelta_IPFoutput(1)'; MaxDelta_IPFoutput(2)'; MaxDelta_IPFoutput(3)'; MaxDelta_IPFoutput(4)'; MaxDelta_IPFoutput(5)']);
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MinDelta_IPFoutput(1)'; MinDelta_IPFoutput(2)'; MinDelta_IPFoutput(3)'; MinDelta_IPFoutput(4)'; MinDelta_IPFoutput(5)']);
+MinMax_IPFoutput = [MinDelta_IPFoutput; MaxDelta_IPFoutput ];
+Variables = strcat("I_",CoilStrings(:));
+Units = []; for i=1:length(CoilStrings); Units = [Units; " [A/ms]"]; end
+[fileID] = WriteMatrixCVS(MinMax_IPFoutput',Variables,Units,Filename);
 
-%Extract max/min delta coil voltages
+%Write 0D max/min delta coil voltages
 Filename = strcat(icoilDir,'Delta_VPF.txt');
-fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s %s\r\n', 'V_Sol [V/ms]','V_PF1 [V/ms]','V_PF2 [V/ms]','V_Div1 [V/ms]','V_Div2 [V/ms]');
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MaxDelta_VPFoutput(1)'; MaxDelta_VPFoutput(2)'; MaxDelta_VPFoutput(3)'; MaxDelta_VPFoutput(4)'; MaxDelta_VPFoutput(5)']);
-fprintf(fileID,'%0.5f %0.5f %0.5f %0.5f %0.5f\r\n',[MinDelta_VPFoutput(1)'; MinDelta_VPFoutput(2)'; MinDelta_VPFoutput(3)'; MinDelta_VPFoutput(4)'; MinDelta_VPFoutput(5)']);
+MinMax_VPFoutput = [MinDelta_VPFoutput; MaxDelta_VPFoutput ];
+Variables = strcat("V_",CoilStrings(:));
+Units = []; for i=1:length(CoilStrings); Units = [Units; " [V/ms]"]; end
+[fileID] = WriteMatrixCVS(MinMax_VPFoutput',Variables,Units,Filename);
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
@@ -1232,7 +1273,7 @@ fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Net_I_Passive [A]');
 fprintf(fileID,'%1.12f %1.12f\r\n', [time_adaptive'*1000; Net_IPassive']);
 
 Filename = strcat(DynamicDir,'IPassive2D.txt');
-[fileID] = WriteMatrixCVS(I_Passive,Filename);            %ISSUE: Header and first line of data share same row, needs fixing!
+[fileID] = WriteMatrixRVS(I_Passive',Filename);
 
 Filename = strcat(DynamicDir,'VLoop.txt');
 fileID=fopen(Filename,'w');
@@ -1242,7 +1283,6 @@ fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', [time_adaptive'*1000, VloopArr
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
 %Misc outputs, save unordered in main RawData directory
-
 Filename = strcat(ASCIIDir,'Eta.txt');
 fileID=fopen(Filename,'w');
 fprintf(fileID,'%s %s\r\n', 'EtaPerp [Ohm m-1]', 'EtaPara [Ohm m-1]');
@@ -1275,9 +1315,10 @@ fprintf(fileID,'%1.12f %1.12f\r\n', StressR_max', StressZ_max');
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
-%Done!
+%Confirm simulation convergence
 disp([ ' ' ]);
-disp([ 'Done!' ]);
+disp([ 'Simulation Complete!' ]);
+disp([ ' ' ]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1447,22 +1488,22 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
 %
 
     %Obtain required global variables
-    global coilturns;
+    global coilturns; global CoilStrings;
     global iPF1; global iPF2;
     global iDiv1; global iDiv2;
     global iSol;
-    
-    %Name and colour coils for plotting
-    coil_names{iSol} = 'Sol'; PF_colors{iSol} = 'Red';
-    coil_names{iPF1} = 'PF1'; PF_colors{iPF1} = 'Magenta';
-    coil_names{iPF2} = 'PF2'; PF_colors{iPF2} = 'Black';
-    coil_names{iDiv1} = 'Div1'; PF_colors{iDiv1} = 'Cyan';
-    coil_names{iDiv2} = 'Div2'; PF_colors{iDiv2} = 'Green';
     
     %Determine number of coil waveforms and time points within each
     SizeCoilArrays = size(CoilWaveforms);
     nCoils = SizeCoilArrays(1);             %Number of PF/Div coils
     nTime = SizeCoilArrays(2);              %Number of TimeVertics
+    
+    %Name and colour coils for plotting
+    Colours = repmat( ["Black" "Red" "Blue" "Green" "Cyan" "Magenta"], [1,5]);
+    for i = 1:nCoils
+        coil_names{i} = CoilStrings(i);
+        PF_colors{i} = Colours(i);
+    end
 
     %Initiate RZip PF Arrays used to calculate plasma and eddy currents
     IPFinput_Discrete = transpose(CoilWaveforms);        %Discrete Coil currents from efit
@@ -1523,12 +1564,22 @@ function [CoilWaveformsOutput]=...
     %Cn is the part of the matrix C related to the sensors (see response.m)
     C_temp = RZIP_C(end-get(sensor_btheta,'n')+1:end,1:nCoils);
     C1 = C_temp(:,1);          %Elements of C_temp(Cn) for Sol coil
-    
+    D1 = C_temp(:,2:end);      %Elements of C_temp(Cn) for all PF and Div coils
+  
+    %Extract solenoid current and scale all PF and Div coil currents relative to solenoid to minimise null-field Bpol
+    %This treatment assumes each coil (or coil set) is independant of the others and none are in series with the solenoid
+    ISolNullField = CoilWaveformsInput(iSol,TimeIndex);                 %Extract Solenoid Current for TimeIndex
+    IPF_null = -pinv(D1) * (C1*ISolNullField);                          %Scale null-field PF and Div currents
+    IPF_null = [ISolNullField,transpose(IPF_null(:))];                  %Add Sol current back into IPF_null array
+        
+    %{
+    %OLD METHOD, LEGACY CODE - REMOVE ONCE TESTED.
     D1_PF1 = C_temp(:,iPF1);   %Elements of C_temp(Cn) for PF1 coil
     D1_PF2 = C_temp(:,iPF2);   %Elements of C_temp(Cn) for PF2 coil
     D1_Div1 = C_temp(:,iDiv1); %Elements of C_temp(Cn) for Div1 coil
     D1_Div2 = C_temp(:,iDiv2); %Elements of C_temp(Cn) for Div2 coil
     
+
     %Determine if Div1 is in series with solenoid or not and optimise null-field accordingly
     if isnan(CoilWaveformsInput(iDiv1,TimeIndex)) == true                   %If Div1 IS NOT in series with Sol
         %Scale ALL null-field coil currents relative to Solenoid current
@@ -1544,6 +1595,7 @@ function [CoilWaveformsOutput]=...
         IPF_null = -pinv(D1) * (C1*ISolNullField + D1_Div1*ISolNullField);  %Scale null-field currents
         IPF_null = [ISolNullField,IPF_null(1),IPF_null(2),ISolNullField,IPF_null(3)]; %Add Sol and Div1 into I_PF_null
     end
+    %}
     
     %Update CoilWaveforms array with null-field values (Using NaN Mask)
     for i = 1:nCoils
@@ -1856,7 +1908,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [Coil_Circuit]=...
-CreateSMARTCoilCircuit(Label,Rc,Zc,DR,DZ,nt,nZ,nR,CoilTemp,CoilResistivity,CoilDensity,symmetry)
+CreateSMARTCoilCircuit(Label,Rc,Zc,DR,DZ,nt,nZ,nR,CoilTemp,CoilResistivity,CoilDensity,CoilSymmetry,CoilPolarity)
 %   Creates FIESTA coil object from provided coordinates, size and turns
 %   Applies symmetry if required and returns a FIESTA coil circuit object
 %   Definitions:
@@ -1868,6 +1920,8 @@ CreateSMARTCoilCircuit(Label,Rc,Zc,DR,DZ,nt,nZ,nR,CoilTemp,CoilResistivity,CoilD
     % CoilTemp          Coil temperature (Time Independent)                [K]
     % CoilResistivity   Coil Material Resistivity                          [Ohm m-1]
     % CoilDensity       Coil Material Density                              [kg m-3]
+    % CoilSymmetry      Specify Axial Coil Symmetry about Zgeo             [true or false]
+    % CoilPolarity      Specify series or anti-series connection           [+1 or -1]
 
     %Confirm valid coil configuration has been supplied - return if false
 	if rem(nt, nZ*nR) > 0
@@ -1877,15 +1931,20 @@ CreateSMARTCoilCircuit(Label,Rc,Zc,DR,DZ,nt,nZ,nR,CoilTemp,CoilResistivity,CoilD
     end
 
     %Create coil object of size DR x DZ at position Rc,Zc and label
-	Coil1 = create_coil( Rc,Zc,DR,DZ,nt, nZ, nR, CoilTemp, CoilResistivity, CoilDensity);
+	Coil1 = create_coil( Rc, Zc, DR, DZ, nt, nZ, nR, CoilTemp, CoilResistivity, CoilDensity);
 	Coil1 = set(Coil1,'label','unique');
     
     %Create axially symmetric coil if required and combine into coil circuit
-	if symmetry == true
-		Coil2 = create_coil( Rc,-Zc,DR,DZ,nt, nZ, nR, CoilTemp, CoilResistivity, CoilDensity);
+	if CoilSymmetry == true
+		Coil2 = create_coil( Rc, -Zc, DR, DZ, nt, nZ, nR, CoilTemp, CoilResistivity, CoilDensity);
 		Coil1 = set(Coil1,'label','up');
 		Coil2 = set(Coil2,'label','down');
-		Coil_Circuit = fiesta_circuit(Label,[1 1],[Coil1 Coil2]);
+        
+        if CoilPolarity == -1
+            Coil_Circuit = fiesta_circuit(Label,[1 -1],[Coil1 Coil2]);
+        elseif CoilPolarity == 1
+            Coil_Circuit = fiesta_circuit(Label,[1  1],[Coil1 Coil2]);
+        end   
     %Create coil circuit with single coil if symmetry not requested
 	else
 		Coil_Circuit = fiesta_circuit(Label,[1],[Coil1]);    
@@ -2257,7 +2316,7 @@ function [fileID]=WriteEquilibrium(Equilibrium,config,EquilDir,EquilName,VacuumF
     if VacuumField == false
         %Write 2D qeqdsk equilibrium file
         Filename = strcat(EquilDir,'Equil',EquilName,'.txt');
-        geqdsk_write_BUXTON(config, Equilibrium, Filename);
+        geqdsk_write_SJD(config, Equilibrium, Filename);
 
         %Write 1D equilibrium qprofile parameters file
         qProfile = qprofile(Equilibrium);
@@ -2330,6 +2389,70 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+function [fileID]=WriteCoilData(Data,TimeAxis,HeaderOptions,icoilDir,Filename)
+
+    %Get any required global variables
+    global CoilStrings;
+    
+    %Ensure that data is arranged as (Coil,Time) 
+    %WARNING This assumes more time points than coils
+    SizeData = size(Data);
+    if SizeData(1) > SizeData(2); Data = Data'; end
+    SizeData = size(Data);
+    
+    %Initiate fprintf format strings and data/header arrays
+    Prefix = HeaderOptions(1); Suffix = HeaderOptions(2);
+    HeaderFormat = ''; OutputHeader = [];
+    DataFormat = ''; OutputData = [];
+    
+    %If time axis is supplied, append as first item to be written
+    if isempty(TimeAxis) == false
+        OutputHeader = ['time_adaptive [ms]'];
+        OutputData = [TimeAxis];
+        HeaderFormat = strcat(HeaderFormat, '%s');
+        DataFormat = strcat(DataFormat, '%0.13f');
+    end
+
+    %Construct fprintf format strings entries for each column
+    for i = 1:length(CoilStrings)
+        if i < length(CoilStrings)
+            HeaderFormat = strcat(HeaderFormat, ' %s');
+            DataFormat = strcat(DataFormat, ' %0.5f');
+        elseif i == length(CoilStrings)
+            HeaderFormat = strcat(HeaderFormat, ' %s\r\n');
+            DataFormat = strcat(DataFormat, ' %0.5f\r\n');
+        end
+    end
+    
+    %Save output header array and output data for each column (each coil)
+    for i = 1:length(CoilStrings)
+        %Save header string and OutputData for current coil
+        OutputHeader = [ OutputHeader, strcat(Prefix, CoilStrings(i), Suffix) ];
+        
+        %If InputData is supplied as object, pull the 'ith' structure for I/O
+        if isobject(Data)
+            OutputData = [ OutputData, Data.(CoilStrings(i)) ];
+        end
+        
+        %If InputData is supplied as a 2D array, pull each 'ith' row for I/O
+        if SizeData(1) == 1
+            OutputData = [ OutputData, Data(i,:) ];
+        %else if InputData is supplied as 1D array, pull each 'ith' element for I/O
+        elseif SizeData(1) ~= 1
+            DataArray = [ OutputData, Data(i) ]
+        end
+    end
+
+    %Open a new output file and save header and data in CVS format
+    Filename = strcat(icoilDir,Filename);
+    fileID=fopen(Filename,'w');
+    fprintf(fileID, HeaderFormat, OutputHeader);
+    fprintf(fileID, DataFormat, OutputData);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function [fileID]=WriteGeometry(Geometry,EquilDir,Filename)
 
     %Extract geometry for easier reading
@@ -2349,7 +2472,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [fileID]=WriteMatrixCVS(Matrix,Filename)
+function [fileID]=WriteMatrixRVS(Matrix,Filename)
 
     %Open file with requested filename
     fileID = fopen(Filename,'w');
@@ -2357,16 +2480,40 @@ function [fileID]=WriteMatrixCVS(Matrix,Filename)
     Unit = ' [A]';                  %(hardcoded for now)
 
     %Write column headers in first row
-    for i = 1:length(Matrix(1,:))
+    for i = 1:length(Matrix(:,1))
           fprintf(fileID,'%s ', strcat(Variable,string(i),Unit) );
     end
-    
+    fprintf(fileID,'\n');                 %New line after each row
+            
     %Write data row-wise, containing one data point from each column
-    for i = 1:length(Matrix(1,:))        %Length of columns
-        for j = 1:length(Matrix)         %Length of data within each column
-            fprintf(fileID,'%1.12f ', Matrix(j,i) );
+    for i = 1:length(Matrix(:,1))             %Number of columns
+        for j = 1:length(Matrix(1,:))         %Length of data within each column
+            fprintf(fileID,'%1.12f ', Matrix(i,j) );
         end
-        fprintf(fileID,'\n');            %New line after each row
+        fprintf(fileID,'\n');                 %New line after each row
+    end
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function [fileID]=WriteMatrixCVS(Matrix,Variables,Units,Filename)
+
+    %Open file with requested filename
+    fileID = fopen(Filename,'w');
+    
+    %Write column headers in first row
+    for i = 1:length(Matrix(:,1))
+          fprintf(fileID,'%s ', strcat(Variables(i),Units(i)) );
+    end
+    fprintf(fileID,'\n');                     %New line after header
+    
+    %Write data column-wise, containing one data point from each column
+    for i = 1:length(Matrix(1,:))             %Length of data within each column
+        for j = 1:length(Matrix(:,1))         %Number of columns
+            fprintf(fileID,'%1.5f ', Matrix(j,i) );
+        end
+        fprintf(fileID,'\n');                 %New line after each row
     end
 end
 
