@@ -163,7 +163,7 @@ ZGeo_efit = 0.000;					% Geometric Height      [m] (Default 0.000)   ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (1.850 --> 2.000) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238)   :: RGeo/Aspect
 Kappa_efit = 2.00;					% Elongation			[-] (+1.70 -> +2.00)  :: (Zmax-Zmin)/2rGeo
-delta_efit = 0.20;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
+delta_efit = +0.20;					% Triangularity			[-] (-1.00 -> +0.50)  :: (Zmax-Zgeo)/rGeo (max/min)
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define plasma stability initial perturbations (primarily used for Feedback control)
@@ -214,17 +214,17 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %time(5)-->time(6) lasts timescale TauP (Pulse/Discharge Timescale)
 %%%%%%%
                                     %TauR1=15ms  %TauR1=15ms    %TauR1=15ms
-                                    %RGeo=0.42   %RGeo=0.42     %RGeo=0.475
+                                    %RGeo=0.42   %RGeo=0.42     %RGeo=0.465
 %Solenoid coil currents [A]         %Phase2      %Phase2-d      %Phase2+d
 I_Sol_Null=+4000;					%+4000;      %+4500;        %+5000;
 I_Sol_MidRamp=+0000;				%+0000;      %+0000;        %+0000;
-I_Sol_Equil=-0600;                  %-0600;      %-0900;        %-1500;
-I_Sol_EndEquil=-2200;           	%-2200;      %-2400;        %-3000;
+I_Sol_Equil=-0900;                  %-0600;      %-0900;        %-0900;
+I_Sol_EndEquil=-2200;           	%-2200;      %-2400;        %-2500;
 
 %PF & Div Equilibrium coil currents [A]         (Default equilibrium: time(4,5,6))
 I_PF1_Equil=-1100;					%-1100;      %-1100;        %-1100;
 I_PF2_Equil=-1100;					%-1100;      %-1100;        %-1100;
-I_Div1_Equil=+1000;					%+1000;      %-3500;        %+2500;     (Pos for +d, Neg for -d)
+I_Div1_Equil=+1000;					%+1000;      %-3500;        %+1800;     (Pos for +d, Neg for -d)
 I_Div2_Equil=+0000;                 %+0000;      %+0000;        %+0000;
 
 %Define TimeIndices (vertices) in the Sol, PF & Div coil current waveforms
@@ -599,7 +599,7 @@ PlotVesselOverview(SaveString);
 
 %Plot target equilibrium following convergence
 Title = {'SMART Target Equilibrium iter(0)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_Equilibrium_00';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil},Title,CbarLabel,SaveString);
@@ -607,7 +607,7 @@ PlotEquilibrium({Equil},Title,CbarLabel,SaveString);
 %%%%%%%%%%%%%%%%  PLOT VIRTUAL SENSORS ONTO EQUILIBRIUM  %%%%%%%%%%%%%%%%%
 
 Title = {'SMART Virtual Sensors',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_VirtualBSensors';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil,sensor_btheta},Title,CbarLabel,SaveString);
@@ -616,7 +616,7 @@ PlotEquilibrium({Equil,sensor_btheta},Title,CbarLabel,SaveString);
 
 %Plot the optimised null-field phi
 Title = {'SMART Null-field Equilibrium iter(0)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_NullField_00';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Null},Title,CbarLabel,SaveString);
@@ -887,7 +887,7 @@ icoil_pert = icoil_efit; CoilCurrentsPert = CoilCurrentsEfit;
 
 %Plot perturbed equilibrium following convergence
 Title = {'SMART Perturbed Equilibrium \Psi(R,Z)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_Equilibrium_Pert';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Pert},Title,CbarLabel,SaveString);
@@ -941,8 +941,8 @@ close all
 %Most crahses arise from LCFS in solenoid - findboundary.m function contains rules for LCFS selection
 %Initial discharge currents (CoilWaveforms_Init) are more numerically stable than efit currents (CoilWaveforms_EFIT)
 CoilWaveforms(:,TimeIndex_Discharge) = CoilWaveforms_Init(:,TimeIndex_Discharge);   
-%CoilWaveforms(iDiv1,TimeIndex_Discharge) = I_Div1+100;               %Common Trick 1: try increasing IDiv1 and retry
-%CoilWaveforms(iSol,TimeIndex_Discharge) = I_Sol_Equil-100;           %Common Trick 2: try decreasing ISol and retry
+%CoilWaveforms(iDiv1,TimeIndex_Discharge) = 2000;               %Common Trick 1: try increasing IDiv1 and retry
+%CoilWaveforms(iSol,TimeIndex_Discharge) = -1000;               %Common Trick 2: try decreasing ISol and retry
 
 %Compute equilibrium (Psi(R,Z)) from the supplied jprofile, icoil and geometry
 %Returns target equilibrium and CoilWaveforms for PF1 and PF2 at requested time_Index
@@ -1060,7 +1060,7 @@ Pressure_Passive = EquilParams_Passive.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
 
 %Plot target equilibrium following convergence
 Title = {'SMART Target Equilibrium iter(1)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_Equilibrium_01';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Passive},Title,CbarLabel,SaveString);
@@ -1069,7 +1069,7 @@ PlotEquilibrium({Equil_Passive},Title,CbarLabel,SaveString);
 
 %Plot the optimised null-field phi
 Title = {'SMART Null-field Equilibrium iter(1)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_NullField_01';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Null_Passive},Title,CbarLabel,SaveString);
@@ -2561,8 +2561,8 @@ function fig=PlotEquilibrium(Arrays,Title,CbarLabel,SaveString)
     end
     
     %Plot Vessel and Coilset
-    plot(vessel);
-    plot(coilset);
+    fil = plot(vessel); set(fil, 'FaceColor',[150 150 150]/255); set(fil, 'EdgeColor', [150 150 150]/255);
+    coil = plot(coilset);
     
     %Colourmap
     colormap(cmap);
@@ -2603,8 +2603,8 @@ function fig=PlotVesselOverview(SaveString)
     
     %Plot Vessel and Coilset
     ax1 = gca;
+    fil = plot(vessel); set(fil, 'EdgeColor', 'k'); set(fil, 'FaceColor', [150 150 150]/255)
     coil = plot(coilset); set(coil, 'EdgeColor', 'k')
-    fil = plot(vessel); set(fil, 'EdgeColor', 'k')
     %%%%%
     pbaspect(ax1,AspectRatio)
     set(ax1,'XLim',[0.00 1.0]);     %0 to Rlim

@@ -599,7 +599,7 @@ PlotVesselOverview(SaveString);
 
 %Plot target equilibrium following convergence
 Title = {'SMART Target Equilibrium iter(0)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_Equilibrium_00';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil},Title,CbarLabel,SaveString);
@@ -607,7 +607,7 @@ PlotEquilibrium({Equil},Title,CbarLabel,SaveString);
 %%%%%%%%%%%%%%%%  PLOT VIRTUAL SENSORS ONTO EQUILIBRIUM  %%%%%%%%%%%%%%%%%
 
 Title = {'SMART Virtual Sensors',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_VirtualBSensors';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil,sensor_btheta},Title,CbarLabel,SaveString);
@@ -616,7 +616,7 @@ PlotEquilibrium({Equil,sensor_btheta},Title,CbarLabel,SaveString);
 
 %Plot the optimised null-field phi
 Title = {'SMART Null-field Equilibrium iter(0)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_NullField_00';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Null},Title,CbarLabel,SaveString);
@@ -887,7 +887,7 @@ icoil_pert = icoil_efit; CoilCurrentsPert = CoilCurrentsEfit;
 
 %Plot perturbed equilibrium following convergence
 Title = {'SMART Perturbed Equilibrium \Psi(R,Z)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_Equilibrium_Pert';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Pert},Title,CbarLabel,SaveString);
@@ -1060,7 +1060,7 @@ Pressure_Passive = EquilParams_Passive.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
 
 %Plot target equilibrium following convergence
 Title = {'SMART Target Equilibrium iter(1)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_Equilibrium_01';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Passive},Title,CbarLabel,SaveString);
@@ -1069,7 +1069,7 @@ PlotEquilibrium({Equil_Passive},Title,CbarLabel,SaveString);
 
 %Plot the optimised null-field phi
 Title = {'SMART Null-field Equilibrium iter(1)',' '};
-CbarLabel = 'Flux Surface Function \Psi(R,Z)';
+CbarLabel = 'Poloidal Magnetic Flux \Psi(R,Z)';
 Filename = '_NullField_01';
 SaveString = strcat(SimDir,ShotName,Filename,FigExt);
 PlotEquilibrium({Equil_Null_Passive},Title,CbarLabel,SaveString);
@@ -2561,8 +2561,8 @@ function fig=PlotEquilibrium(Arrays,Title,CbarLabel,SaveString)
     end
     
     %Plot Vessel and Coilset
-    plot(vessel);
-    plot(coilset);
+    fil = plot(vessel); set(fil, 'FaceColor',[150 150 150]/255); set(fil, 'EdgeColor', [150 150 150]/255);
+    coil = plot(coilset);
     
     %Colourmap
     colormap(cmap);
@@ -2603,8 +2603,8 @@ function fig=PlotVesselOverview(SaveString)
     
     %Plot Vessel and Coilset
     ax1 = gca;
+    fil = plot(vessel); set(fil, 'EdgeColor', 'k'); set(fil, 'FaceColor', [150 150 150]/255)
     coil = plot(coilset); set(coil, 'EdgeColor', 'k')
-    fil = plot(vessel); set(fil, 'EdgeColor', 'k')
     %%%%%
     pbaspect(ax1,AspectRatio)
     set(ax1,'XLim',[0.00 1.0]);     %0 to Rlim
