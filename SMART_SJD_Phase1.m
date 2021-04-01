@@ -33,7 +33,7 @@ global colourmap; colourmap = Plasma();     %'Plasma()','Gamma_II()'
 FigExt = '.png';                            %'.png','.eps','.pdf'
 
 %Define simulation shot name
-ShotName = 'S1-000020';		%Define shot name: typically Sx-xxxxxx"
+ShotName = 'S1-000021';		%Define shot name: typically Sx-xxxxxx"
 
 %Create global output folders for saved data and figures
 SimDir = strcat(ShotName,'/'); mkdir(SimDir);
@@ -129,14 +129,14 @@ global BEarth; BEarth = 1.0E-4;             % Earth's B-Field (Max limit) [T]
 
 
 %Define initial operating conditions (primarily used for Topeol2)
-Te = 250;			% Electron Temperature [eV]
-Ti = Te*0.10;		% Ion Temperature      [eV]
+Te = 120;			% Electron Temperature [eV]                     100 - 120 eV from ASTRA
+Ti = Te*0.10;		% Ion Temperature      [eV]                     90 eV from ASTRA (Seems high...)
 BT = +0.1;			% Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = +32e3;         % Plasma current       [A]
+Ip = +35e3;         % Plasma current       [A]
 RGeo = 0.420;		% Geometrical Radius   [m] (~0.420 --> 0.480)
 ZGeo = 0.000;		% Geometrical Axis     [m] (=0.000)
-RSep = 0.700;		% Separatrix Radius    [m] (=0.700)
-rGeo = RSep-RGeo;	% Minor Radius         [m] (=0.250)
+RSep = 0.650;		% Separatrix Radius    [m] (~0.650 --> 0.700)
+rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.230 --> 0.280)
 Aspect = RGeo/rGeo;	% Aspect ratio         [-] (~1.50 --> 1.85)
 Kappa = 1.80;		% Elongation           [-] (~1.70 --> 2.00)
 delta = 0.20;		% Triangularity        [-] (~0.20)
@@ -144,9 +144,9 @@ Z_eff = 2.00;       % Effective Charge     [C] (~1.44 - 2.00)
 li2 = 1;			% Inductance	       [-] (??????)
 
 %Compute further operating conditions (primarily used for Topeol2)
-Gr_Frac = 0.15;                            % Greenwald Fraction       [-]
+Gr_Frac = 0.25;                            % Greenwald Fraction       [-]       ~0.6e19 [m-3] used here.
 Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2));     % Greenwald Limit          [m-3]
-ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]
+ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]     ~1.2e19 [m-3] from ASTRA (Seems high...)
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %deltaUp = (ZGeo-Zup)/a;                   % Upper-Triangularity      [-]
@@ -163,7 +163,7 @@ ZGeo_efit = 0.000;					% Geometric Height      [m] (Default 0.000)   ::
 Aspect_efit = 1.90;                 % Aspect Ratio          [-] (1.850 --> 2.000) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238)   :: RGeo/Aspect
 Kappa_efit = 1.80;					% Elongation			[-] (+1.70 -> +2.00)  :: (Zmax-Zmin)/2rGeo
-delta_efit = 0.20;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
+delta_efit = +0.20;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define plasma stability initial perturbations (primarily used for Feedback control)
@@ -216,15 +216,15 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
                                     %TauR1=5.0ms   %TauR=5.0ms     %TauR=5.0ms
                                     %RGeo=0.42     %RGeo=0.42      %RGeo=0.46
 %Solenoid coil currents [A]         %Phase1Base    %Phase1NegTri   %Phase1PosTri
-I_Sol_Null=+1500;					%+1500;        %+1500;         %+1500;
+I_Sol_Null=+1400;					%+1400;        %+1500;         %+1500;
 I_Sol_MidRamp=+000;                 %+000          %+000;          %+000;
-I_Sol_Equil=-150;			        %-150;         %-150;          %-150;
-I_Sol_EndEquil=-125;                %-125;         %-125;          %-125;
+I_Sol_Equil=-100;			        %-100;         %-200;          %-150;
+I_Sol_EndEquil=-300;                %-300;         %-400;          %-350;
 
 %PF & Div Equilibrium coil currents [A]         (Default equilibrium: time(4,5,6))
 I_PF1_Equil=-0400;					%-0400;        %-0400;         %-0400;
 I_PF2_Equil=-0400;					%-0400;        %-0400;         %-0400;
-I_Div1_Equil=+0400;					%+0400;        %-0500;         %+0950;    (Pos for +d, Neg for -d)         
+I_Div1_Equil=+0400;					%+0400;        %-0500;         %+0800;    (Pos for +d, Neg for -d)         
 I_Div2_Equil=+0000;					%+0000;        %+0000;         %+0000;
 
 %Define TimeIndices (vertices) in the Sol, PF & Div coil current waveforms
@@ -258,7 +258,9 @@ DivertorConfig = 'DSN';     %'USN','LSN','DSN'
 global efitCoils; efitCoils = {'PF1','PF2'};                        % Default PF1, PF2          -USN and LSN are hardcoded, needs updated
 global feedbackCoils; feedbackCoils = {'Div2'};                     % Default Div2
 
-%Terminal Outputs for sanity checking
+%Write Command Window Outputs to text file for sanity checking
+diary( sprintf(strcat(SimDir,'Output_%s.txt'),datestr(now,'yyyy-mm-dd_HH:MM:SS')) )
+
 disp([ ' ' ]);
 disp([ '%===== Discharge Parameters =====%' ]);
 disp([ 'IRod = ' num2str(Irod) ' [kA]' ]);

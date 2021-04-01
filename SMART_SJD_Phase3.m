@@ -33,7 +33,7 @@ global colourmap; colourmap = Plasma();     %'Plasma()','Gamma_II()'
 FigExt = '.png';                            %'.png','.eps','.pdf'
 
 %Define simulation shot name
-ShotName = 'S3-000005';		%Define shot name: typically Sx-xxxxxx"
+ShotName = 'S3-000006';		%Define shot name: typically Sx-xxxxxx"
 
 %Create global output folders for saved data and figures
 SimDir = strcat(ShotName,'/'); mkdir(SimDir);
@@ -135,8 +135,8 @@ BT = +1.0;			% Toroidal B-Field     [T] (Defined at Rgeo)
 Ip = +400e3;		% Plasma current       [A]
 RGeo = 0.420;		% Geometrical Radius   [m] (~0.420 --> 0.480)
 ZGeo = 0.000;		% Geometrical Axis     [m] (=0.000)
-RSep = 0.700;		% Separatrix Radius    [m] (=0.700)
-rGeo = RSep-RGeo;	% Minor Radius         [m] (=0.250)
+RSep = 0.650;		% Separatrix Radius    [m] (~0.650 --> 0.700)
+rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.230 --> 0.280)
 Aspect = RGeo/rGeo;	% Aspect ratio         [-] (~1.50 --> 1.85)
 Kappa = 1.80;		% Elongation           [-] (~1.70 --> 2.00)
 delta = 0.20;		% Triangularity        [-] (~0.20)
@@ -145,7 +145,7 @@ li2 = 1;			% Inductance	       [-] (??????)
 
 %Compute further operating conditions (primarily used for Topeol2)
 Gr_Frac = 0.50;                            % Greenwald Fraction       [-]       ~0.8e20 m-3 for Ip=400kA, GlobusM2 is approx 0.7e20 m-3
-Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2));     % Greenwald Limit          [m-3]
+Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2));     % Greenwald Limit          [m-3]     ~1.2e20 m-3 for rGeo at 0.650
 ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
@@ -163,7 +163,7 @@ ZGeo_efit = 0.000;					% Geometric Height      [m] (Default 0.000)   ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (1.850 --> 2.000) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238)   :: RGeo/Aspect
 Kappa_efit = 2.00;					% Elongation			[-] (+1.70 -> +2.00)  :: (Zmax-Zmin)/2rGeo
-delta_efit = 0.20;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
+delta_efit = +0.20;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define plasma stability initial perturbations (primarily used for Feedback control)
@@ -218,7 +218,7 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %Solenoid coil currents [A]         %Phase3      %Phase3NegTri  %Phase3PosTri           %Max +-12000/15000 A at 300A/ms
 I_Sol_Null=+15000;					%+15000;     %+15000;       %+18000;
 I_Sol_MidRamp=+00000;				%+00000;     %+00000;       %+00000;
-I_Sol_Equil=-03500;                 %-03500;     %-04500;       %-04500;                %Lower is better... but Ip suffers
+I_Sol_Equil=-03750;                 %-03750;     %-04500;       %-04500;
 I_Sol_EndEquil=-11000;           	%-11000;     %-11000;       %-12000;
 
 %PF & Div Equilibrium coil currents [A]         (Default equilibrium: time(4,5,6))      %Max +-8000 A at 300A/ms
