@@ -33,7 +33,7 @@ global colourmap; colourmap = Plasma();     %'Plasma()','Gamma_II()'
 FigExt = '.png';                            %'.png','.eps','.pdf'
 
 %Define simulation shot name
-ShotName = 'S2-000019';		%Define shot name: typically Sx-xxxxxx"
+ShotName = 'S1-000020-B';		%Define shot name: typically Sx-xxxxxx"
 
 %Create global output folders for saved data and figures
 SimDir = strcat(ShotName,'/'); mkdir(SimDir);
@@ -129,24 +129,24 @@ global BEarth; BEarth = 1.0E-4;             % Earth's B-Field (Max limit) [T]
 
 
 %Define initial operating conditions (primarily used for Topeol2)
-Te = 250;			% Electron Temperature [eV]
-Ti = Te*0.30;		% Ion Temperature      [eV]
-BT = +0.3;			% Toroidal B-Field     [T] (Defined at Rgeo)
-Ip = +100e3;		% Plasma current       [A]
+Te = 250;			% Electron Temperature [eV]                     250 - 300 eV from ASTRA
+Ti = Te*0.30;		% Ion Temperature      [eV]                     200 eV from ASTRA (including NBI)
+BT = +03;			% Toroidal B-Field     [T] (Defined at Rgeo)
+Ip = +100e3;         % Plasma current       [A]
 RGeo = 0.420;		% Geometrical Radius   [m] (~0.420 --> 0.480)
 ZGeo = 0.000;		% Geometrical Axis     [m] (=0.000)
-RSep = 0.700;		% Separatrix Radius    [m] (=0.700)
-rGeo = RSep-RGeo;	% Minor Radius         [m] (=0.250)
+RSep = 0.650;		% Separatrix Radius    [m] (~0.650 --> 0.700)
+rGeo = RSep-RGeo;	% Minor Radius         [m] (~0.230 --> 0.280)
 Aspect = RGeo/rGeo;	% Aspect ratio         [-] (~1.50 --> 1.85)
 Kappa = 1.80;		% Elongation           [-] (~1.70 --> 2.00)
 delta = 0.20;		% Triangularity        [-] (~0.20)
-Z_eff = 2.0;        % Effective Charge     [C] (~1.44 - 2.00)
+Z_eff = 2.00;       % Effective Charge     [C] (~1.44 - 2.00)
 li2 = 1;			% Inductance	       [-] (??????)
 
 %Compute further operating conditions (primarily used for Topeol2)
 Gr_Frac = 0.40;                            % Greenwald Fraction       [-]
 Gr_Limit = 1e20*(Ip*1e-6/(pi*rGeo^2));     % Greenwald Limit          [m-3]
-ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]
+ne = abs(Gr_Limit*Gr_Frac);                % Electron Density         [m-3]     ~5e19 [m-3] from ASTRA
 Irod = (BT*2*pi*RGeo)/mu0;                 % Central Rod Current      [A]
 S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %deltaUp = (ZGeo-Zup)/a;                   % Upper-Triangularity      [-]
@@ -154,8 +154,8 @@ S = sqrt( (1.0+Kappa^2)/2.0 );             % Shaping factor           [-]
 %delta = (deltaUp+deltaLo)/2.0;            % Triangularity            [-]
 %betaN = (betaT*BT*a)/(Ip*1e-6*mu0)        % Normalised Beta          [%] 
 %betaT = (betaN/a*(Ip*1e-6))/BT;           % Beta toroidal            [%]
-betaP = 3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa;  % Beta Poloidal  [%]
-BZ = -mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2);         % Vertical field [T]
+betaP = abs(3/2*ne*(Te+Ti)/(mu0*Ip/(2*pi*rGeo))^2*2*mu0*1.6e-19*Kappa);  % Beta Poloidal  [%]
+BZ = -abs(mu0*Ip/(4*pi*RGeo)*(log(8*Aspect)+betaP+0.5*li2-3/2));         % Vertical field [T]
 
 %Define efit Equilibrium Operating Conditions (primarily used for efit)
 RGeo_efit = 0.420;					% Geometric Radius      [m] (0.420 --> 0.480) ::
@@ -163,7 +163,7 @@ ZGeo_efit = 0.000;					% Geometric Height      [m] (Default 0.000)   ::
 Aspect_efit = 1.85;                 % Aspect Ratio          [-] (1.850 --> 2.000) :: RGeo/rGeo
 rGeo_efit = RGeo_efit/Aspect_efit;  % Minor Radius	        [m] (Default 0.238)   :: RGeo/Aspect
 Kappa_efit = 2.00;					% Elongation			[-] (+1.70 -> +2.00)  :: (Zmax-Zmin)/2rGeo
-delta_efit = +0.20;					% Triangularity			[-] (-1.00 -> +0.50)  :: (Zmax-Zgeo)/rGeo (max/min)
+delta_efit = +0.20;					% Triangularity			[-] (-1.00 -> +1.00)  :: (Zmax-Zgeo)/rGeo (max/min)
 efitGeometry_Init = [RGeo_efit, ZGeo_efit, rGeo_efit, Kappa_efit, delta_efit];
 
 %Define plasma stability initial perturbations (primarily used for Feedback control)
@@ -203,7 +203,7 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 
 %Definition of CoilWaveform time intervals:
 %time(1)--> All coils and Sol initiate at zero current          Init
-%time(2)--> All coils initiate null-field configuration         PrePulse
+%time(2)--> All coils initiate null-field configuration         NullField
 %time(3)--> All coils maintain null-field configuration         InitRampDown
 %time(4)--> Sol ramps down, PF/Div coils init equilibrium       MidRampDown - InitEquil
 %time(5)--> Sol completes ramp down, maintain PF/Div coils      EndRampDown - MidEquil
@@ -218,7 +218,7 @@ R_Null = 0.15;                      	% Null field region radius      %[m]
 %Solenoid coil currents [A]         %Phase2      %Phase2-d      %Phase2+d
 I_Sol_Null=+4000;					%+4000;      %+4500;        %+5000;
 I_Sol_MidRamp=+0000;				%+0000;      %+0000;        %+0000;
-I_Sol_Equil=-0900;                  %-0600;      %-0900;        %-0900;
+I_Sol_Equil=-0600;                  %-0600;      %-0900;        %-0900;
 I_Sol_EndEquil=-2200;           	%-2200;      %-2400;        %-2500;
 
 %PF & Div Equilibrium coil currents [A]         (Default equilibrium: time(4,5,6))
@@ -235,11 +235,12 @@ TauR  = TauR1+TauR2;    % Total Ramp Timescale      [s]
 TauP  = 0.100;			% Pulse Timescale      		[s] Determines flat-top timescale
 
 %Create time array, containing Sol, PF & Div coil current waveform time vertices
-%Time   [Init      PrePulse   InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
-time =  [-4*TauN   -TauN      0.0           TauR1        TauR         TauR+TauP    TauR+TauP+(4*TauN)];
+%Time   [Init      NullField  InitRampDown  MidRampDown  EndRampDown  MidEquil     Terminate         ];
+time =  [-4*TauN   -TauN      0.0           TauR1        TauR         TauR+TauP    TauR+TauP+(6*TauN)];
 nTime = length(time);	% Total Coil Waveform Timesteps	[-]
 
-%Fits linear midpoint to any current defined as 'linear' between times: {pre-ramp, mid-ramp, end-ramp}
+%Fits linear midpoint to any current defined as 'Linear' between times: {pre-ramp, mid-ramp, end-ramp}
+%Caution: Breakdown timescale will be TauR1+TauR2 if 'Linear' is used, as the ISol gradient is forced constant.
 I_Sol_MidRamp = FitSolenoidRamp({I_Sol_Null,I_Sol_MidRamp,I_Sol_Equil},time);
 
 %Construct Sol, PF/Div coil current waveforms by specifying current at temporal vertices
@@ -252,13 +253,15 @@ IPF2_Waveform =  [0,  NaN,        NaN,          NaN,           I_PF2_Equil,   I_
 IDiv1_Waveform = [0,  NaN,        NaN,          NaN,           I_Div1_Equil,  I_Div1_Equil,    0];
 IDiv2_Waveform = [0,  NaN,        NaN,          NaN,           I_Div2_Equil,  I_Div2_Equil,    0];
 %%%%%
-DivertorConfig = 'DSN';     %'USN','LSN','DSN'
+DivertorConfig = 'DN';     %'DN','USN','LSN'
 
 %Define dynamic coils (i.e. which coil currents are fit by efit)
 global efitCoils; efitCoils = {'PF1','PF2'};                        % Default PF1, PF2          -USN and LSN are hardcoded, needs updated
 global feedbackCoils; feedbackCoils = {'Div2'};                     % Default Div2
 
-%Terminal Outputs for sanity checking
+%Write Command Window Outputs to text file for sanity checking
+diary( sprintf(strcat(SimDir,'Output_%s.txt'),datestr(now,'yyyy-mm-dd_HH:MM:SS')) )
+
 disp([ ' ' ]);
 disp([ '%===== Discharge Parameters =====%' ]);
 disp([ 'IRod = ' num2str(Irod) ' [kA]' ]);
@@ -332,7 +335,7 @@ FilamentArea = 1.50e-4; %(2.5e-4 > A > 1.5e-4 or RZIp M,R matrices fail)   %[m^2
 
 %Construct passive vessel components and arrange into a vessel object
 global passive; passive = fiesta_passive('STVesselPas',vessel_filament,'g',VesselResistivity,VesselDensity);
-global vessel; vessel = fiesta_vessel( 'STVessel',passive);
+global vessel; vessel = fiesta_vessel( 'STVessel', passive);
 
 %Compute characteristic magnetic field penetration timescale (Amoskov2005)
 TauVessel = (mu0*max(WallThickness)^2)/VesselResistivity;       %[s]
@@ -356,7 +359,7 @@ coilturns(iSol) = nSol; nSolR = 1;
 %Create solenoid and PF, Div coil sets from input coil geometry and material coefficients.
 %Coils are initiated as individual circuits or as a pair of two PF coils in series.
 %CoilWaveforms are constructed from user inputs, where USN and LSN assume a zero opposite Div1 coil current.
-if DivertorConfig == 'USN'
+if strcmpi(DivertorConfig,'USN')
     %Create individual coils for PF1, PF2 and Div1, one in (R, Z) and another in (R, -Z)
     Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
     PF11  = CreateSMARTCoilCircuit('PF11',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,false,1);
@@ -377,7 +380,7 @@ if DivertorConfig == 'USN'
     efitCoils = {'PF11','PF12','PF21','PF22'};
     
 %Lower Single Null Configuration
-elseif DivertorConfig == 'LSN'
+elseif strcmpi(DivertorConfig,'LSN')
     %Create individual coils for PF1, PF2 and Div1, one in (R, Z) and another in (R, -Z)
     Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
     PF11  = CreateSMARTCoilCircuit('PF11',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,false,1);
@@ -398,7 +401,7 @@ elseif DivertorConfig == 'LSN'
     efitCoils = {'PF11','PF12','PF21','PF22'};
     
 %Double Null Configuration
-else
+elseif strcmpi(DivertorConfig,'DN')
     %Create series-linked coil sets for PF1, PF2, Div1 and Div2, one in (R, Z) and another in (R, -Z)
     Sol = CreateSMARTSolenoidCircuit('Sol',RSolOuter,RSolInner,ZMaxSol,ZMinSol,coilturns(iSol),nSolR,CoilTemp,CoilResistivity,CoilDensity);
     PF1  = CreateSMARTCoilCircuit('PF1',R_PF1,Z_PF1,width_PF1,height_PF1,coilturns(iPF1),nZPF1,nRPF1,CoilTemp,CoilResistivity,CoilDensity,true,1);
@@ -448,15 +451,18 @@ CoilWaveforms(1,:) = CoilWaveforms(1,:)/nSolR;
         %PlotEquilibrium({Current},'Title','CbarLabel','Current.png')
         %PlotEquilibrium({CurrentDensity},'Title','CbarLabel','CurrentDensity.png')
 
-        
-
-        
-        
-        
-        
-        
 
 
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %           COMPUTE INITIAL TARGET AND NULL-FIELD EQUILIBRIUA             %
@@ -558,15 +564,23 @@ a_eff = min([abs(EquilParams.r0_geom-VesselRMinInner),abs(EquilParams.r0_geom-Ve
 Lc = 0.25*a_eff*(BtorAvg_Null/BpolAvg_Null);
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop,Eloop,DeltaPhiSol,VloopArray,EloopArray,DeltaPhiSolArray]=...
+%Vloop depends only on the solenoid geometry and maximum negative solenoid current gradient 
+%Eloop depends on the toroidal path length at a given radius where: Length = 2pi*R and R = inboard LCFS (EquilParams.rin)
+[Vloop,Eloop,VloopArray,EloopArray,DeltaPhiArray,PhiArray]=...
     LoopVoltage(I_PF_output,time_adaptive,RSolCentreWinding,ZMaxSol,ZMinSol,EquilParams.rin);
 Eloop_eff = abs(Eloop)*(BtorAvg_Null/BpolAvg_Null); %[V/m]   %Rough estimate threshold Eloop condition for breakdown
 %Generally Eloop_eff > 100 [V/m] for startup with ECRH      (An2015)
 %Generally Eloop_eff > 1000 [V/m] for solenoid only startup (Lloyd1991)
 
+%Compute solenoid magnetic flux usage; integrating over breakdown, flat-top, and the whole discharge
+AdaptiveBreakdownIdx = max( find(abs(time_adaptive-time(4))<0.0001) );           %Index 4 is end of breakdown phase (typically ISol_MidRamp)
+BreakdownFlux = sum(abs(DeltaPhiArray(1:AdaptiveBreakdownIdx)))*1000;     %[mVs]  %Sum magnetic flux through breakdown - from time(0) - time(4)
+SustainingFlux = sum(abs(DeltaPhiArray(AdaptiveBreakdownIdx:end)))*1000;  %[mVs]  %Sum magnetic flux through flat-top - from time(4) to time(end)
+TotalFlux = sum(abs(DeltaPhiArray))*1000;                                 %[mVs]  %Sum total magnetic flux for time(:)
+
 %Compute breakdown (avalanche) timescale, TauBD, at given pressure
 Pressure = EquilParams.P0*(7.5e-7);                          %[Torr]  (typically ~2e-4 Torr)
-[TauBD,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,ne,1.0,true);
+[TauBDArray,TauBD,Pressure,Alpha,Vde]=AvalancheTimescale(Pressure,Eloop,Lc,ne,1.0,true);
 
 %Compute solenoid OH flux swing employing the Ejima-Wesley coefficient, Cew
 Cew = 0.40*EquilParams.aspectratio;                           %[-]      (Gryaznevich2006)
@@ -659,7 +673,7 @@ set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 %%%%%
 Filename = '_CurrentWaveforms';
 saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
-%%
+
 %%%%%%%%%%%%%%%%%%%%%% PLOT COIL VOLTAGE WAVEFORMS %%%%%%%%%%%%%%%%%%%%%%%% 
 
 %Plot figure showing dynamic coil currents
@@ -713,13 +727,28 @@ set(gca, 'FontSize', 18, 'LineWidth', 0.75);
 Filename = '_PlasmaCurrent';
 saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
 
+%%%%%%%%%%%%%%%%%% PLOT SOLENOID MAGNETIC FLUX USAGE %%%%%%%%%%%%%%%%%%%%% 
+
+figure('units','inch','position',[12 12 12 8]);
+subplot(1,1,1); hold on; grid on; box on;
+yyaxis left; plot(time_adaptive,VloopArray, 'linewidth', 2)
+ylabel('Loop Voltage |V_{loop}| [V]', 'FontSize', 20)
+yyaxis right; plot(time_adaptive,PhiArray*1000, 'linewidth', 2)
+title(gca, 'SMART Loop Voltage & Magnetic Flux', 'FontSize', 20)
+%%%%%
+xlabel(gca,'Time t [ms]', 'FontSize', 20);
+ylabel(gca,'Solenoid Magnetic Flux \phi_{sol} [mWb]', 'FontSize', 20);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
+Filename = '_1DMagneticFlux';
+saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
+
 %%%%%%%%%%%%%%%%%%%%%% PLOT TOTAL EDDY CURRENT %%%%%%%%%%%%%%%%%%%%%%%%% 
 
 %Sum all filaments (row-wise) to get total net passive current
 Net_IPassive = sum(I_Passive,2);
 %Plot net passive current density over full timescale
 close all
-figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
+figure('units','inch','position',[12 12 12 8]); hold on; grid on; box on;
 plot(time_adaptive*1000, Net_IPassive/1000, 'LineWidth',2)
 title(gca,'Net SMART Eddy Current iter(0)');
 legend(gca,'Net Eddy Current'); legend boxoff;
@@ -734,13 +763,13 @@ saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
 %%%%%%%%%%%%%%%%%% PLOT 2D RESOLVED EDDY CURRENTS %%%%%%%%%%%%%%%%%%%%%%   
 
 %Obtain all passive vessel filaments
-Passives = get(vessel,'passives');
-Filaments = get(Passives,'filaments');
-RFil = get(Filaments(:),'r');             %Radial Filaments
-ZFil = get(Filaments(:),'z');             %Axial Filaments
+Vessel_Passives = get(vessel,'passives');
+Vessel_Filaments = get(Vessel_Passives,'filaments');
+RFil = get(Vessel_Filaments(:),'r')';             %Radial Filament coordinates
+ZFil = get(Vessel_Filaments(:),'z')';             %Axial Filament coordinates
 %Plot equilibrium eddy currents within a cross-section of the vessel
 close all
-figure; hold on; grid on; box on; axis equal;
+figure('units','inch','position',[10 10 8 8]); hold on; grid on; box on; axis equal;
 plot(coilset);
 scatter3(RFil,ZFil,VesselEddyCurrents/1000,100,VesselEddyCurrents/1000,'filled');
 title('SMART Vessel Eddy Currents iter(0)');
@@ -755,17 +784,16 @@ xlabel(gca,'R (m)');
 ylabel(gca,'Z (m)');
 Filename = '_EddyCurrent';
 saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));   
-
 %%%%%     %%%%%     %%%%%     %%%%%     %%%%%     %%%%%
 
 %Obtain all passive vessel filaments
-Passives = get(vessel,'passives');
-Filaments = get(Passives,'filaments');
-RFil = get(Filaments(:),'r');             %Radial Filaments
-ZFil = get(Filaments(:),'z');             %Axial Filaments
+Vessel_Passives = get(vessel,'passives');
+Vessel_Filaments = get(Vessel_Passives,'filaments');
+RFil = get(Vessel_Filaments(:),'r')';             %Radial Filament coordinates
+ZFil = get(Vessel_Filaments(:),'z')';             %Axial Filament coordinates
 %Plot null-field eddy currents within a cross-section of the vessel
 close all
-figure; hold on; grid on; box on; axis equal;
+figure('units','inch','position',[10 10 8 8]); hold on; grid on; box on; axis equal;
 plot(coilset);
 scatter3(RFil,ZFil,VesselEddyCurrentsNull/1000,100,VesselEddyCurrentsNull/1000,'filled');
 title('SMART Vessel Null Eddy Currents iter(0)');
@@ -785,7 +813,7 @@ saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
 
 %Plot figure showing vessel eddy stresses
 close all
-figure; hold on; grid on; box on; axis equal;
+figure('units','inch','position',[10 10 8 8]); hold on; grid on; box on; axis equal;
 plot(coilset);
 %plot(vessel);
 quiver(R_Fil_Array,Z_Fil_Array,StressR,StressZ,'color',[1 0 0],'AutoScale','on');
@@ -804,9 +832,10 @@ close('all')
 %%%%%%%%%%%%%%%%%%%%%%  PLOT PASCHEN CURVES  %%%%%%%%%%%%%%%%%%%%%
 
 %Calculate Paschen Curve and determine breakdown
-PressureLimits = [1e-6, 1e-3]; Resolution = 25000;
-PressureArray = linspace(PressureLimits(1),PressureLimits(2),Resolution);
+PressureLimits = [1e-6, 1e-3]; PressureResolution = 25000;      %Ensure these match AvalancheTimescale() subroutine
+PressureArray = linspace(PressureLimits(1),PressureLimits(2),PressureResolution);
 
+%Create pressure array for Paschen curve
 for i=1:length(PressureArray)
     PaschenCurve(i) = (PressureArray(i)*1.25e4)/(log(510.0*PressureArray(i)*Lc));
     if PaschenCurve(i) < 0
@@ -814,27 +843,39 @@ for i=1:length(PressureArray)
     end
 end
 
+%Create flat MaxEloop array for plotting
 for i=1:length(PressureArray)
-    EloopArray(i) = abs(Eloop);
+    MaxEloopArray(i) = abs(Eloop);
 end
-
+%%
 close all
 figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 title(gca,'SMART Paschen Breakdown');
-LegendString = {'Paschen Curve','Max E_{loop}'};
-plot(PressureArray,PaschenCurve, 'k', 'LineWidth',2)
-plot(PressureArray,EloopArray, 'r', 'LineWidth',2)
-legend(gca,LegendString); legend boxoff;
-xlabel(gca,'Pressure P (Torr)');
-ylabel(gca,'E_{min} for Breakdown (V/m)');
+LegendString = {'Paschen Curve','Max E_{loop}','Avalanche \tau_{bd}'};
+yyaxis left; plot(PressureArray,PaschenCurve, 'k', 'LineWidth',2)
+yyaxis left; plot(PressureArray,MaxEloopArray, 'r', 'LineWidth',2)
+%legend(gca,LegendString, 'Location','northwest'); legend boxoff;
+xlabel(gca,'Pressure P [Torr]');
+ylabel(gca,'E_{min} for Breakdown [V/m]');
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 set(gca,'XLim',[2.5e-6 1e-3]);
 set(gca,'YLim',[0.1 100]);
 set(gca, 'FontSize', 18, 'LineWidth', 0.75);
+set(gca,'ycolor','r') 
+%%%%%
+yyaxis right; plot(PressureArray,TauBDArray, 'b', 'LineWidth',2)
+legend(gca,LegendString, 'Location','northwest'); legend boxoff;
+ylabel(gca,'Avalanche Timescale \tau_{bd} [s]');
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+set(gca,'YLim',[0.001 100]);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
+set(gca,'ycolor','b') 
+%%%%%
 Filename = '_PaschenCurves_00';
 saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
-
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -941,8 +982,8 @@ close all
 %Most crahses arise from LCFS in solenoid - findboundary.m function contains rules for LCFS selection
 %Initial discharge currents (CoilWaveforms_Init) are more numerically stable than efit currents (CoilWaveforms_EFIT)
 CoilWaveforms(:,TimeIndex_Discharge) = CoilWaveforms_Init(:,TimeIndex_Discharge);   
-%CoilWaveforms(iDiv1,TimeIndex_Discharge) = 2000;               %Common Trick 1: try increasing IDiv1 and retry
-%CoilWaveforms(iSol,TimeIndex_Discharge) = -1000;               %Common Trick 2: try decreasing ISol and retry
+%CoilWaveforms(iDiv1,TimeIndex_Discharge) = I_Div1+100;               %Common Trick 1: try increasing IDiv1 and retry
+%CoilWaveforms(iSol,TimeIndex_Discharge) = I_Sol_Equil-100;           %Common Trick 2: try decreasing ISol and retry
 
 %Compute equilibrium (Psi(R,Z)) from the supplied jprofile, icoil and geometry
 %Returns target equilibrium and CoilWaveforms for PF1 and PF2 at requested time_Index
@@ -1011,17 +1052,22 @@ a_eff = min([abs(EquilParams_Passive.r0_geom-VesselRMinInner),abs(EquilParams_Pa
 Lc_Passive = 0.25*a_eff*(BtorAvg_Null_Passive/BpolAvg_Null_Passive);
 
 %Compute maximum loop voltage and E-field during solenoid ramp-down
-[Vloop_Passive,Eloop_Passive,DeltaPhiSol_Passive,VloopArray_Passive,EloopArray_Passive,DeltaPhiSolArray_Passive]=...
+[Vloop_Passive,Eloop_Passive,VloopArray_Passive,EloopArray_Passive,DeltaPhiArray_Passive,PhiArray_Passive]=...
     LoopVoltage(I_PF_output,time_adaptive,RSolCentreWinding,ZMaxSol,ZMinSol,EquilParams_Passive.rin);
 Eloop_eff_Passive = abs(Eloop_Passive)*(BtorAvg_Null_Passive/BpolAvg_Null_Passive); %[V/m]   %Rough estimate threshold Eloop condition for breakdown
 %Generally Eloop_eff > 100 [V/m] for startup with ECRH      (An2015)
 %Generally Eloop_eff > 1000 [V/m] for solenoid only startup (Lloyd1991)
 
+%Compute solenoid magnetic flux usage; integrating over breakdown, flat-top, and the whole discharge
+AdaptiveBreakdownIdx = max( find(abs(time_adaptive-time(4))<0.0001) );                   %Index 4 is end of breakdown phase (typically ISol_MidRamp)
+BreakdownFlux_Passive = sum(abs(DeltaPhiArray_Passive(1:AdaptiveBreakdownIdx)))*1000;    %[mVs]  %Sum magnetic flux through breakdown - from time(0) - time(4)
+SustainingFlux_Passive = sum(abs(DeltaPhiArray_Passive(AdaptiveBreakdownIdx:end)))*1000; %[mVs]  %Sum magnetic flux through flat-top - from time(4) to time(end)
+TotalFlux_Passive = sum(abs(DeltaPhiArray_Passive))*1000;                                %[mVs]  %Sum total magnetic flux for time(:)
+
 %Compute breakdown (avalanche) timescale at given pressure (!!! NEEDS TESTING !!!)
 Pressure_Passive = EquilParams_Passive.P0*(7.5e-7);    %[Torr]  (~2e-4 Torr)
-[TauBD_Passive,Pressure_Passive,Alpha_Passive,Vde_Passive] = ...
+[TauBDArray_Passive,TauBD_Passive,Pressure_Passive,Alpha_Passive,Vde_Passive] = ...
     AvalancheTimescale(Pressure_Passive,Eloop_Passive,Lc_Passive,ne,1.0,true);
-
 
 %%%%%%%%%%%%%%  RE-COMPUTE DYNAMIC PLASMA & EDDY CURRENTS  %%%%%%%%%%%%%%%%
 
@@ -1089,9 +1135,10 @@ PlotEquilibrium({logBpolData_Null_Passive},Title,CbarLabel,SaveString);
 %%%%%%%%%%%%%%%%%%%%%%  PLOT PASCHEN CURVES  %%%%%%%%%%%%%%%%%%%%%
 
 %Calculate Paschen Curve and determine breakdown
-PressureLimits = [1e-6, 1e-3]; Resolution = 25000;
-PressureArray = linspace(PressureLimits(1),PressureLimits(2),Resolution);
+PressureLimits = [1e-6, 1e-3]; PressureResolution = 25000;      %Ensure these match AvalancheTimescale() subroutine
+PressureArray = linspace(PressureLimits(1),PressureLimits(2),PressureResolution);
 
+%Create pressure array for Paschen curve
 for i=1:length(PressureArray)
     PaschenCurve_Passive(i) = (PressureArray(i)*1.25e4)/(log(510.0*PressureArray(i)*Lc_Passive));
     if PaschenCurve_Passive(i) < 0
@@ -1099,24 +1146,36 @@ for i=1:length(PressureArray)
     end
 end
 
+%Create flat MaxEloop array for plotting
 for i=1:length(PressureArray)
-    EloopArray_Passive(i) = abs(Eloop_Passive);
+    MaxEloopArray_Passive(i) = abs(Eloop_Passive);
 end
 
 close all
 figure('units','inch','position',[12 12 8 8]); hold on; grid on; box on;
 title(gca,'SMART Paschen Breakdown');
-LegendString = {'Paschen Curve','Max E_{loop}'};
-plot(PressureArray,PaschenCurve_Passive, 'k', 'LineWidth',2)
-plot(PressureArray,EloopArray_Passive, 'r', 'LineWidth',2)
-legend(gca,LegendString); legend boxoff;
-xlabel(gca,'Pressure P (Torr)');
-ylabel(gca,'E_{min} for Breakdown (V/m)');
+LegendString = {'Paschen Curve','Max E_{loop}','Avalanche \tau_{bd}'};
+yyaxis left; plot(PressureArray,PaschenCurve_Passive, 'k', 'LineWidth',2)
+yyaxis left; plot(PressureArray,MaxEloopArray_Passive, 'r', 'LineWidth',2)
+%legend(gca,LegendString, 'Location','northwest'); legend boxoff;
+xlabel(gca,'Pressure P [Torr]');
+ylabel(gca,'E_{min} for Breakdown [V/m]');
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 set(gca,'XLim',[2.5e-6 1e-3]);
 set(gca,'YLim',[0.1 100]);
 set(gca, 'FontSize', 18, 'LineWidth', 0.75);
+set(gca,'ycolor','r') 
+%%%%%
+yyaxis right; plot(PressureArray,TauBDArray_Passive, 'b', 'LineWidth',2)
+legend(gca,LegendString, 'Location','northwest'); legend boxoff;
+ylabel(gca,'Avalanche Timescale \tau_{bd} [s]');
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+set(gca,'YLim',[0.001 100]);
+set(gca, 'FontSize', 18, 'LineWidth', 0.75);
+set(gca,'ycolor','b') 
+%%%%%
 Filename = '_PaschenCurves_01';
 saveas(gcf, strcat(SimDir,ShotName,Filename,FigExt));
 close all
@@ -1259,17 +1318,17 @@ DynamicDir = strcat(ASCIIDir,'Current_Data/'); mkdir(DynamicDir);
 
 Filename = strcat(DynamicDir,'Time.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s\r\n', 'time_adaptive [ms]');         %, 'time_linear [ms]');     %Add time_linear here, but array sizes are different
-fprintf(fileID,'%1.12f\r\n', time_adaptive'*1000);      %, time_linear'*1000);      %Writes column-aligned data of (len(adapt)+len(linear))/2
+fprintf(fileID,'%s\r\n',    'time_adaptive [ms]');      %, 'time_linear [ms]');     %Add time_linear here, but array sizes are different
+fprintf(fileID,'%1.12f\r\n', time_adaptive'*1000);      %, time_linear'*1000);      %If added it writes column-aligned data of (len(adapt)+len(linear))/2
 
 Filename = strcat(DynamicDir,'IPlasma.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Ip_output [A]');
+fprintf(fileID,'%s %s\r\n',         'time_adaptive [ms]','Ip_output [A]');
 fprintf(fileID,'%1.12f %1.12f\r\n', [time_adaptive'*1000; Ip_output']);
 
 Filename = strcat(DynamicDir,'IPassive1D.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s\r\n', 'time_adaptive [ms]','Net_I_Passive [A]');
+fprintf(fileID,'%s %s\r\n',         'time_adaptive [ms]','Net_I_Passive [A]');
 fprintf(fileID,'%1.12f %1.12f\r\n', [time_adaptive'*1000; Net_IPassive']);
 
 Filename = strcat(DynamicDir,'IPassive2D.txt');
@@ -1277,8 +1336,8 @@ Filename = strcat(DynamicDir,'IPassive2D.txt');
 
 Filename = strcat(DynamicDir,'VLoop.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s %s\r\n', 'time_adaptive [ms]','Vloop [V]','Eloop [V/m]','DeltaPhi [Vs]');
-fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', [time_adaptive'*1000, VloopArray_Passive', EloopArray_Passive', DeltaPhiSolArray_Passive']);
+fprintf(fileID,'%s %s %s %s\r\n',                 'time_adaptive [ms]','Vloop [V]',         'Eloop [V/m]',       'DeltaPhi [Vs]');
+fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f\r\n', [time_adaptive'*1000; VloopArray_Passive'; EloopArray_Passive'; DeltaPhiArray_Passive']);
 
 %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%          %%%%%%%%%%
 
@@ -1305,8 +1364,8 @@ fprintf(fileID,'%1.12f %1.12f\r\n', EquilParams_Passive.betap', EquilParams_Pert
 
 Filename = strcat(ASCIIDir,'BDMetrics.txt');
 fileID=fopen(Filename,'w');
-fprintf(fileID,'%s %s %s\r\n', 'Lc [m]', 'TauBD [ms]', 'Eloop_eff [V/m]');
-fprintf(fileID,'%1.12f %1.12f %1.12f\r\n', Lc_Passive, TauBD_Passive*1000', Eloop_eff_Passive');
+fprintf(fileID,'%s %s %s %s %s\r\n',                    'Lc [m]',   'TauBD [ms]',        'Vloop_max [V]', 'Eloop_max [V/m]', 'Eloop_eff [V/m]');
+fprintf(fileID,'%1.12f %1.12f %1.12f %1.12f %1.12f\r\n', Lc_Passive, TauBD_Passive*1000', Vloop_Passive,   Eloop_Passive,     Eloop_eff_Passive');
 
 Filename = strcat(ASCIIDir,'MaxStress.txt');
 fileID=fopen(Filename,'w');
@@ -1354,10 +1413,10 @@ disp([ ' ' ]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%      FUNCTIONS      %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%{
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TESTING ZONE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%{
 %Transpose initial coil currents
 CoilCurrents = transpose(CoilWaveforms_Init(:,5));
 icoil = fiesta_icoil(coilset, CoilCurrents); 
@@ -1373,11 +1432,102 @@ Equilibrium = fiesta_equilibrium('SMART', config, -Irod, jprofile, control, efit
 EquilParams = parameters(Equilibrium)
 
 plot(Equilibrium)
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%{       
+%%
+%Create icoil object from input coil waveforms
+CoilCurrents = transpose(CoilWaveforms(:,5));
+icoil = fiesta_icoil(coilset, CoilCurrents); 
+
+%Efit outputs coil currents resulting from the supplied jprofile, icoil and geometry
+%Returns new currents for the requested coils: {'Coil1, {...}, 'Coiln'}
+config = fiesta_configuration('SMART_config', Grid, coilset);
+control = fiesta_control('diagnose',true, 'quiet',false, 'convergence',1e-4, 'boundary_method',2 );
+[efit_config, signals, weights, index] = efit_shape_controller(config, efitCoils, efitGeometry_Init);
+
+%Compute Jprofile from betaP and Ip employing Topeol type2 model - linear model.
+jprofile = fiesta_jprofile_topeol2( 'Topeol2', betaP, 1, li2, Ip );
+
+%Compute equilibrium (Psi(R,Z)) from the supplied jprofile, icoil and geometry
+Equilibrium = fiesta_equilibrium('SMART', config, Irod, jprofile, control, efit_config, icoil, signals, weights);
+
+%Compute null-field equilibrium using vacuum-field coil currents
+%Equilibrium = fiesta_equilibrium('SMART', config, Irod, icoil);     %Vacuum fields
+
+%Extract the null poloidal and toroidal B-field vector arrays
+[BrData_Equil,BzData_Equil,BPhiData_Equil,BpolData_Equil,BtorData_Equil] = ExtractBField(Equilibrium);
+Btot = sqrt(BrData_Equil.^2 + BzData_Equil.^2 + BPhiData_Equil.^2);
+Btot = log10(real(Btot));
+
+Title = {'SMART B-Field',' '};
+CbarLabel = 'B-Field Magnitude B_{tot} log_{10}([T])';
+Filename = '_Btot';
+PlotEquilibrium({Btot},Title,CbarLabel,strcat(Filename,FigExt))
+%%
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%{
+%%
+%Define fixed or estimated values (these may need explicit calculation)
+Eta = 43;                   %?????                              [?]   Estimation [Lloyd1991]
+ne0 = 1.0;                  %Background electron density        [m-3] Estimation [Lloyd1991] ~1.0 with no pre-ionisation
+BDFraction = 0.15;          %Breakdown fraction @ Coulumb phase [%]   [Lloyd1991]
+nbd = BDFraction*ne;        %Electron density post-breakdown    [m-3] [Lloyd1991]
+neFraction = nbd/ne0;       %Relative breakdown density         [%]   [Lloyd1991]    
+
+%Compute expected pressure and avalanche timescale for breakdown
+Vde = (Eta*Eloop)/Pressure;                             %Electron Drift Speed    [m/s]
+Alpha = 510*Pressure*exp((-1.25e4*Pressure)/abs(Eloop));     %First Townsend coeff    [m-1]
+TauBD = log(neFraction)/(Vde*(Alpha-(1/Lc)) );          %Breakdown time          [s]
+
+minimise = true;
+%Compute minimum pressure and avalanche timescale for breakdown
+if minimise == true
+    PressureLimits = [1e-6, 1e-3]; Resolution = 25000;
+    Pressure_Array = linspace(PressureLimits(1),PressureLimits(2),Resolution);
+
+    for i=1:length(Pressure_Array)
+        Alpha_Array(i) = 510*Pressure_Array(i)*exp((-1.25e4*Pressure_Array(i))/abs(Eloop_Passive));
+        Vde_Array(i) = (Eta*abs(Eloop_Passive))/Pressure_Array(i);
+        TauBD_Array(i) = log(neFraction)/(Vde_Array(i)*(Alpha_Array(i)-(1/Lc_Passive)) );
+    end
+    %Take minimum values of Vde, Pres, Tau :: corresponding to the maximum townsend coefficient
+    Alpha = max(Alpha_Array);                                 %Townsend Coeff          [m-1]
+    Vde = Vde_Array( Alpha_Array==Alpha );                    %Electron Drift Speed    [m/s]
+    Pressure = Pressure_Array( Alpha_Array==Alpha );          %Townsend coeff          [m-1]
+    TauBD = TauBD_Array( Alpha_Array==Alpha )*1000            %Breakdown time          [s]
+    plot(Pressure_Array,TauBD_Array); hold on
+    plot(Pressure_Array,Alpha_Array)
+end
+%%
+%}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%}
+
+
+
+
+
+
+
+
+
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CORE FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1530,8 +1680,10 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     
     %Set breakdown time and prepare Ip_long and Vp_long for voltage driven Ip
     %NOTE: Time_Breakdown should really be set to avalanche timescale, although zero is probably close enough...
-    Time_Breakdown = 0;                                          %Set time for plasma breakdown (default 0)
-    Time_Plasma = Time_Adaptive > Time_Breakdown;                %Set times for which plasma exists
+    Time_Breakdown = TimeIndices(3);                             %Set time for plasma breakdown (default time = 0, 3rd index)
+    Time_Extinction = TimeIndices(end-1);                        %Set time for plasma extinction (default time = TauP, 2nd last index)
+    Time_Plasma = Time_Adaptive > Time_Breakdown;                %Set times for which plasma exists 
+%   (& Time_Adaptive < Time_Extinction);
     Vp_output(Time_Plasma) = 0;                                  %Set voltage to zero following breakdown
     Vp_long = interp1(Time_Adaptive, Vp_output, Time_Linear);    %Sets Vp_long = 0 when Time_Linear > 0.
     Ip_long = NaN*Vp_long;                                       %Sets Ip_long to 'NaN' array (Voltage Driven)
@@ -1539,7 +1691,15 @@ function [Time_Linear,Time_Adaptive,I_PF_output,V_PF_output,Ip_output,Vp_output,
     %Compute dynamic coil currents employing Voltage Driven Ip
     [ V_PF_output, I_PF_output, I_Passive, Vp_output, Ip_output, figure_handle, matlab2tikz_extraAxisOptions, uFinal, Time_Adaptive ] = ...
         state_space_including_passive_elements_v4( CurlyM, CurlyR, Time_Linear, IPFinput_Continous, VPFinput_Continous, Ip_long, Vp_long, 'adaptive_timesteping',true, 'coil_names',coil_names, 'show_plot',false, 'turns',coilturns, 'currentScale',1e3, 'PF_colors',PF_colors );
-
+    
+    %Remove plasma currents below zero as a fudge to include extinction
+    %!!! SUPER HOT FUDGY FUDGE FUDGE !!!
+    for i=1:length(Ip_output)
+        if Ip_output(i) < 0.0
+            Ip_output(i) = 0.0;
+        end
+    end
+    
     %Clean up before returning to main code
     close all
 end
@@ -2201,7 +2361,7 @@ end
 
 %Induced loop voltage and E-field calculator 
 %Assumes induced field arises purely from solenoid ramp-down
-function [Vloop,Eloop,DeltaPhi,VloopArray,EloopArray,DeltaPhiArray]=...
+function [Vloop,Eloop,VloopArray,EloopArray,DeltaPhiArray,PhiArray]=...
     LoopVoltage(CoilCurrents,AdaptiveTime,RSol,ZMaxSol,ZMinSol,RLoop)
 
     %Obtain required global variables
@@ -2226,23 +2386,28 @@ function [Vloop,Eloop,DeltaPhi,VloopArray,EloopArray,DeltaPhiArray]=...
         dIdtArray(i-1) = dI/dt;                                 %Delta solenoid current [A/s]
         
         %Compute induced voltage during solenoid ramp-down and associated E-field at RLoop
-        VloopArray(i-1) = IAreaLoop*((mu0*dIdtArray(i-1)*coilturns(iSol))/SolLength);   %Solenoid induced loop voltage [V] 
-        EloopArray(i-1) = VloopArray(i-1)/VLoopLength;                                  %Solenoid induced toroidal E-field [V/m]
-        DeltaPhiArray(i-1) = VloopArray(i-1)*dt;                                        %Solenoid magnetic flux [Vs]
+        VloopArray(i-1) = IAreaLoop*((mu0*dIdtArray(i-1)*coilturns(iSol))/SolLength)*(-1);  %Solenoid induced loop voltage [V] 
+        EloopArray(i-1) = VloopArray(i-1)/VLoopLength;                                      %Solenoid induced toroidal E-field [V/m]
+        DeltaPhiArray(i-1) = VloopArray(i-1)*dt;                                            %Solenoid magnetic flux [Vs]
     end
-    VloopArray = transpose(VloopArray);
-    EloopArray = transpose(EloopArray);
-    DeltaPhiArray = transpose(DeltaPhiArray);
+    VloopArray = transpose(VloopArray);         %[V]
+    EloopArray = transpose(EloopArray);         %[V/m]
+    DeltaPhiArray = transpose(DeltaPhiArray);   %[Vs]
+    
+    %Sum total magnetic flux used at each point in time
+    for i=1:length(DeltaPhiArray)
+        PhiArray(i) = sum( abs(DeltaPhiArray(1:i)) );   %[Vs]
+    end
     
     %Extract maximum loop voltage, toroidal E-field and solenoid magnetic flux during solenoid ramp-down
     [dIdt,Index] = min(dIdtArray);          %Maximum negative Sol current ramp [A/t]
     Vloop = VloopArray(Index);              %Loop voltage at maximum negative solenoid ramp [V]
     Eloop = EloopArray(Index);              %Loop E-field at maximum negative solenoid ramp [V/m]
-    DeltaPhi = DeltaPhiArray(Index);        %Solenoid flux swing [Vs]
     
     %NOTE :: MAXIMUM POSSIBLE SOLENOID MAGNETIC FLUX
-    %(mu0*pi*ncoil*RSol^2)/(HeightSol*2*MaxISol)               %Assume one linear ramp [Vs]
-    %(((mu0*pi*nSol*RSolCentreWinding^2)/(ZMaxSol*2))*2*12500)  %Sanity check ~ 0.263   [Vs]
+    %MaxDeltaISol = abs(MinISol) + abs(MaxISol)
+    %(mu0*pi*ncoil*RSol^2)/(HeightSol*2*MaxDeltaISol)               %Assume one linear ramp [Vs]
+    %(((mu0*pi*nSol*RSolCentreWinding^2)/(ZMaxSol*2))*2*12500)      %Sanity check ~ 0.263   [Vs]    Phase3
 end
 
 
@@ -2250,14 +2415,14 @@ end
 
 %Compute breakdown (avalanche) timescale at given pressure
 %Assumes fixed pre-ionisation electron density and breakdown fraction
-function [TauBD,Pressure,Alpha,Vde]=...
+function [TauBD_Array,TauBD,Pressure,Alpha,Vde]=...
     AvalancheTimescale(Pressure,Eloop,Lc,ne,ne0,minimise)
     %%% Notes ::
     %If tauBD approaches zero from negative value then Alpha^{-1} [m] < Lc [m] and breakdown is impossible
     %   In this case, TauBD will cross the X-axis at ne0 = BreakdownFrac*ne
     %   Notably, the growth rate is negative, so TauBD increases with ne0
     %If TauBD approaches zero from positive value then Alpha^{-1} [m] > Lc [m] and breakdown is possible
-    %   In this case, TauBd will approach zero with increasing ne0
+    %   In this case, TauBD will approach zero with increasing ne0
     %   Notably, the growth rate is positive, so TauBD decreases with ne0
     %   This data can be used to set a lower limit for the breakdown timescale (TauR1) for a given pre-ionisation density (ne0)
     %%%
@@ -2279,18 +2444,19 @@ function [TauBD,Pressure,Alpha,Vde]=...
     neFraction = nbd/ne0;       %Relative breakdown density         [%]   [Lloyd1991]    
 
     %Compute expected pressure and avalanche timescale for breakdown
-    Vde = (Eta*Eloop)/Pressure;                             %Electron Drift Speed    [m/s]
-    Alpha = 510*Pressure*exp((-1.25e4*Pressure)/Eloop);     %First Townsend coeff    [m-1]
-    TauBD = log(neFraction)/(Vde*(Alpha-(1/Lc)) );   %Breakdown time          [s]
+    Vde = (Eta*abs(Eloop))/Pressure;                             %Electron Drift Speed    [m/s]
+    Alpha = 510*Pressure*exp((-1.25e4*Pressure)/abs(Eloop));     %First Townsend coeff    [m-1]
+    TauBD = log(neFraction)/(Vde*(Alpha-(1/Lc)) );               %Breakdown time          [s]
 
     %Compute minimum pressure and avalanche timescale for breakdown
     if minimise == true
-        PressureLimits = [1e-6, 1e-3]; Resolution = 25000;
-        Pressure_Array = linspace(PressureLimits(1),PressureLimits(2),Resolution);
+        PressureLimits = [1e-6, 1e-3]; PressureResolution = 25000;
+        Pressure_Array = linspace(PressureLimits(1),PressureLimits(2),PressureResolution);
 
+ 		%Note, Alpha Array exponent must be negative! (i.e. pressure and Eloop must be positive) 
         for i=1:length(Pressure_Array)
-            Alpha_Array(i) = 510*Pressure_Array(i)*exp((-1.25e4*Pressure_Array(i))/Eloop);
-            Vde_Array(i) = (Eta*Eloop)/Pressure_Array(i);
+            Alpha_Array(i) = 510*Pressure_Array(i)*exp((-1.25e4*Pressure_Array(i))/abs(Eloop));
+            Vde_Array(i) = (Eta*abs(Eloop))/Pressure_Array(i);
             TauBD_Array(i) = log(neFraction)/(Vde_Array(i)*(Alpha_Array(i)-(1/Lc)) );
         end
         %Take minimum values of Vde, Pres, Tau :: corresponding to the maximum townsend coefficient
@@ -2559,6 +2725,11 @@ function fig=PlotEquilibrium(Arrays,Title,CbarLabel,SaveString)
             contourf(rGrid,zGrid,Arrays{i});
         end
     end
+    
+    %Plot Geometric Information
+%    plot(EquilParams.r0_geom, EquilParams.z0_geom, 'x', 'MarkerEdgeColor','k', 'MarkerSize',8)	%Geometric Axis         (Geometric Axis = Rgeo)
+%    plot(EquilParams.r0, EquilParams.z0, 'x', 'MarkerEdgeColor','r', 'MarkerSize',8)            %Radius of Max Flux     (Magnetic Axis = r0)
+%    plot(EquilParams.r0_j, EquilParams.z0_j, 'o', 'MarkerEdgeColor','b', 'MarkerSize',8)       %Radius of Max Current  (Current Axis = r0_j)
     
     %Plot Vessel and Coilset
     fil = plot(vessel); set(fil, 'FaceColor',[150 150 150]/255); set(fil, 'EdgeColor', [150 150 150]/255);
